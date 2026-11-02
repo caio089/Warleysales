@@ -23,14 +23,14 @@ begin
   end loop;
 end $$;
 
-create policy processes_select on public.administrative_processes for select to authenticated using (public.has_council_access(council_id));
-create policy attachments_select on public.attachments for select to authenticated using (public.has_council_access(council_id));
-create policy stock_balances_select on public.stock_balances for select to authenticated using (public.has_council_access(council_id));
-create policy stock_movements_select on public.stock_movements for select to authenticated using (public.has_council_access(council_id));
-create policy atas_select on public.price_registration_atas for select to authenticated using (public.has_council_access(council_id));
-create policy contracts_select on public.contracts for select to authenticated using (public.has_council_access(council_id));
-create policy purchase_requests_select on public.purchase_requests for select to authenticated using (public.has_council_access(council_id));
-create policy meetings_select on public.meetings for select to authenticated using (public.has_council_access(council_id));
+create policy processes_select on public.administrative_processes for select to authenticated using (private.has_council_access(council_id));
+create policy attachments_select on public.attachments for select to authenticated using (private.has_council_access(council_id));
+create policy stock_balances_select on public.stock_balances for select to authenticated using (private.has_council_access(council_id));
+create policy stock_movements_select on public.stock_movements for select to authenticated using (private.has_council_access(council_id));
+create policy atas_select on public.price_registration_atas for select to authenticated using (private.has_council_access(council_id));
+create policy contracts_select on public.contracts for select to authenticated using (private.has_council_access(council_id));
+create policy purchase_requests_select on public.purchase_requests for select to authenticated using (private.has_council_access(council_id));
+create policy meetings_select on public.meetings for select to authenticated using (private.has_council_access(council_id));
 
 -- Tabelas filhas/auxiliares: RLS ligada SEM políticas => acesso direto negado; somente service_role lê/escreve.
 do $$
@@ -47,7 +47,7 @@ end $$;
 
 -- Transferências visíveis para origem e destino.
 create policy transfers_select on public.stock_transfers for select to authenticated
-  using (public.has_council_access(origin_council_id) or public.has_council_access(destination_council_id));
+  using (private.has_council_access(origin_council_id) or private.has_council_access(destination_council_id));
 
 -- Notificações: cada usuário lê as suas.
 create policy notifications_select on public.notifications for select to authenticated using (recipient_id = (select auth.uid()));

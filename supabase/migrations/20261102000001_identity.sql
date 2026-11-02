@@ -75,37 +75,43 @@ revoke all on function public.handle_new_user() from public, anon, authenticated
 create trigger on_auth_user_created after insert on auth.users
   for each row execute function public.handle_new_user();
 
+-- Schema privado: NÃO exposto pela Data API (PostgREST). Os helpers SECURITY DEFINER ficam aqui para não
+-- virarem RPCs públicas (advisor 0029). As políticas RLS os chamam como o usuário autenticado (usage + execute).
+create schema private;
+revoke all on schema private from public, anon;
+grant usage on schema private to authenticated, service_role;
+
 -- Helpers de autorização (leem apenas tabelas protegidas, nunca metadados do JWT).
-create function public.is_central_admin() returns boolean
+create function private.is_central_admin() returns boolean
 language sql stable security definer set search_path = '' as $$
   select coalesce((select p.is_central_admin and p.active
                    from public.profiles p where p.id = (select auth.uid())), false)
 $$;
 
-create function public.has_council_access(target_council uuid) returns boolean
+create function private.has_council_access(target_council uuid) returns boolean
 language sql stable security definer set search_path = '' as $$
-  select public.is_central_admin() or exists (
+  select private.is_central_admin() or exists (
     select 1 from public.council_memberships m
     join public.profiles p on p.id = m.user_id
     where m.user_id = (select auth.uid()) and m.council_id = target_council and p.active)
 $$;
 
-create function public.has_council_role(target_council uuid, allowed public.council_role[])
+create function private.has_council_role(target_council uuid, allowed public.council_role[])
 returns boolean
 language sql stable security definer set search_path = '' as $$
-  select public.is_central_admin() or exists (
+  select private.is_central_admin() or exists (
     select 1 from public.council_memberships m
     join public.profiles p on p.id = m.user_id
     where m.user_id = (select auth.uid()) and m.council_id = target_council
       and m.role = any (allowed) and p.active)
 $$;
 
-revoke all on function public.is_central_admin() from public, anon;
-revoke all on function public.has_council_access(uuid) from public, anon;
-revoke all on function public.has_council_role(uuid, public.council_role[]) from public, anon;
-grant execute on function public.is_central_admin() to authenticated;
-grant execute on function public.has_council_access(uuid) to authenticated;
-grant execute on function public.has_council_role(uuid, public.council_role[]) to authenticated;
+revoke all on function private.is_central_admin() from public, anon;
+revoke all on function private.has_council_access(uuid) from public, anon;
+revoke all on function private.has_council_role(uuid, public.council_role[]) from public, anon;
+grant execute on function private.is_central_admin() to authenticated;
+grant execute on function private.has_council_access(uuid) to authenticated;
+grant execute on function private.has_council_role(uuid, public.council_role[]) to authenticated;
 
 -- RLS
 alter table public.profiles enable row level security;
@@ -115,7 +121,7 @@ alter table public.audit_logs enable row level security;
 
 -- profiles: o próprio usuário ou admin central lê; ninguém altera flags de privilégio via API.
 create policy profiles_select on public.profiles for select to authenticated
-  using (id = (select auth.uid()) or public.is_central_admin());
+  using (id = (select auth.uid()) or private.is_central_admin());
 create policy profiles_update_self on public.profiles for update to authenticated
   using (id = (select auth.uid())) with check (id = (select auth.uid()));
 -- Bloqueia escalada de privilégio: colunas sensíveis só via service_role.
@@ -123,18 +129,18 @@ revoke update on public.profiles from authenticated;
 grant update (full_name) on public.profiles to authenticated;
 
 create policy councils_select on public.councils for select to authenticated
-  using (public.has_council_access(id));
+  using (private.has_council_access(id));
 create policy councils_admin_write on public.councils for all to authenticated
-  using (public.is_central_admin()) with check (public.is_central_admin());
+  using (private.is_central_admin()) with check (private.is_central_admin());
 
 create policy memberships_select on public.council_memberships for select to authenticated
-  using (user_id = (select auth.uid()) or public.is_central_admin());
+  using (user_id = (select auth.uid()) or private.is_central_admin());
 create policy memberships_admin_write on public.council_memberships for all to authenticated
-  using (public.is_central_admin()) with check (public.is_central_admin());
+  using (private.is_central_admin()) with check (private.is_central_admin());
 
 -- audit_logs: leitura por admin central ou gestor do conselho; escrita só por serviço (service_role).
 create policy audit_select on public.audit_logs for select to authenticated
-  using (public.is_central_admin()
+  using (private.is_central_admin()
          or (council_id is not null
-             and public.has_council_role(council_id, array['council_manager']::public.council_role[])));
+             and private.has_council_role(council_id, array['council_manager']::public.council_role[])));
 revoke insert, update, delete on public.audit_logs from authenticated, anon;
