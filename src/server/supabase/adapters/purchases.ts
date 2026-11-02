@@ -1,8 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PurchaseRequestStatus } from "@/modules/purchases/domain/request-status";
-import type { PurchaseRequestRepository } from "@/modules/purchases/repository";
+import type { AtomicDecision, PurchaseRequestRepository } from "@/modules/purchases/repository";
 import type { PurchaseRequest } from "@/modules/purchases/schemas";
-import { callRpc, selectAll, toDate, toIso, toNumber, unwrap } from "../db";
+import { fail, ok, type Result } from "@/shared/lib/result";
+import { callRpc, rpcOutcomeToResult, type RpcOutcome, selectAll, toDate, toIso, toNumber, unwrap } from "../db";
 
 interface RequestRow {
   id: string;
@@ -66,6 +67,26 @@ export class SupabasePurchaseRequestRepository implements PurchaseRequestReposit
   async save(request: PurchaseRequest) {
     await callRpc(this.db, "save_purchase_request", { p: toPayload(request) });
     return request;
+  }
+
+  /** Aprovação com compromisso de ata em UMA transação (RPC `approve_purchase_request`). */
+  async approveAtomically(decision: AtomicDecision): Promise<Result<PurchaseRequest>> {
+    return this.runDecision("approve_purchase_request", decision);
+  }
+
+  /** Cancelamento com devolução do saldo comprometido em UMA transação (RPC `cancel_purchase_request`). */
+  async cancelAtomically(decision: AtomicDecision): Promise<Result<PurchaseRequest>> {
+    return this.runDecision("cancel_purchase_request", decision);
+  }
+
+  private async runDecision(functionName: string, decision: AtomicDecision): Promise<Result<PurchaseRequest>> {
+    const outcome = await callRpc<RpcOutcome>(this.db, functionName, {
+      p_request: decision.requestId, p_actor: decision.actorId, p_at: toIso(decision.at), p_note: decision.note ?? null,
+    });
+    const result = rpcOutcomeToResult(outcome);
+    if (!result.ok) return result;
+    const saved = await this.findById(decision.requestId);
+    return saved ? ok(saved) : fail("NOT_FOUND", "Solicitação não encontrada.");
   }
 
   async findById(id: string) {

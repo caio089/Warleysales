@@ -96,13 +96,21 @@ export class AtaService {
    * Compromete saldo de um item (chamado por solicitações aprovadas, já autorizadas).
    * Atômico: valida contra o ledger sob lock e grava o evento (R9).
    */
-  async commitInternal(params: { itemId: string; councilId: string; quantity: number; reference: string }): Promise<Result<AtaBalance>> {
-    const ata = await this.repository.findByItemId(params.itemId);
+  /** Verifica se o item aceita novos comprometimentos (ata vigente e não vencida). O saldo é conferido sob lock na gravação. */
+  async checkCommittable(itemId: string): Promise<Result<true>> {
+    const ata = await this.repository.findByItemId(itemId);
     if (!ata) return fail("NOT_FOUND", "Item de ata não encontrado.");
     if (ata.status !== "vigente") return fail("INVALID_STATE", "A ata não está vigente; rascunho não consome saldo.");
     if (ataValidityStatus(currentEndDate(ata.startDate, ata.extensions), toFortalezaDate(this.runtime.now())) === "vencida") {
       return fail("INVALID_STATE", "A ata está vencida e não aceita novos comprometimentos.");
     }
+    return ok(true);
+  }
+
+  async commitInternal(params: { itemId: string; councilId: string; quantity: number; reference: string }): Promise<Result<AtaBalance>> {
+    const committable = await this.checkCommittable(params.itemId);
+    if (!committable.ok) return committable;
+    const ata = (await this.repository.findByItemId(params.itemId))!;
     const item = ata.items.find((i) => i.id === params.itemId)!;
 
     const result = await this.repository.appendEventAtomically(params.itemId, (events) => {

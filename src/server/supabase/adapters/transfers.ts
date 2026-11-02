@@ -1,8 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { TransferStatus } from "@/modules/transfers/domain/transfer";
-import type { TransferRepository } from "@/modules/transfers/repository";
+import type { AtomicTransferStep, TransferRepository } from "@/modules/transfers/repository";
 import type { Transfer } from "@/modules/transfers/schemas";
-import { callRpc, selectAll, toDate, toIso, toNumber, unwrap } from "../db";
+import { fail, ok, type Result } from "@/shared/lib/result";
+import { callRpc, rpcOutcomeToResult, type RpcOutcome, selectAll, toDate, toIso, toNumber, unwrap } from "../db";
 
 interface TransferRow {
   id: string;
@@ -47,6 +48,18 @@ export class SupabaseTransferRepository implements TransferRepository {
   async save(transfer: Transfer) {
     await callRpc(this.db, "save_transfer", { p: toPayload(transfer) });
     return transfer;
+  }
+
+  /** Avanço com efeito de estoque de todos os materiais em UMA transação (RPC `advance_transfer`). */
+  async advanceAtomically(step: AtomicTransferStep): Promise<Result<Transfer>> {
+    const outcome = await callRpc<RpcOutcome>(this.db, "advance_transfer", {
+      p_transfer: step.transferId, p_to: step.to, p_actor: step.actorId, p_at: toIso(step.at), p_note: step.note ?? null,
+      p_received: step.received ?? null,
+    });
+    const result = rpcOutcomeToResult(outcome);
+    if (!result.ok) return result;
+    const saved = await this.findById(step.transferId);
+    return saved ? ok(saved) : fail("NOT_FOUND", "Transferência não encontrada.");
   }
 
   async findById(id: string) {

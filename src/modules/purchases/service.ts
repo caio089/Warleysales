@@ -59,6 +59,18 @@ export class PurchaseRequestService {
     const valid = changeRequestStatus(request.status, "aprovada");
     if (!valid.ok) return valid;
 
+    // Caminho transacional (Supabase): todas as linhas de ata, status e evento em uma única transação SQL.
+    if (this.repository.approveAtomically) {
+      for (const item of request.items.filter((i) => i.ataItemId)) {
+        const committable = await this.atas.checkCommittable(item.ataItemId!);
+        if (!committable.ok) return committable;
+      }
+      const saved = await this.repository.approveAtomically({ requestId: request.id, actorId: actor.userId, at: this.runtime.now(), note: parsed.data.note });
+      if (!saved.ok) return saved;
+      await this.recordTransition(request, "aprovada", actor, parsed.data.note);
+      return ok(saved.data);
+    }
+
     const committed: { itemId: string; quantity: number }[] = [];
     for (const item of request.items.filter((i) => i.ataItemId)) {
       const result = await this.atas.commitInternal({ itemId: item.ataItemId!, councilId: request.councilId, quantity: item.quantity, reference: `request:${request.id}` });
@@ -83,6 +95,13 @@ export class PurchaseRequestService {
     if (!allowed.ok) return allowed;
     const valid = changeRequestStatus(request.status, "cancelada");
     if (!valid.ok) return valid;
+
+    if (this.repository.cancelAtomically) {
+      const saved = await this.repository.cancelAtomically({ requestId: request.id, actorId: actor.userId, at: this.runtime.now(), note: parsed.data.note });
+      if (!saved.ok) return saved;
+      await this.recordTransition(request, "cancelada", actor, parsed.data.note);
+      return ok(saved.data);
+    }
 
     if (request.status === "aprovada") {
       for (const item of request.items.filter((i) => i.ataItemId)) {
@@ -174,7 +193,12 @@ export class PurchaseRequestService {
 
   private async transition(request: PurchaseRequest, to: PurchaseRequestStatus, actor: Actor, note?: string): Promise<PurchaseRequest> {
     const saved = await this.repository.save({ ...request, status: to, events: [...request.events, { from: request.status, to, actorId: actor.userId, at: this.runtime.now(), note }] });
-    await this.audit.record({ actorId: actor.userId, action: `request.${to}`, entity: "purchase_request", entityId: request.id, councilId: request.councilId, result: "success", details: { from: request.status, note } });
+    await this.recordTransition(request, to, actor, note);
     return saved;
+  }
+
+  /** Auditoria da transição (o estado já foi persistido, inclusive pelos caminhos transacionais). */
+  private async recordTransition(request: PurchaseRequest, to: PurchaseRequestStatus, actor: Actor, note?: string): Promise<void> {
+    await this.audit.record({ actorId: actor.userId, action: `request.${to}`, entity: "purchase_request", entityId: request.id, councilId: request.councilId, result: "success", details: { from: request.status, note } });
   }
 }

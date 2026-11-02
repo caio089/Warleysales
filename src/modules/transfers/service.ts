@@ -91,6 +91,16 @@ export class TransferService {
     const valid = changeTransferStatus(transfer.status, to);
     if (!valid.ok) return valid;
 
+    // Caminho transacional (Supabase): efeitos de estoque de todos os materiais + status + evento em uma transação SQL.
+    if (this.transfers.advanceAtomically) {
+      const step = await this.transfers.advanceAtomically({
+        transferId: transfer.id, to, actorId: actor.userId, at: this.runtime.now(), note: parsed.data.note, received: parsed.data.received,
+      });
+      if (!step.ok) return step;
+      await this.recordAdvance(transfer, to, actor);
+      return ok(step.data);
+    }
+
     const applied = await this.applyStockEffects(transfer, to, parsed.data.received);
     if (!applied.ok) return applied;
 
@@ -101,8 +111,12 @@ export class TransferService {
       items,
       events: [...transfer.events, { from: transfer.status, to, actorId: actor.userId, at: this.runtime.now(), note: parsed.data.note }],
     });
-    await this.audit.record({ actorId: actor.userId, action: `transfer.${to}`, entity: "stock_transfer", entityId: transfer.id, councilId: transfer.originCouncilId, result: "success", details: { from: transfer.status } });
+    await this.recordAdvance(transfer, to, actor);
     return ok(updated);
+  }
+
+  private async recordAdvance(transfer: Transfer, to: TransferStatus, actor: Actor): Promise<void> {
+    await this.audit.record({ actorId: actor.userId, action: `transfer.${to}`, entity: "stock_transfer", entityId: transfer.id, councilId: transfer.originCouncilId, result: "success", details: { from: transfer.status } });
   }
 
   /** Executa os efeitos item a item; falha no meio compensa o que já foi aplicado. */

@@ -1,4 +1,5 @@
 import { log } from "@/shared/lib/logger";
+import { fail, ok, type Result } from "@/shared/lib/result";
 
 /** Forma mínima de erro do PostgREST (evita acoplar os adapters ao tipo interno da biblioteca). */
 export interface DbErrorShape {
@@ -60,4 +61,17 @@ export async function callRpc<T>(
   args: Record<string, unknown>,
 ): Promise<T> {
   return unwrap(`rpc.${functionName}`, await db.rpc(functionName, args));
+}
+
+/** Retorno padrão das RPCs transacionais: `{ ok: true }` ou `{ ok: false, code, message }` (falha de negócio, já desfeita). */
+export type RpcOutcome = { ok: true } | { ok: false; code: string; message: string };
+
+const BUSINESS_CODES = ["VALIDATION", "NOT_FOUND", "CONFLICT", "INVALID_STATE", "INSUFFICIENT_BALANCE"] as const;
+type BusinessCode = (typeof BUSINESS_CODES)[number];
+
+/** Converte o retorno da RPC em Result; códigos desconhecidos viram INVALID_STATE (mensagem de negócio, nunca SQL). */
+export function rpcOutcomeToResult(outcome: RpcOutcome): Result<true> {
+  if (outcome.ok) return ok(true);
+  const code = (BUSINESS_CODES as readonly string[]).includes(outcome.code) ? (outcome.code as BusinessCode) : "INVALID_STATE";
+  return fail(code, outcome.message);
 }

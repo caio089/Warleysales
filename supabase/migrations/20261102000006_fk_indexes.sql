@@ -1,0 +1,32 @@
+-- Migration 0006: índices nas chaves estrangeiras sem índice de cobertura (advisor de performance 0001).
+-- Gerado a partir de pg_constraint no banco validado; acelera JOINs, RLS e ON DELETE.
+create index if not exists idx_administrative_processes_created_by on public.administrative_processes (created_by);
+create index if not exists idx_ata_allocations_council_id on public.ata_allocations (council_id);
+create index if not exists idx_ata_commitments_council_id on public.ata_commitments (council_id);
+create index if not exists idx_ata_extensions_requested_by on public.ata_extensions (requested_by);
+create index if not exists idx_ata_items_material_id on public.ata_items (material_id);
+create index if not exists idx_attachments_council_id on public.attachments (council_id);
+create index if not exists idx_attachments_type_code on public.attachments (type_code);
+create index if not exists idx_attachments_uploaded_by on public.attachments (uploaded_by);
+create index if not exists idx_audit_logs_actor_id on public.audit_logs (actor_id);
+create index if not exists idx_contracts_supplier_id on public.contracts (supplier_id);
+create index if not exists idx_councils_responsible_user_id on public.councils (responsible_user_id);
+create index if not exists idx_document_cleanup_runs_process_id on public.document_cleanup_runs (process_id);
+create index if not exists idx_meeting_action_items_meeting_id on public.meeting_action_items (meeting_id);
+create index if not exists idx_meeting_action_items_responsible_id on public.meeting_action_items (responsible_id);
+create index if not exists idx_meetings_created_by on public.meetings (created_by);
+create index if not exists idx_meetings_minutes_registered_by on public.meetings (minutes_registered_by);
+create index if not exists idx_price_registration_atas_supplier_id on public.price_registration_atas (supplier_id);
+create index if not exists idx_purchase_request_events_actor_id on public.purchase_request_events (actor_id);
+create index if not exists idx_purchase_request_items_ata_item_id on public.purchase_request_items (ata_item_id);
+create index if not exists idx_purchase_request_items_material_id on public.purchase_request_items (material_id);
+create index if not exists idx_purchase_requests_created_by on public.purchase_requests (created_by);
+create index if not exists idx_retention_authorizations_authorized_by on public.retention_authorizations (authorized_by);
+create index if not exists idx_retention_holds_created_by on public.retention_holds (created_by);
+create index if not exists idx_stock_balances_material_id on public.stock_balances (material_id);
+create index if not exists idx_stock_movements_actor_id on public.stock_movements (actor_id);
+create index if not exists idx_stock_movements_material_id on public.stock_movements (material_id);
+create index if not exists idx_stock_transfer_events_actor_id on public.stock_transfer_events (actor_id);
+create index if not exists idx_stock_transfer_items_material_id on public.stock_transfer_items (material_id);
+create index if not exists idx_stock_transfers_destination_council_id on public.stock_transfers (destination_council_id);
+create index if not exists idx_stock_transfers_origin_council_id on public.stock_transfers (origin_council_id);

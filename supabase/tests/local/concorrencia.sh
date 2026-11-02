@@ -61,4 +61,21 @@ echo "Idempotência concorrente: movimentos com a chave=$MOVS, físico=$PHYS (es
 
 # Reconciliação: saldo físico == soma assinada do ledger
 $PSQL -c "select balance_physical||'='||ledger_physical from public.v_stock_reconciliation where council_id='$C'"
+
+# advance_transfer concorrente: 8 transferências de 3 unidades competem por 15 disponíveis => exatamente 5 aprovadas
+D=10000000-0000-0000-0000-0000000000dd; U=00000000-0000-0000-0000-0000000000ee
+$PSQL -c "insert into auth.users (id,email) values ('$U','conc@teste.local') on conflict do nothing" >/dev/null
+$PSQL -c "insert into public.councils (id,name,acronym) values ('$D','Destino','DD') on conflict do nothing" >/dev/null
+$PSQL -c "update public.stock_balances set reserved=0 where council_id='$C'" >/dev/null
+for n in $(seq 1 8); do
+  T=$(printf '90000000-0000-0000-0000-%012d' $n)
+  $PSQL -c "insert into public.stock_transfers (id,origin_council_id,destination_council_id,status) values ('$T','$C','$D','em_analise') on conflict do nothing;
+            insert into public.stock_transfer_items (transfer_id,material_id,quantity) values ('$T','$M',3) on conflict do nothing;" >/dev/null
+done
+OUT=$(for n in $(seq 1 8); do T=$(printf '90000000-0000-0000-0000-%012d' $n)
+  $PSQL -c "select (public.advance_transfer('$T'::uuid,'aprovada','$U'::uuid,now()))->>'ok'" 2>&1 & done; wait)
+A=$(echo "$OUT" | grep -c '^true$' || true)
+RES=$($PSQL -c "select reserved from public.stock_balances where council_id='$C' and material_id='$M'")
+echo "advance_transfer concorrente: aprovadas=$A reservado=$RES (esperado 5 e 15.000)"
+[ "$A" = "5" ] && [ "$RES" = "15.000" ] || { echo "FALHA advance_transfer concorrente"; exit 1; }
 echo "OK: concorrência validada"
