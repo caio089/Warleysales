@@ -11,7 +11,8 @@ let cached: Services | null = null;
  * não está configurada: as telas então mostram estado honesto, nunca dados simulados.
  */
 export function getServices(): Services | null {
-  if (!isSupabaseConfigured()) return null;
+  // Os adapters usam service_role: sem a chave, a fonte de dados é considerada não configurada.
+  if (!isSupabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) return null;
   cached ??= createServices(createSupabaseRepositories(), systemRuntime);
   return cached;
 }

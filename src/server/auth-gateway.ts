@@ -8,6 +8,8 @@ import { supabaseAuthGateway } from "./supabase/auth";
 export interface AuthGateway {
   signIn(email: string, password: string): Promise<Result<true>>;
   sendPasswordRecovery(email: string): Promise<Result<true>>;
+  /** Define a senha do usuário com sessão ativa (convite ou recuperação). */
+  updatePassword(password: string): Promise<Result<true>>;
   signOut(): Promise<void>;
 }
 

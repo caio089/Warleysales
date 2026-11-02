@@ -34,6 +34,22 @@ export async function requestPasswordRecoveryAction(_previous: ActionState, form
   return { status: "success", message: "Se o e-mail estiver cadastrado, você receberá as instruções de recuperação." };
 }
 
+const newPasswordSchema = z.object({
+  password: z.string().min(10, "A senha deve ter ao menos 10 caracteres.").max(200),
+  confirmation: z.string(),
+}).refine((v) => v.password === v.confirmation, { message: "As senhas não conferem.", path: ["confirmation"] });
+
+/** Define a nova senha (convite/recuperação): exige a sessão criada pelo link do e-mail. */
+export async function updatePasswordAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  const parsed = parseInput(newPasswordSchema, { password: formData.get("password"), confirmation: formData.get("confirmation") });
+  if (!parsed.ok) return { status: "error", message: parsed.message, fieldErrors: parsed.fieldErrors };
+
+  const gateway = getAuthGateway();
+  const result = gateway ? await gateway.updatePassword(parsed.data.password) : authUnavailable();
+  if (!result.ok) return { status: "error", message: result.message };
+  redirect("/dashboard");
+}
+
 export async function signOutAction(): Promise<void> {
   await getAuthGateway()?.signOut();
   redirect("/login");

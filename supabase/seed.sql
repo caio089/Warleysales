@@ -1,0 +1,6 @@
+-- Seed de desenvolvimento. Os 7 tipos documentais já são criados pela migration 0004.
+-- Vinculação do Warley (P1): após o primeiro login do usuário, execute MANUALMENTE (SQL Editor/service_role):
+--   update public.profiles set is_special_deleter = true where id = '<UUID-DO-WARLEY>';
+-- O primeiro administrador central também é definido manualmente:
+--   update public.profiles set is_central_admin = true where id = '<UUID-DO-ADMIN>';
+-- Nenhum usuário é criado por seed: o cadastro é somente por convite (P7).
