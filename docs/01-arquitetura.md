@@ -24,13 +24,18 @@ Camadas e fluxo: `Página/Server Action → runAction/loadScreen → Service (va
 | Ponto | Mecanismo |
 |---|---|
 | Saldo de estoque | `InventoryRepository.transact` → leitura + cálculo em TS + RPC `apply_stock_mutation` (`FOR UPDATE`, checagem de `version`, ledger e saldo na mesma transação; até 6 tentativas em conflito) |
-| Saldo de ata | `appendEventAtomically` → RPC `append_commitment_event` (trava o item, confere que o ledger não mudou) |
+| Saldo de ata | `appendEventAtomically` → RPC `append_commitment_event` (trava o item, confere que o ledger não mudou e que o saldo comporta o evento) |
 | Idempotência | UNIQUE `(conselho, material, idempotency_key)`, `purchase_receipt_keys`, `dedup_key` das notificações, `document_cleanup_runs.key`, `scheduled_job_runs(job, janela)` |
+| Aprovar/cancelar solicitação, avançar transferência | RPCs `approve_purchase_request`, `cancel_purchase_request`, `advance_transfer`: valida sob lock, grava ledger/reservas/status/evento em UMA transação; erro de negócio desfaz tudo e volta como `{ok:false, code, message}` |
+| Anexos | upload direto por URL assinada: `prepareUpload` (anexo pendente + token) → navegador envia ao bucket privado → `confirmUpload` (relê o objeto, confere tamanho, magic bytes e SHA-256) |
 | Agregados (ata, contrato, solicitação, transferência, reunião) | RPCs `save_*` recebem JSON e gravam pai + filhos em uma transação; históricos/aditivos são append-only |
-| Imutabilidade | trigger `forbid_mutation` em `audit_logs`, `stock_movements`, `ata_commitments`, `contract_amendments`, `ata_extensions` |
+| Imutabilidade | trigger `forbid_mutation` (linha e TRUNCATE) em `audit_logs`, `stock_movements`, `ata_commitments`, `contract_amendments`, `ata_extensions` |
 
 ## Sessão e autenticação
 `proxy.ts` renova o token (`@supabase/ssr`). `resolveActorFromSession` valida o JWT com `getClaims()` e carrega papéis em `profiles`/`council_memberships` (nunca `user_metadata`). Convite/recuperação: link do e-mail → `/auth/callback` (troca PKCE, destinos permitidos em lista) → `/redefinir-senha`.
 
 ## Jobs (Vercel Cron)
 `/api/cron/{alertas,reconciliacao,limpeza}` exigem `Authorization: Bearer $CRON_SECRET` (comparação em tempo constante), executam no máximo uma vez por dia civil (America/Fortaleza) por job e registram em `scheduled_job_runs`.
+
+## Banco: privilégios e schema `private`
+Os helpers de RLS (`is_central_admin`, `has_council_access`, `has_council_role`) ficam no schema `private` (não exposto pela Data API), evitando que funções `SECURITY DEFINER` virem RPCs públicas. As roles `anon`/`authenticated` têm só `SELECT` nas tabelas com política RLS (migration 0005 revoga o `ALL` padrão, inclusive `TRUNCATE`); exceção: `UPDATE(full_name)` em `profiles`. Escritas e RPCs são exclusivas do `service_role` (servidor).

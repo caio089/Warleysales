@@ -7,7 +7,7 @@ Métodos `*Internal` e `run*/generate*/reconcile` são chamados por outros servi
 |---|---|
 | `CouncilService` | create, update, list, get |
 | `ProcessService` | create (número `NNN/AAAA` por conselho), get, list, changeStatus, registerClosingReport |
-| `DocumentService` | upload (magic bytes, SHA-256, ≤25 MB), unlink, manualDelete (só special deleter), getDownloadUrl (URL assinada), listByProcess |
+| `DocumentService` | prepareUpload + confirmUpload (upload direto por URL assinada; extensão, tamanho declarado, magic bytes e SHA-256 conferidos no servidor, ≤25 MB); `upload(bytes)` só para uso no servidor/testes, unlink, manualDelete (só special deleter), getDownloadUrl (URL assinada), listByProcess |
 | `RetentionService` | authorizeDisposal, placeHold, runCleanup (job), overview |
 | `InventoryService` | createMaterial, registerMovement (idempotente), setMinimum, listLevels, listMovements, reconcile; internos: apply/reserve/release/dispatchReserved |
 | `TransferService` | request, advance (reserva ao aprovar; baixa/entrada no trânsito/recebimento), list, get |

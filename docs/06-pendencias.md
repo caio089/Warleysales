@@ -6,14 +6,21 @@
 - **P6 – Nomenclatura dos 7 tipos**: provisória (DFD, ETP, MR=Matriz de Riscos, TR, PP, PJ, ED); editar `document_types` e `document-types.ts` quando confirmada.
 - Seções §19, §25 e §29 citadas no pedido não existem em `00-fase1-arquitetura.md`; foram aplicados os padrões seguros documentados.
 
-## Não validado neste ambiente (sem Docker/Supabase)
-- Migrations 0002–0004, RPCs, RLS e adapters Supabase **nunca foram executados contra um banco real** (apenas typecheck/build). Rodar `supabase db reset` e `supabase test db` é o primeiro passo; esperar pequenos ajustes de SQL.
-- Auth real (`getClaims`, convite, recuperação), Storage e cron em produção.
+## O que depende do usuário
+- **Aplicar as migrations no projeto `wdefwnmqcdomupdiorbo`**: nenhuma ferramenta automatizada deste ambiente tem acesso a ele (o conector MCP do Supabase enxerga somente outro projeto e a service role não permite DDL). Passo a passo em `05-operacao-e-deploy.md`; verificação com `npm run db:check`.
+- **`SUPABASE_SERVICE_ROLE_KEY`** na Vercel (e em `.env.local`, já preenchida pelo usuário) e um `CRON_SECRET` próprio de produção.
+- **Auth**: Site URL/Redirect URLs, SMTP, proteção de senha vazada e MFA.
+- **Primeiro admin e UUID do Warley**: SQL em `05-operacao-e-deploy.md` (por e-mail, sem UUID inventado).
+- **P2 tabela de retenção** e **P6 nomenclatura dos 7 tipos** (ver acima).
+
+## Validação (ver `07-validacao-executada.md`)
+- Migrations, RPCs, RLS, testes SQL e concorrência foram executados em um **Postgres 16 local descartável com stub do Supabase**, não no projeto real. Auth real (`getClaims`, convite, recuperação), Storage real (URL assinada de upload), PostgREST e cron em produção continuam **não validados de ponta a ponta**.
 - Sem testes E2E (Playwright) nem teste de carga.
+- Advisors do Supabase (security/performance) só podem ser consultados depois de aplicar as migrations no projeto real.
 
 ## Limitações de projeto
-- **Operações multi-etapa** (aprovar solicitação com várias linhas de ata; avançar transferência com vários materiais) usam compensação em TypeScript, **não** uma única transação SQL. Uma queda entre etapas pode deixar compromisso/reserva órfã; a reconciliação diária detecta divergência de estoque, mas não de ata. Evolução: mover para RPCs únicas.
-- **Upload de anexos** via Server Action (limite configurado 26 MB). Na Vercel o corpo de função é limitado (~4,5 MB), então arquivos grandes falharão em produção: migrar para upload direto ao Storage por URL assinada.
+- **Resolvido**: aprovação/cancelamento de solicitação multi-item e avanço de transferência agora são RPCs SQL únicas (`approve_purchase_request`, `cancel_purchase_request`, `advance_transfer`, migration 0007). Resta o caminho com compensação em TypeScript apenas para o repositório em memória dos testes.
+- **Resolvido**: upload de anexos direto ao Storage por URL assinada (`prepareUpload` → envio do navegador → `confirmUpload` com conferência de tamanho, magic bytes e SHA-256). Anexo pendente/falho não conta no progresso. Pendência menor: anexos `pending` abandonados não são limpos automaticamente (job futuro).
 - `transact` carrega todas as chaves de idempotência do par conselho/material; adequado para o volume esperado, mas deve virar consulta por chave se o ledger crescer muito.
 - `reconcile` faz uma consulta de ledger por saldo (N consultas); usar a view `v_stock_reconciliation` quando o volume crescer.
 - Auditoria lista os 1000 registros mais recentes (sem paginação nem filtro por data na UI).
