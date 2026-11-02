@@ -24,7 +24,10 @@ export function ProgressBar({ value, label, showValue = true, className }: Progr
         className="h-2 flex-1 overflow-hidden rounded-full bg-muted"
       >
         <div
-          className={cn("h-full rounded-full transition-[width]", clamped >= 100 ? "bg-success-foreground" : "bg-primary")}
+          className={cn(
+            "progress-sheen relative h-full overflow-hidden rounded-full transition-[width] duration-700 ease-out",
+            clamped >= 100 ? "bg-highlight" : "bg-primary",
+          )}
           style={{ width: `${clamped}%` }}
         />
       </div>

@@ -17,7 +17,7 @@ export function Toaster() {
   return (
     <div aria-live="polite" aria-atomic="false" className="pointer-events-none fixed right-4 bottom-4 z-[60] flex w-80 flex-col gap-2">
       {toasts.map((t) => (
-        <div key={t.id} role={t.kind === "error" ? "alert" : "status"} className={cn("pointer-events-auto flex items-start gap-2 rounded-lg border p-3 text-sm shadow-md", KIND_CLASSES[t.kind])}>
+        <div key={t.id} role={t.kind === "error" ? "alert" : "status"} className={cn("pointer-events-auto flex items-start gap-2 rounded-xl border p-3 text-sm shadow-[0_16px_40px_-20px_oklch(0.23_0.05_250_/_0.45)]", KIND_CLASSES[t.kind])}>
           <p className="flex-1">{t.message}</p>
           <button type="button" aria-label="Fechar notificação" onClick={() => dismissToast(t.id)} className="rounded focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
             <X className="size-4" aria-hidden />

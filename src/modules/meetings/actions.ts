@@ -32,3 +32,11 @@ export async function saveMinutesFormAction(_previous: ActionState, formData: Fo
   if (result.status === "success") revalidatePath("/reunioes");
   return result.status === "success" ? { status: "success", message: result.message } : result;
 }
+
+export async function addActionItemFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  const result = await runAction(({ services, actor }) => services.meetings.addActionItem(actor, {
+    meetingId: formData.get("meetingId"), description: formData.get("description"), dueDate: formData.get("dueDate") || null,
+  }), "Pendência da reunião registrada.");
+  if (result.status === "success") revalidatePath("/reunioes");
+  return result.status === "success" ? { status: "success", message: result.message } : result;
+}

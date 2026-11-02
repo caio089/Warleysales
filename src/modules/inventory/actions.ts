@@ -21,3 +21,11 @@ export async function registerMovementFormAction(_previous: ActionState, formDat
   if (result.status === "success") { revalidatePath("/estoque"); revalidatePath("/estoque/movimentacoes"); }
   return done(result);
 }
+
+export async function setMinimumFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  const result = await runAction(({ services, actor }) => services.inventory.setMinimum(actor, {
+    councilId: formData.get("councilId"), materialId: formData.get("materialId"), minimum: toNumber(formData.get("minimum")),
+  }), "Estoque mínimo atualizado.");
+  if (result.status === "success") revalidatePath("/estoque");
+  return done(result);
+}

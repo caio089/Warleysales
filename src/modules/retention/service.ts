@@ -21,14 +21,17 @@ export interface CleanupSummary {
 
 const authorizationSchema = z.object({ processId: idSchema, reference: z.string().trim().min(3, "Informe a referência do ato.") });
 const holdSchema = z.object({ processId: idSchema, reason: z.string().trim().min(3, "Informe o motivo.") });
+const releaseHoldSchema = z.object({ holdId: idSchema });
 
 export interface RetentionOverviewRow {
   processId: string;
   councilId: string;
   number: string;
   documentalCompletedAt: Date;
+  closingReportRegistered: boolean;
   action: "not_eligible" | "blocked" | "archive_only" | "eligible_for_disposal";
   reasons: string[];
+  holds: { id: string; reason: string }[];
 }
 
 export class RetentionService {
@@ -67,6 +70,22 @@ export class RetentionService {
     await this.retention.addHold({ id: holdId, processId: process.id, reason: parsed.data.reason, createdBy: actor.userId, releasedAt: null });
     await this.audit.record({ actorId: actor.userId, action: "retention.hold", entity: "administrative_process", entityId: process.id, councilId: process.councilId, result: "success", details: { reason: parsed.data.reason } });
     return ok({ holdId });
+  }
+
+  /** Libera bloqueio ativo para a limpeza voltar a ser avaliada (R6). */
+  async releaseHold(actor: Actor, input: unknown): Promise<Result<true>> {
+    const parsed = parseInput(releaseHoldSchema, input);
+    if (!parsed.ok) return parsed;
+    const hold = (await this.retention.listActiveHolds()).find((h) => h.id === parsed.data.holdId);
+    if (!hold) return fail("NOT_FOUND", "Bloqueio não encontrado ou já liberado.");
+    const process = await this.processes.findById(hold.processId);
+    if (!process) return fail("NOT_FOUND", "Processo não encontrado.");
+    const allowed = await guard(this.audit, actor, "retention.manage", process.councilId, "retention_hold", hold.id);
+    if (!allowed.ok) return allowed;
+    const released = await this.retention.releaseHold(hold.id, this.runtime.now());
+    if (!released) return fail("NOT_FOUND", "Bloqueio não encontrado ou já liberado.");
+    await this.audit.record({ actorId: actor.userId, action: "retention.release_hold", entity: "administrative_process", entityId: process.id, councilId: process.councilId, result: "success", details: { holdId: hold.id } });
+    return ok(true);
   }
 
   /**
@@ -140,17 +159,28 @@ export class RetentionService {
     const allowed = await guard(this.audit, actor, "retention.manage", undefined, "retention_overview");
     if (!allowed.ok) return allowed;
     const now = this.runtime.now();
+    const holds = await this.retention.listActiveHolds();
     const rows: RetentionOverviewRow[] = [];
     for (const process of await this.processes.listByCouncils("all")) {
       if (!process.documentalCompletedAt) continue;
+      const processHolds = holds.filter((h) => h.processId === process.id);
       const decision = evaluateCleanupEligibility({
         documentalCompletedAt: process.documentalCompletedAt,
         hasClosingReport: process.closingReportRegistered,
-        activeHoldCount: await this.retention.countActiveHolds(process.id),
+        activeHoldCount: processHolds.length,
         hasRetentionAuthorization: await this.retention.hasAuthorization(process.id),
         now,
       });
-      rows.push({ processId: process.id, councilId: process.councilId, number: process.number, documentalCompletedAt: process.documentalCompletedAt, action: decision.action, reasons: decision.reasons });
+      rows.push({
+        processId: process.id,
+        councilId: process.councilId,
+        number: process.number,
+        documentalCompletedAt: process.documentalCompletedAt,
+        closingReportRegistered: process.closingReportRegistered,
+        action: decision.action,
+        reasons: decision.reasons,
+        holds: processHolds.map((h) => ({ id: h.id, reason: h.reason })),
+      });
     }
     return ok(rows);
   }

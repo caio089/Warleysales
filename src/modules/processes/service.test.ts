@@ -52,6 +52,12 @@ describe("ProcessService", () => {
     expect(!dup.ok && dup.code).toBe("CONFLICT");
     expect(ctx.auditRepo.all().some((e) => e.action === "process.create" && e.result === "success")).toBe(true);
   });
+  it("normaliza 1/2026 para 001/2026 (P4)", async () => {
+    const created = await ctx.processes.create(managerOf(COUNCIL_A), { councilId: COUNCIL_A, number: "1/2026", title: "Normalizado" });
+    expect(created.ok && created.data.number).toBe("001/2026");
+    const dup = await ctx.processes.create(managerOf(COUNCIL_A), { councilId: COUNCIL_A, number: "001/2026", title: "Duplicado" });
+    expect(!dup.ok && dup.code).toBe("CONFLICT");
+  });
   it("mesmo número em outro conselho é permitido (numeração por conselho)", async () => {
     await newProcess(ctx, COUNCIL_A);
     const other = await ctx.processes.create(managerOf(COUNCIL_B), { councilId: COUNCIL_B, number: "001/2026", title: "Outro conselho" });
@@ -203,6 +209,18 @@ describe("RetentionService (R6/R7, P2)", () => {
     ctx.runtime.advanceDays(40);
     expect(await ctx.retention.runCleanup()).toMatchObject({ disposed: 0, archived: 0, skipped: 1 });
     expect(ctx.storage.objects.size).toBe(7);
+  });
+  it("liberar bloqueio reabre a limpeza autorizada", async () => {
+    const p = await completedProcess();
+    await ctx.retention.authorizeDisposal(centralAdmin(), { processId: p.id, reference: "Portaria 12/2026" });
+    const hold = await ctx.retention.placeHold(centralAdmin(), { processId: p.id, reason: "Auditoria externa" });
+    expect(hold.ok).toBe(true);
+    ctx.runtime.advanceDays(40);
+    const overview = await ctx.retention.overview(centralAdmin());
+    expect(overview.ok && overview.data[0]?.holds.length).toBe(1);
+    const released = await ctx.retention.releaseHold(centralAdmin(), { holdId: hold.ok ? hold.data.holdId : "" });
+    expect(released.ok).toBe(true);
+    expect(await ctx.retention.runCleanup()).toMatchObject({ disposed: 1 });
   });
   it("reversão antes de 30 dias reinicia a contagem", async () => {
     const p = await completedProcess();

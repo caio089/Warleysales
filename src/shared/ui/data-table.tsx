@@ -66,25 +66,26 @@ export function DataTable<T>({
   );
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-3">
-        <div className="relative w-full max-w-xs">
+        <div className="relative w-full sm:w-72">
           <label htmlFor={searchId} className="sr-only">Buscar na tabela</label>
-          <Search className="pointer-events-none absolute top-2 left-2.5 size-4 text-muted-foreground" aria-hidden />
+          <Search className="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground" aria-hidden />
           <Input
             id={searchId}
-            type="search"
+            type="text"
             placeholder="Buscar…"
-            className="pl-8"
+            className="pl-9"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            autoComplete="off"
           />
         </div>
         {filters.map((filter) => (
-          <label key={filter.id} className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
-            {filter.label}
+          <label key={filter.id} className="flex flex-col gap-1.5">
+            <span className="text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">{filter.label}</span>
             <select
-              className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm text-foreground"
+              className="h-10 min-w-40 rounded-lg border border-input bg-card px-3 text-sm font-medium text-foreground focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
               value={activeFilters[filter.id] ?? ""}
               onChange={(e) => { setActiveFilters((f) => ({ ...f, [filter.id]: e.target.value })); setPage(1); }}
             >
@@ -98,21 +99,21 @@ export function DataTable<T>({
       {result.total === 0 ? (
         <EmptyState title={emptyTitle} description={emptyDescription} />
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
+        <div className="surface-card overflow-x-auto">
           <table className="w-full text-sm">
             <caption className="sr-only">{caption}</caption>
-            <thead className="bg-muted/50 text-left">
+            <thead className="bg-secondary/70 text-left">
               <tr>
                 {columns.map((col) => {
                   const active = sort.key === col.key;
                   const ariaSort = active ? (sort.direction === "asc" ? "ascending" : "descending") : "none";
                   const Icon = !active ? ArrowUpDown : sort.direction === "asc" ? ArrowUp : ArrowDown;
                   return (
-                    <th key={col.key} scope="col" aria-sort={col.sortable ? ariaSort : undefined} className="px-3 py-2 font-medium">
+                    <th key={col.key} scope="col" aria-sort={col.sortable ? ariaSort : undefined} className="px-4 py-3 text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
                       {col.sortable ? (
                         <button
                           type="button"
-                          className="inline-flex items-center gap-1 rounded focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                          className="inline-flex items-center gap-1 rounded-md tracking-[0.12em] uppercase transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                           onClick={() => { setSort((s) => nextSort(s, col.key)); setPage(1); }}
                         >
                           {col.header}
@@ -126,9 +127,9 @@ export function DataTable<T>({
             </thead>
             <tbody>
               {result.rows.map((row) => (
-                <tr key={getRowId(row)} className="border-t hover:bg-muted/30">
+                <tr key={getRowId(row)} className="border-t border-border/70 transition-colors hover:bg-primary/[0.03]">
                   {columns.map((col) => (
-                    <td key={col.key} className={col.className ?? "px-3 py-2"}>
+                    <td key={col.key} className={col.className ?? "px-4 py-3"}>
                       {col.render ? col.render(row) : (col.accessor(row) ?? "—")}
                     </td>
                   ))}

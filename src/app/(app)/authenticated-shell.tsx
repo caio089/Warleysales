@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { signOutAction } from "@/modules/identity/actions";
+import { getServices } from "@/server/runtime";
 import { getSession } from "@/server/session";
 import { filterNavigation, NAV_ITEMS, type AccessContext } from "@/shared/lib/authz/navigation";
 import { AppShell } from "@/shared/ui/app-shell/app-shell";
@@ -21,19 +22,52 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
         roles: session.actor.memberships.map((m) => m.role),
       };
   const navHrefs = filterNavigation(access, NAV_ITEMS).map((item) => item.href);
+  const displayName = session.status === "authenticated" ? session.displayName : "";
+  let unreadAlerts = 0;
+  if (session.status === "authenticated") {
+    const services = getServices();
+    if (services) {
+      const listed = await services.notifications.listMine(session.actor);
+      if (listed.ok) unreadAlerts = listed.data.unread;
+    }
+  }
+  const initials = displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
 
   return (
     <AppShell
       navHrefs={navHrefs}
       topbarSlot={
         <>
-          <Link href="/alertas" aria-label="Alertas e notificações" className="rounded-md p-2 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+          <Link
+            href="/alertas"
+            aria-label={unreadAlerts > 0 ? `Alertas e notificações, ${unreadAlerts} não lida(s)` : "Alertas e notificações"}
+            className="relative rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
             <Bell className="size-4" aria-hidden />
+            {unreadAlerts > 0 ? (
+              <span className="absolute -top-0.5 -right-0.5 grid min-w-4 place-items-center rounded-full bg-highlight px-1 text-[0.6rem] font-bold text-highlight-foreground">
+                {unreadAlerts > 9 ? "9+" : unreadAlerts}
+              </span>
+            ) : null}
           </Link>
           {session.status === "authenticated" ? (
             <>
-              <span className="hidden text-sm text-muted-foreground sm:inline">{session.displayName}</span>
-              <form action={signOutAction}><Button type="submit" variant="outline" size="sm">Sair</Button></form>
+              <span className="hidden items-center gap-2 rounded-full border border-border/80 bg-card py-1 pr-3 pl-1 text-sm font-medium text-primary sm:inline-flex">
+                <span className="grid size-6 place-items-center rounded-full bg-primary text-[0.65rem] font-semibold tracking-wide text-primary-foreground">
+                  {initials || "U"}
+                </span>
+                {displayName}
+              </span>
+              <form action={signOutAction}>
+                <Button type="submit" variant="outline" size="sm">
+                  Sair
+                </Button>
+              </form>
             </>
           ) : null}
         </>

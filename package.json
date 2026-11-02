@@ -13,11 +13,15 @@
     "db:check": "node scripts/check-supabase.mjs"
   },
   "dependencies": {
+    "@ai-sdk/groq": "^4.0.74",
     "@base-ui/react": "^1.9.0",
+    "@gsap/react": "^2.1.2",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",
+    "ai": "^7.0.159",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
+    "gsap": "^3.15.0",
     "lucide-react": "^1.66.0",
     "next": "16.4.4",
     "react": "19.3.0",

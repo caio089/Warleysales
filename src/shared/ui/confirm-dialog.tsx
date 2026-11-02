@@ -44,9 +44,9 @@ export function ConfirmDialog({
     <AlertDialog.Root open={open} onOpenChange={setOpen}>
       <AlertDialog.Trigger render={<span className="inline-flex" />}>{trigger}</AlertDialog.Trigger>
       <AlertDialog.Portal>
-        <AlertDialog.Backdrop className="fixed inset-0 z-50 bg-black/30" />
-        <AlertDialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-popover p-6 text-popover-foreground shadow-lg outline-none">
-          <AlertDialog.Title className="text-base font-semibold">{title}</AlertDialog.Title>
+        <AlertDialog.Backdrop className="fixed inset-0 z-50 bg-primary/25 backdrop-blur-[2px]" />
+        <AlertDialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border/80 bg-popover p-6 text-popover-foreground shadow-[0_24px_60px_-24px_oklch(0.23_0.05_250_/_0.45)] outline-none">
+          <AlertDialog.Title className="font-heading text-lg font-medium tracking-tight text-primary">{title}</AlertDialog.Title>
           <AlertDialog.Description className="mt-2 text-sm text-muted-foreground">{description}</AlertDialog.Description>
           <div className="mt-6 flex justify-end gap-2">
             <AlertDialog.Close render={<Button variant="outline" disabled={pending} />}>{cancelLabel}</AlertDialog.Close>

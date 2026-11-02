@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
+import { canInAnyCouncil } from "@/shared/lib/authz/policy";
 import { ok } from "@/shared/lib/result";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
@@ -17,11 +18,13 @@ async function Content() {
     const [requests, lookups] = await Promise.all([ctx.services.purchases.list(ctx.actor), loadLookups(ctx)]);
     if (!requests.ok) return requests;
     if (!lookups.ok) return lookups;
-    return ok({ requests: requests.data, lookups: lookups.data });
+    return ok({ requests: requests.data, lookups: lookups.data, canCreate: canInAnyCouncil(ctx.actor, "request.create") });
   });
   return (
     <Screen result={result}>
-      {({ requests, lookups }) => (
+      {({ requests, lookups, canCreate }) => (
+        <>
+        <PageHeader title="Solicitações" description="Solicitações de compra e seu atendimento." actions={canCreate ? <Link href="/solicitacoes/nova" className={buttonVariants()}>Nova solicitação</Link> : undefined} />
         <SimpleTable
           caption="Solicitações de compra"
           rows={requests.map((r) => ({ id: r.id, title: r.title, council: lookups.councilLabel[r.councilId] ?? "—", status: r.status, items: r.items.length, createdAt: r.createdAt.toISOString(), href: `/solicitacoes/${r.id}` }))}
@@ -36,6 +39,7 @@ async function Content() {
           emptyTitle="Nenhuma solicitação"
           emptyDescription="Crie uma solicitação para pedir materiais."
         />
+        </>
       )}
     </Screen>
   );
@@ -43,9 +47,6 @@ async function Content() {
 
 export default function RequestsPage() {
   return (
-    <>
-      <PageHeader title="Solicitações" description="Solicitações de compra e seu atendimento." actions={<Link href="/solicitacoes/nova" className={buttonVariants()}>Nova solicitação</Link>} />
-      <Suspense fallback={<LoadingState />}><Content /></Suspense>
-    </>
+    <Suspense fallback={<LoadingState />}><Content /></Suspense>
   );
 }

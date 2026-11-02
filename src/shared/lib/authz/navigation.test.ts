@@ -20,6 +20,11 @@ describe("filterNavigation", () => {
     expect(labels(filterNavigation({ isCentralAdmin: false, roles: ["council_manager"] }))).toContain("Relatórios");
   });
 
+  it("gestor vê auditoria; operador não", () => {
+    expect(labels(filterNavigation({ isCentralAdmin: false, roles: ["council_manager"] }))).toContain("Auditoria");
+    expect(labels(filterNavigation({ isCentralAdmin: false, roles: ["council_operator"] }))).not.toContain("Auditoria");
+  });
+
   it("sem papéis não vê nada", () => {
     expect(filterNavigation({ isCentralAdmin: false, roles: [] })).toHaveLength(0);
   });

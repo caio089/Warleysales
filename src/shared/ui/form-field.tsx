@@ -18,7 +18,7 @@ export function FormField({ label, errors, hint, required, children }: FormField
   const hasError = Boolean(errors?.length);
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-sm font-medium">
+      <label htmlFor={id} className="text-sm font-medium text-primary">
         {label}
         {required ? <span aria-hidden className="text-destructive"> *</span> : null}
       </label>
@@ -32,9 +32,9 @@ export function FormField({ label, errors, hint, required, children }: FormField
 
 /** Select nativo estilizado (acessível por padrão). */
 export function SelectControl({ className, ...props }: React.ComponentProps<"select">) {
-  return <select className={cn("h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none", className)} {...props} />;
+  return <select className={cn("h-10 w-full rounded-lg border border-input bg-card px-3 text-sm focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none", className)} {...props} />;
 }
 
 export function TextareaControl({ className, ...props }: React.ComponentProps<"textarea">) {
-  return <textarea className={cn("min-h-20 w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none", className)} {...props} />;
+  return <textarea className={cn("min-h-24 w-full rounded-lg border border-input bg-card px-3 py-2 text-sm focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none", className)} {...props} />;
 }

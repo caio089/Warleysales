@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Novo processo" };
 
 async function Content() {
   const result = await loadScreen(loadLookups);
-  return <Screen result={result}>{(l) => <div className="max-w-lg"><NewProcessForm councils={l.councils.map((c) => ({ value: c.id, label: c.label }))} /></div>}</Screen>;
+  return <Screen result={result}>{(l) => <div className="surface-card max-w-lg p-6"><NewProcessForm councils={l.councils.map((c) => ({ value: c.id, label: c.label }))} /></div>}</Screen>;
 }
 
 export default function NewProcessPage() {

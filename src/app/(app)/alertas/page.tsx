@@ -19,7 +19,7 @@ async function Content() {
           <p className="mb-3 text-sm text-muted-foreground" aria-live="polite">{unread} não lida(s)</p>
           <ul className="space-y-3">
             {items.map((n) => (
-              <li key={n.id} className="flex items-start justify-between gap-4 rounded-lg border p-4">
+              <li key={n.id} className="surface-card flex items-start justify-between gap-4 p-5">
                 <div><p className={n.readAt ? "text-sm" : "text-sm font-semibold"}>{n.title}</p><p className="text-sm text-muted-foreground">{n.body}</p><p className="mt-1 text-xs text-muted-foreground">{formatDateTimeFortaleza(n.createdAt)}</p></div>
                 {n.readAt ? null : <ActionForm action={markNotificationReadFormAction} submitLabel="Marcar como lida" submitVariant="outline" hiddenFields={{ notificationId: n.id }}>{() => null}</ActionForm>}
               </li>

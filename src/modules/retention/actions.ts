@@ -17,3 +17,9 @@ export async function placeHoldFormAction(_previous: ActionState, formData: Form
   if (result.status === "success") revalidatePath("/administracao/retencao");
   return done(result);
 }
+
+export async function releaseHoldFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  const result = await runAction(({ services, actor }) => services.retention.releaseHold(actor, { holdId: formData.get("holdId") }), "Bloqueio de retenção liberado.");
+  if (result.status === "success") revalidatePath("/administracao/retencao");
+  return done(result);
+}

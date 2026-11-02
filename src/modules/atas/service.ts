@@ -4,7 +4,7 @@ import { can, readableCouncilIds, type Actor } from "@/shared/lib/authz/policy";
 import { fail, ok, type Result } from "@/shared/lib/result";
 import { parseInput, type RuntimeDeps } from "@/shared/lib/service-support";
 import { toFortalezaDate } from "@/shared/lib/time";
-import { computeAtaBalance, validateAllocations, validateCommitment, type AtaBalance } from "./domain/balance";
+import { computeAtaBalance, validateAllocations, validateCommitment, type AtaBalance, type CouncilAllocation } from "./domain/balance";
 import { ataValidityStatus, computeInitialEndDate, currentEndDate, requestExtension, type AtaValidityStatus } from "./domain/validity";
 import type { AtaRepository } from "./repository";
 import { ataIdSchema, createAtaSchema, setAllocationsSchema, type PriceRegistrationAta } from "./schemas";
@@ -12,6 +12,8 @@ import { ataIdSchema, createAtaSchema, setAllocationsSchema, type PriceRegistrat
 export interface AtaItemView {
   itemId: string;
   description: string;
+  materialId: string | null;
+  allocations: CouncilAllocation[];
   balance: AtaBalance;
 }
 
@@ -89,7 +91,9 @@ export class AtaService {
     const valid = validateAllocations(item.registeredQuantity, parsed.data.allocations);
     if (!valid.ok) return valid;
     item.allocations = parsed.data.allocations;
-    return ok(await this.repository.save(ata));
+    const saved = await this.repository.save(ata);
+    await this.audit.record({ actorId: actor.userId, action: "ata.allocate", entity: "price_registration_ata", entityId: ata.id, councilId: ata.councilId, result: "success", details: { itemId: item.id, allocations: parsed.data.allocations } });
+    return ok(saved);
   }
 
   /**
@@ -153,6 +157,8 @@ export class AtaService {
     const items = await Promise.all(ata.items.map(async (i) => ({
       itemId: i.id,
       description: i.description,
+      materialId: i.materialId,
+      allocations: i.allocations,
       balance: computeAtaBalance(i.registeredQuantity, await this.repository.listEvents(i.id)),
     })));
     return { ata, endDate, validity: ataValidityStatus(endDate, toFortalezaDate(this.runtime.now())), items };

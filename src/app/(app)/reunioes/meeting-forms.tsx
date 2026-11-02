@@ -1,6 +1,6 @@
 "use client";
 
-import { meetingStepFormAction, saveMinutesFormAction, scheduleMeetingFormAction } from "@/modules/meetings/actions";
+import { addActionItemFormAction, meetingStepFormAction, saveMinutesFormAction, scheduleMeetingFormAction } from "@/modules/meetings/actions";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { SelectField, TextAreaField, TextField } from "@/shared/ui/forms/fields";
 
@@ -18,13 +18,13 @@ export function NewMeetingForm({ councils }: { councils: Option[] }) {
   );
 }
 
-/** Mudança de status e registro da ata de reunião. */
-export function MeetingActions({ meetings, done }: { meetings: Option[]; done: Option[] }) {
+/** Mudança de status, ata da reunião e pendências. */
+export function MeetingActions({ meetings, done, actionable }: { meetings: Option[]; done: Option[]; actionable: Option[] }) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       {meetings.length > 0 ? (
-        <section aria-labelledby="status" className="rounded-lg border p-4">
-          <h2 id="status" className="mb-4 text-base font-semibold">Atualizar reunião agendada</h2>
+        <section aria-labelledby="status" className="surface-card p-6">
+          <h2 id="status" className="mb-4 font-heading text-lg font-medium tracking-tight text-primary">Atualizar reunião agendada</h2>
           <ActionForm action={meetingStepFormAction} submitLabel="Aplicar">
             {(e) => (<>
               <SelectField name="meetingId" label="Reunião" required options={meetings} errors={e.meetingId} />
@@ -35,12 +35,24 @@ export function MeetingActions({ meetings, done }: { meetings: Option[]; done: O
         </section>
       ) : null}
       {done.length > 0 ? (
-        <section aria-labelledby="ata" className="rounded-lg border p-4">
-          <h2 id="ata" className="mb-4 text-base font-semibold">Registrar ata da reunião</h2>
+        <section aria-labelledby="ata" className="surface-card p-6">
+          <h2 id="ata" className="mb-4 font-heading text-lg font-medium tracking-tight text-primary">Registrar ata da reunião</h2>
           <ActionForm action={saveMinutesFormAction} submitLabel="Salvar ata">
             {(e) => (<>
               <SelectField name="meetingId" label="Reunião realizada" required options={done} errors={e.meetingId} />
               <TextAreaField name="text" label="Conteúdo da ata" required errors={e.text} />
+            </>)}
+          </ActionForm>
+        </section>
+      ) : null}
+      {actionable.length > 0 ? (
+        <section aria-labelledby="pendencia" className="surface-card p-6 lg:col-span-2">
+          <h2 id="pendencia" className="mb-4 font-heading text-lg font-medium tracking-tight text-primary">Pendência da reunião</h2>
+          <ActionForm action={addActionItemFormAction} submitLabel="Registrar pendência">
+            {(e) => (<>
+              <SelectField name="meetingId" label="Reunião" required options={actionable} errors={e.meetingId} />
+              <TextField name="description" label="Descrição" required errors={e.description} />
+              <TextField name="dueDate" label="Prazo (opcional)" type="date" errors={e.dueDate} />
             </>)}
           </ActionForm>
         </section>

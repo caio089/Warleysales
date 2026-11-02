@@ -6,6 +6,7 @@ import {
   CalendarDays,
   FileSignature,
   FileText,
+  History,
   LayoutDashboard,
   Package,
   ScrollText,
@@ -48,6 +49,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Reuniões", href: "/reunioes", icon: CalendarDays, allowedRoles: ALL_ROLES },
   { label: "Relatórios", href: "/relatorios", icon: BarChart3, allowedRoles: ["council_manager", "viewer"] },
   { label: "Alertas", href: "/alertas", icon: AlertTriangle, allowedRoles: ALL_ROLES },
+  { label: "Auditoria", href: "/administracao/auditoria", icon: History, allowedRoles: ["council_manager"] },
   { label: "Administração", href: "/administracao", icon: Settings, allowedRoles: [], centralOnly: true },
 ];
 

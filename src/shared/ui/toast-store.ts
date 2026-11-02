@@ -9,6 +9,7 @@ export interface ToastMessage {
 
 let nextId = 1;
 let toasts: readonly ToastMessage[] = [];
+const EMPTY: readonly ToastMessage[] = [];
 const listeners = new Set<() => void>();
 
 function emit(next: readonly ToastMessage[]) {
@@ -22,7 +23,7 @@ export const toastStore = {
     return () => listeners.delete(listener);
   },
   getSnapshot: () => toasts,
-  getServerSnapshot: (): readonly ToastMessage[] => [],
+  getServerSnapshot: (): readonly ToastMessage[] => EMPTY,
 };
 
 export function dismissToast(id: number): void {

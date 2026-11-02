@@ -27,12 +27,16 @@ async function Content() {
           <p className="rounded-lg border bg-info p-3 text-sm text-info-foreground">Sem autorização formal de retenção, o job apenas arquiva: nenhum arquivo é eliminado fisicamente (padrão seguro P2).</p>
           <SimpleTable
             caption="Elegibilidade de limpeza documental"
-            rows={overview.map((o) => ({ id: o.processId, number: o.number, council: lookups.councilLabel[o.councilId] ?? "—", completedAt: o.documentalCompletedAt.toISOString(), decision: ACTION_LABEL[o.action], reasons: o.reasons.join(" ") || null }))}
-            columns={[{ key: "number", header: "Processo" }, { key: "council", header: "Conselho" }, { key: "completedAt", header: "100% desde", kind: "datetime" }, { key: "decision", header: "Situação" }, { key: "reasons", header: "Observações" }]}
+            rows={overview.map((o) => ({ id: o.processId, number: o.number, council: lookups.councilLabel[o.councilId] ?? "—", completedAt: o.documentalCompletedAt.toISOString(), closing: o.closingReportRegistered ? "Sim" : "Não", decision: ACTION_LABEL[o.action], reasons: o.reasons.join(" ") || null }))}
+            columns={[{ key: "number", header: "Processo" }, { key: "council", header: "Conselho" }, { key: "completedAt", header: "100% desde", kind: "datetime" }, { key: "closing", header: "Encerramento" }, { key: "decision", header: "Situação" }, { key: "reasons", header: "Observações" }]}
             filterKeys={[{ key: "decision", label: "Situação" }]}
             emptyTitle="Nenhum processo com documentação completa"
           />
-          <RetentionForms processes={overview.map((o) => ({ value: o.processId, label: o.number }))} />
+          <RetentionForms
+            processes={overview.map((o) => ({ value: o.processId, label: o.number }))}
+            withoutClosing={overview.filter((o) => !o.closingReportRegistered).map((o) => ({ value: o.processId, label: o.number }))}
+            holds={overview.flatMap((o) => o.holds.map((h) => ({ value: h.id, label: `${o.number} — ${h.reason}` })))}
+          />
         </div>
       )}
     </Screen>

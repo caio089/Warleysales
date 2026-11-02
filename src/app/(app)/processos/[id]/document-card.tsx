@@ -29,7 +29,7 @@ export function DocumentCard({ processId, typeCode, label, valid, files, canUplo
   }
 
   return (
-    <article className="space-y-3 rounded-lg border p-4" aria-label={label}>
+    <article className="surface-card space-y-3 p-5" aria-label={label}>
       <header className="flex items-start justify-between gap-2">
         <div>
           <p className="text-xs font-medium text-muted-foreground">{typeCode}</p>

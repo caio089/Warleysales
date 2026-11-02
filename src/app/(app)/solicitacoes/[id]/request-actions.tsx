@@ -48,8 +48,8 @@ export function RequestActions({ requestId, status, canDecide, canCreate, canRec
         ) : null}
       </div>
       {receiving ? (
-        <div className="max-w-md rounded-lg border p-4">
-          <h3 className="mb-3 text-sm font-semibold">Registrar recebimento</h3>
+        <div className="surface-card max-w-md p-6">
+          <h3 className="mb-3 font-heading text-lg font-medium tracking-tight text-primary">Registrar recebimento</h3>
           <ActionForm action={receiveFormAction} submitLabel="Registrar recebimento" hiddenFields={{ requestId }} idempotencyField="receiptKey">
             {() => pendingItems.map((i) => (
               <div key={i.id}>

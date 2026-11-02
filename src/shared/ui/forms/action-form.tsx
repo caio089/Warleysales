@@ -13,6 +13,7 @@ interface ActionFormProps {
   /** Valores fixos enviados junto (ex.: id da entidade). */
   hiddenFields?: Record<string, string>;
   submitVariant?: "default" | "destructive" | "outline";
+  submitClassName?: string;
   /**
    * Nome de um campo oculto com chave de idempotência. A chave é gerada no cliente após a
    * montagem (evita divergência de hidratação) e renovada após cada sucesso; em caso de erro
@@ -22,7 +23,7 @@ interface ActionFormProps {
 }
 
 /** Formulário que usa Server Action, mostra erros por campo e avisa por toast. */
-export function ActionForm({ action, submitLabel, children, hiddenFields, submitVariant = "default", idempotencyField }: ActionFormProps) {
+export function ActionForm({ action, submitLabel, children, hiddenFields, submitVariant = "default", submitClassName, idempotencyField }: ActionFormProps) {
   const [state, formAction, pending] = useActionState(action, IDLE_STATE);
   const [, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
@@ -59,7 +60,7 @@ export function ActionForm({ action, submitLabel, children, hiddenFields, submit
       ) : null}
       {children(fieldErrors)}
       {state.status === "error" ? <p role="alert" className="text-sm text-destructive">{state.message}</p> : null}
-      <Button type="submit" variant={submitVariant} disabled={pending}>{pending ? "Salvando…" : submitLabel}</Button>
+      <Button type="submit" variant={submitVariant} className={submitClassName ?? "min-w-28"} disabled={pending}>{pending ? "Aguarde…" : submitLabel}</Button>
     </form>
   );
 }

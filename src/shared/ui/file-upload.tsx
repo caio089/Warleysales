@@ -70,7 +70,7 @@ export function FileUpload({ label, onUpload, disabled }: FileUploadProps) {
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
-        className={cn("flex flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 text-center", dragging && "border-primary bg-primary/5", disabled && "opacity-50")}
+        className={cn("flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border bg-card/60 p-6 text-center transition-colors", dragging && "border-highlight bg-highlight/8", disabled && "opacity-50")}
       >
         <FileUp className="size-6 text-muted-foreground" aria-hidden />
         <p className="text-sm">Arraste arquivos aqui ou</p>

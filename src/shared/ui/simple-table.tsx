@@ -68,7 +68,7 @@ function renderCell(column: SimpleColumn, row: SimpleRow) {
     case "progress": return <ProgressBar value={Number(value)} label={column.header} className="min-w-32" />;
     case "link": {
       const href = column.hrefKey ? row[column.hrefKey] : null;
-      return href ? <Link href={String(href)} className="font-medium text-primary underline-offset-4 hover:underline">{String(value)}</Link> : String(value);
+      return href ? <Link href={String(href)} className="font-medium text-primary underline-offset-4 transition-colors hover:text-highlight hover:underline">{String(value)}</Link> : String(value);
     }
     default: return String(value);
   }

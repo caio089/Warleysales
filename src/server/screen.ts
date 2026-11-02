@@ -1,4 +1,5 @@
 import "server-only";
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import type { Actor } from "@/shared/lib/authz/policy";
 import type { ErrorCode, Result } from "@/shared/lib/result";
@@ -30,6 +31,7 @@ const toScreenError = (code: ErrorCode, message: string): ScreenResult<never> =>
  * sem sessão => redireciona ao login; erros viram estados de tela, sem vazar detalhes internos.
  */
 export async function loadScreen<T>(load: (context: ScreenContext) => Promise<Result<T>>): Promise<ScreenResult<T>> {
+  await connection();
   const services = getServices();
   if (!services) return { kind: "unconfigured" };
 

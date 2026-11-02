@@ -1,4 +1,4 @@
-import { AlertCircle, DatabaseZap, Inbox, Loader2, ShieldAlert, type LucideIcon } from "lucide-react";
+import { AlertCircle, DatabaseZap, Inbox, ShieldAlert, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -9,16 +9,20 @@ interface StateShellProps {
   action?: ReactNode;
   role?: "status" | "alert";
   iconClassName?: string;
-  spin?: boolean;
 }
 
-function StateShell({ icon: Icon, title, description, action, role, iconClassName, spin }: StateShellProps) {
+function StateShell({ icon: Icon, title, description, action, role, iconClassName }: StateShellProps) {
   return (
-    <div role={role} className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-10 text-center">
-      <Icon className={cn("size-8 text-muted-foreground", spin && "animate-spin", iconClassName)} aria-hidden />
-      <p className="text-sm font-medium">{title}</p>
-      {description ? <p className="max-w-md text-sm text-muted-foreground">{description}</p> : null}
-      {action}
+    <div
+      role={role}
+      className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border/90 bg-card/70 px-8 py-14 text-center shadow-[inset_0_1px_0_oklch(1_0_0_/_0.6)]"
+    >
+      <span className="grid size-14 place-items-center rounded-2xl bg-secondary">
+        <Icon className={cn("size-6 text-muted-foreground", iconClassName)} aria-hidden />
+      </span>
+      <p className="font-heading text-lg font-medium tracking-tight text-primary">{title}</p>
+      {description ? <p className="max-w-md text-sm leading-relaxed text-muted-foreground">{description}</p> : null}
+      {action ? <div className="mt-2">{action}</div> : null}
     </div>
   );
 }
@@ -34,7 +38,18 @@ export function ErrorState({ title = "Não foi possível carregar os dados", des
 }
 
 export function LoadingState({ title = "Carregando…" }: { title?: string }) {
-  return <StateShell icon={Loader2} role="status" spin title={title} />;
+  return (
+    <div role="status" aria-label={title} className="space-y-4">
+      <p className="sr-only">{title}</p>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {["a", "b", "c", "d"].map((key) => (
+          <div key={key} className="surface-card h-28 overflow-hidden">
+            <div className="h-full animate-pulse bg-gradient-to-r from-muted/40 via-muted/80 to-muted/40" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 /** Usuário autenticado, porém sem permissão para o recurso. */

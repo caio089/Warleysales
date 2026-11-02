@@ -68,7 +68,9 @@ export class MeetingService {
     const allowed = await guard(this.audit, actor, "meeting.manage", meeting.councilId, "meeting", meeting.id);
     if (!allowed.ok) return allowed;
     const item = { id: this.runtime.newId(), description: parsed.data.description, responsibleId: parsed.data.responsibleId ?? null, dueDate: parsed.data.dueDate ?? null, done: false };
-    return ok(await this.repository.save({ ...meeting, actionItems: [...meeting.actionItems, item] }));
+    const saved = await this.repository.save({ ...meeting, actionItems: [...meeting.actionItems, item] });
+    await this.audit.record({ actorId: actor.userId, action: "meeting.action_item", entity: "meeting", entityId: meeting.id, councilId: meeting.councilId, result: "success", details: { description: item.description } });
+    return ok(saved);
   }
 
   async list(actor: Actor): Promise<Result<Meeting[]>> {

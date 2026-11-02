@@ -20,6 +20,25 @@ export async function changeProcessStatusFormAction(_previous: ActionState, form
     ({ services, actor }) => services.processes.changeStatus(actor, { processId: formData.get("processId"), status: formData.get("status") }),
     "Situação do processo atualizada.",
   );
-  if (result.status === "success") revalidatePath(`/processos/${formData.get("processId")}`);
+  if (result.status === "success") {
+    revalidatePath("/processos");
+    revalidatePath(`/processos/${formData.get("processId")}`);
+    revalidatePath("/administracao/retencao");
+  }
+  return result.status === "success" ? { status: "success", message: result.message } : result;
+}
+
+/** Relatório de encerramento: pré-requisito da limpeza documental (R6). */
+export async function registerClosingReportFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  const processId = String(formData.get("processId"));
+  const result = await runAction(
+    ({ services, actor }) => services.processes.registerClosingReport(actor, processId),
+    "Relatório de encerramento registrado.",
+  );
+  if (result.status === "success") {
+    revalidatePath("/processos");
+    revalidatePath(`/processos/${processId}`);
+    revalidatePath("/administracao/retencao");
+  }
   return result.status === "success" ? { status: "success", message: result.message } : result;
 }

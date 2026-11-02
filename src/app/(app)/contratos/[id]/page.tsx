@@ -30,7 +30,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
             <div className="grid gap-4 sm:grid-cols-3">
               <KpiCard label="Dias restantes" value={view.remainingDays} hint={view.status === "vencido" ? "Contrato vencido" : undefined} />
               <KpiCard label="Valor vigente" value={formatCurrency(view.terms.value)} />
-              <section className="rounded-lg border p-4"><p className="mb-2 text-xs font-medium text-muted-foreground">Vigência decorrida</p><ProgressBar value={view.elapsedPercent} label="Vigência decorrida" /></section>
+              <section className="surface-card p-5"><p className="mb-2 text-[0.7rem] font-semibold tracking-[0.14em] text-muted-foreground uppercase">Vigência decorrida</p><ProgressBar value={view.elapsedPercent} label="Vigência decorrida" /></section>
             </div>
             <section aria-labelledby="aditivos"><h2 id="aditivos" className="mb-2 text-base font-semibold">Histórico de aditivos</h2>
               <SimpleTable
@@ -41,7 +41,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
                 emptyDescription="Os termos originais continuam vigentes."
               />
             </section>
-            {canManage ? <section aria-labelledby="novo-aditivo" className="max-w-lg rounded-lg border p-4"><h2 id="novo-aditivo" className="mb-4 text-base font-semibold">Registrar aditivo</h2><AmendmentForm contractId={view.contract.id} /></section> : null}
+            {canManage ? <section aria-labelledby="novo-aditivo" className="surface-card max-w-lg p-6"><h2 id="novo-aditivo" className="mb-4 font-heading text-lg font-medium tracking-tight text-primary">Registrar aditivo</h2><AmendmentForm contractId={view.contract.id} /></section> : null}
           </div>
         </>
       )}

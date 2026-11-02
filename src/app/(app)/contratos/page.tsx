@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
+import { canInAnyCouncil } from "@/shared/lib/authz/policy";
 import { ok } from "@/shared/lib/result";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
@@ -17,11 +18,13 @@ async function Content() {
     const [contracts, lookups] = await Promise.all([ctx.services.contracts.list(ctx.actor), loadLookups(ctx)]);
     if (!contracts.ok) return contracts;
     if (!lookups.ok) return lookups;
-    return ok({ contracts: contracts.data, lookups: lookups.data });
+    return ok({ contracts: contracts.data, lookups: lookups.data, canCreate: canInAnyCouncil(ctx.actor, "contract.manage") });
   });
   return (
     <Screen result={result}>
-      {({ contracts, lookups }) => (
+      {({ contracts, lookups, canCreate }) => (
+        <>
+        <PageHeader title="Contratos" description="Prazos e valores com histórico de aditivos preservado." actions={canCreate ? <Link href="/contratos/novo" className={buttonVariants()}>Novo contrato</Link> : undefined} />
         <SimpleTable
           caption="Contratos"
           rows={contracts.map((c) => ({ id: c.contract.id, number: c.contract.number, council: lookups.councilLabel[c.contract.councilId] ?? "—", object: c.contract.object, endDate: c.terms.endDate, remaining: c.remainingDays, elapsed: c.elapsedPercent, href: `/contratos/${c.contract.id}` }))}
@@ -32,11 +35,12 @@ async function Content() {
           filterKeys={[{ key: "council", label: "Conselho" }]}
           emptyTitle="Nenhum contrato cadastrado"
         />
+        </>
       )}
     </Screen>
   );
 }
 
 export default function ContractsPage() {
-  return (<><PageHeader title="Contratos" description="Prazos e valores com histórico de aditivos preservado." actions={<Link href="/contratos/novo" className={buttonVariants()}>Novo contrato</Link>} /><Suspense fallback={<LoadingState />}><Content /></Suspense></>);
+  return <Suspense fallback={<LoadingState />}><Content /></Suspense>;
 }

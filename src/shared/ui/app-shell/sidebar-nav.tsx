@@ -15,8 +15,8 @@ export function SidebarNav({ items, onNavigate }: SidebarNavProps) {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Navegação principal" className="flex flex-col gap-1 p-3">
-      {items.map(({ label, href, icon: Icon }) => {
+    <nav aria-label="Navegação principal" className="flex flex-col gap-0.5 p-2">
+      {items.map(({ label, href, icon: Icon }, index) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link
@@ -24,15 +24,23 @@ export function SidebarNav({ items, onNavigate }: SidebarNavProps) {
             href={href}
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
+            style={{ ["--stagger" as string]: `${index * 35}ms` }}
             className={cn(
-              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "nav-in group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-highlight",
               active
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                ? "bg-white/10 text-white shadow-[inset_0_1px_0_oklch(1_0_0_/_0.06)]"
+                : "text-white/60 hover:bg-white/6 hover:text-white",
             )}
           >
-            <Icon className="size-4 shrink-0" aria-hidden />
+            <span
+              aria-hidden
+              className={cn(
+                "absolute top-1/2 left-0 h-5 w-0.5 -translate-y-1/2 rounded-full bg-highlight transition-opacity",
+                active ? "opacity-100" : "opacity-0",
+              )}
+            />
+            <Icon className={cn("size-4 shrink-0", active ? "text-highlight" : "text-white/50 group-hover:text-white")} aria-hidden />
             <span className="truncate">{label}</span>
           </Link>
         );

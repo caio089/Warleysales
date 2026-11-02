@@ -15,7 +15,20 @@ export class InMemoryCouncilRepository implements CouncilRepository {
 }
 
 export class InMemoryMembershipRepository implements MembershipRepository {
-  constructor(private readonly records: MembershipRecord[] = []) {}
+  constructor(private readonly records: MembershipRecord[] = [], private readonly profiles: { id: string; fullName: string; active: boolean }[] = []) {}
   async listByCouncil(councilId: string) { return this.records.filter((r) => r.councilId === councilId); }
+  async listAll() { return [...this.records]; }
+  async listProfiles() { return [...this.profiles]; }
+  async upsert(record: MembershipRecord) {
+    const i = this.records.findIndex((r) => r.userId === record.userId && r.councilId === record.councilId);
+    if (i >= 0) this.records[i] = record;
+    else this.records.push(record);
+  }
+  async remove(userId: string, councilId: string) {
+    const i = this.records.findIndex((r) => r.userId === userId && r.councilId === councilId);
+    if (i < 0) return false;
+    this.records.splice(i, 1);
+    return true;
+  }
   async managerIds(councilId: string) { return this.records.filter((r) => r.councilId === councilId && r.role === "council_manager").map((r) => r.userId); }
 }

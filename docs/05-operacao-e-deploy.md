@@ -10,6 +10,7 @@ Projeto: `https://wdefwnmqcdomupdiorbo.supabase.co` (ref `wdefwnmqcdomupdiorbo`)
 | `SUPABASE_SERVICE_ROLE_KEY` | `.env.local` + Vercel (**somente servidor**) | **colar do painel: Settings > API > service_role.** Nunca prefixar com `NEXT_PUBLIC_`, nunca commitar |
 | `CRON_SECRET` | `.env.local` + Vercel | aleatório ≥ 16 caracteres (`openssl rand -hex 32`). O valor local foi gerado e é distinto do de produção: gere outro para a Vercel |
 | `NEXT_PUBLIC_SITE_URL`, `APP_TIMEZONE` | `.env.local` + Vercel | URL pública e fuso (`America/Fortaleza`) |
+| `GROQ_API_KEY` | `.env.local` + Vercel (**somente servidor**) | resumo de IA do dashboard. Sem a chave o painel mostra “não configurado”, sem texto simulado |
 
 `.env*` está no `.gitignore` (exceto `.env.example`); confira com `git check-ignore -v .env.local`.
 

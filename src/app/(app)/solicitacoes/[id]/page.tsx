@@ -39,8 +39,8 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
             <div className="space-y-8">
               <SimpleTable
                 caption="Itens da solicitação"
-                rows={request.items.map((i) => ({ id: i.id, material: lookups.materialLabel[i.materialId] ?? "—", quantity: i.quantity, received: i.receivedTotal, pending: i.quantity - i.receivedTotal }))}
-                columns={[{ key: "material", header: "Material" }, { key: "quantity", header: "Solicitado", kind: "number" }, { key: "received", header: "Recebido", kind: "number" }, { key: "pending", header: "Pendente", kind: "number" }]}
+                rows={request.items.map((i) => ({ id: i.id, material: lookups.materialLabel[i.materialId] ?? "—", quantity: i.quantity, received: i.receivedTotal, pending: i.quantity - i.receivedTotal, ata: i.ataItemId ? "Vinculada" : "—" }))}
+                columns={[{ key: "material", header: "Material" }, { key: "quantity", header: "Solicitado", kind: "number" }, { key: "received", header: "Recebido", kind: "number" }, { key: "pending", header: "Pendente", kind: "number" }, { key: "ata", header: "Ata" }]}
               />
               <RequestActions
                 requestId={request.id}

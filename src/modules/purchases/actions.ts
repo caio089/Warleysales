@@ -44,7 +44,10 @@ export async function requestStepFormAction(_previous: ActionState, formData: Fo
       default: return Promise.resolve({ ok: false as const, code: "VALIDATION" as const, message: "Ação desconhecida." });
     }
   }, "Solicitação atualizada.");
-  if (result.status === "success") revalidatePath(`/solicitacoes/${requestId}`);
+  if (result.status === "success") {
+    revalidatePath(`/solicitacoes/${requestId}`);
+    revalidatePath("/atas");
+  }
   return result.status === "success" ? { status: "success", message: result.message } : result;
 }
 
@@ -54,6 +57,9 @@ export async function receiveFormAction(_previous: ActionState, formData: FormDa
   const quantities = formData.getAll("received").map((q) => Number(String(q).replace(",", ".")));
   const lines = itemIds.map((itemId, i) => ({ itemId, received: quantities[i] })).filter((l) => l.received > 0);
   const result = await runAction(({ services, actor }) => services.purchases.receive(actor, { requestId, receiptKey: String(formData.get("receiptKey")), lines }), "Recebimento registrado.");
-  if (result.status === "success") revalidatePath(`/solicitacoes/${requestId}`);
+  if (result.status === "success") {
+    revalidatePath(`/solicitacoes/${requestId}`);
+    revalidatePath("/estoque");
+  }
   return result.status === "success" ? { status: "success", message: result.message } : result;
 }

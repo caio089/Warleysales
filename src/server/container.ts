@@ -6,7 +6,7 @@ import { ContractService } from "@/modules/contracts/service";
 import type { ContractRepository } from "@/modules/contracts/repository";
 import { DocumentService } from "@/modules/documents/service";
 import type { DocumentRepository, StoragePort } from "@/modules/documents/repository";
-import { CouncilService } from "@/modules/identity/service";
+import { CouncilService, MembershipService } from "@/modules/identity/service";
 import type { CouncilRepository, MembershipRepository } from "@/modules/identity/repository";
 import { InventoryService } from "@/modules/inventory/service";
 import type { InventoryRepository } from "@/modules/inventory/repository";
@@ -50,6 +50,7 @@ export interface Repositories {
 export interface Services {
   audit: AuditService;
   councils: CouncilService;
+  memberships: MembershipService;
   processes: ProcessService;
   documents: DocumentService;
   retention: RetentionService;
@@ -76,6 +77,7 @@ export function createServices(repos: Repositories, runtime: RuntimeDeps): Servi
   return {
     audit,
     councils: new CouncilService(repos.councils, audit, runtime),
+    memberships: new MembershipService(repos.memberships, repos.councils, audit),
     processes,
     documents: new DocumentService(repos.documents, repos.processes, repos.storage, audit, runtime),
     retention: new RetentionService(repos.retention, repos.processes, repos.documents, repos.storage, audit, runtime),
@@ -87,6 +89,6 @@ export function createServices(repos: Repositories, runtime: RuntimeDeps): Servi
     suppliers: new SupplierService(repos.suppliers, audit, runtime),
     meetings: new MeetingService(repos.meetings, audit, runtime),
     notifications: new NotificationService(repos.notifications, alertSource, audit, runtime),
-    reports: new ReportService(processes, inventory, contracts, atas),
+    reports: new ReportService(processes, inventory, contracts, atas, runtime),
   };
 }

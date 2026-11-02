@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
+import { canInAnyCouncil } from "@/shared/lib/authz/policy";
 import { ok } from "@/shared/lib/result";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
@@ -17,11 +18,13 @@ async function Content() {
     const [transfers, lookups] = await Promise.all([ctx.services.transfers.list(ctx.actor), loadLookups(ctx)]);
     if (!transfers.ok) return transfers;
     if (!lookups.ok) return lookups;
-    return ok({ transfers: transfers.data, lookups: lookups.data });
+    return ok({ transfers: transfers.data, lookups: lookups.data, canCreate: canInAnyCouncil(ctx.actor, "transfer.request") });
   });
   return (
     <Screen result={result}>
-      {({ transfers, lookups }) => (
+      {({ transfers, lookups, canCreate }) => (
+        <>
+        <PageHeader title="Transferências" description="Material em trânsito não está disponível em nenhum dos conselhos." actions={canCreate ? <Link href="/transferencias/nova" className={buttonVariants()}>Nova transferência</Link> : undefined} />
         <SimpleTable
           caption="Transferências entre conselhos"
           rows={transfers.map((t) => ({ id: t.id, origin: lookups.councilLabel[t.originCouncilId] ?? "—", destination: lookups.councilLabel[t.destinationCouncilId] ?? "—", status: t.status, items: t.items.length, createdAt: t.createdAt.toISOString(), href: `/transferencias/${t.id}` }))}
@@ -32,11 +35,12 @@ async function Content() {
           filterKeys={[{ key: "status", label: "Status", dictionary: "transfer" }]}
           emptyTitle="Nenhuma transferência"
         />
+        </>
       )}
     </Screen>
   );
 }
 
 export default function TransfersPage() {
-  return (<><PageHeader title="Transferências" description="Material em trânsito não está disponível em nenhum dos conselhos." actions={<Link href="/transferencias/nova" className={buttonVariants()}>Nova transferência</Link>} /><Suspense fallback={<LoadingState />}><Content /></Suspense></>);
+  return <Suspense fallback={<LoadingState />}><Content /></Suspense>;
 }

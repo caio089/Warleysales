@@ -15,6 +15,7 @@ export class InMemoryRetentionRepository implements RetentionRepository {
     hold.releasedAt = at;
     return true;
   }
+  async listActiveHolds() { return this.holds.filter((h) => h.releasedAt === null); }
   async countActiveHolds(processId: string) { return this.holds.filter((h) => h.processId === processId && h.releasedAt === null).length; }
   async hasRun(key: string) { return this.runs.has(key); }
   async recordRun(run: CleanupRun) { this.runs.set(run.key, run); }

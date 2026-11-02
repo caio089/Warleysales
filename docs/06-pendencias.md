@@ -1,16 +1,16 @@
 # Pendências e limitações conhecidas
 
 ## Decisões do usuário ainda abertas
-- **P1 – Warley**: UUID/e-mail não informado. Enquanto não vincular `is_special_deleter`, **ninguém** exclui manualmente.
-- **P2 – Retenção**: sem tabela de temporalidade aprovada. O job de limpeza só **arquiva**; elimina somente com autorização formal registrada (`retention_authorizations`) após 30 dias, relatório de encerramento e sem bloqueios.
+- **P1 – Warley**: resolvido. Conta `owarleysales@gmail.com` (`31ddcba8-8df8-4dfc-8d2b-124e3e783935`) com `is_central_admin` e `is_special_deleter`.
+- **P2 – Retenção**: sem tabela de temporalidade aprovada. O job de limpeza só **arquiva**; elimina somente com autorização formal registrada (`retention_authorizations`) após 30 dias, relatório de encerramento e sem bloqueios. Relatório, bloqueio e liberação de bloqueio agora têm UI.
 - **P6 – Nomenclatura dos 7 tipos**: provisória (DFD, ETP, MR=Matriz de Riscos, TR, PP, PJ, ED); editar `document_types` e `document-types.ts` quando confirmada.
+- **P7 – Vínculos**: convite continua no Auth; a tela `/administracao/usuarios` grava `council_memberships`.
 - Seções §19, §25 e §29 citadas no pedido não existem em `00-fase1-arquitetura.md`; foram aplicados os padrões seguros documentados.
 
 ## O que depende do usuário
-- **Aplicar as migrations no projeto `wdefwnmqcdomupdiorbo`**: nenhuma ferramenta automatizada deste ambiente tem acesso a ele (o conector MCP do Supabase enxerga somente outro projeto e a service role não permite DDL). Passo a passo em `05-operacao-e-deploy.md`; verificação com `npm run db:check`.
-- **`SUPABASE_SERVICE_ROLE_KEY`** na Vercel (e em `.env.local`, já preenchida pelo usuário) e um `CRON_SECRET` próprio de produção.
+- **Migrations no projeto `wdefwnmqcdomupdiorbo`**: aplicadas (0001–0007, seed dos 7 tipos, bucket privado). `npm run db:check` passou.
+- **`SUPABASE_SERVICE_ROLE_KEY`** e um `CRON_SECRET` próprio na Vercel (produção).
 - **Auth**: Site URL/Redirect URLs, SMTP, proteção de senha vazada e MFA.
-- **Primeiro admin e UUID do Warley**: SQL em `05-operacao-e-deploy.md` (por e-mail, sem UUID inventado).
 - **P2 tabela de retenção** e **P6 nomenclatura dos 7 tipos** (ver acima).
 
 ## Validação (ver `07-validacao-executada.md`)

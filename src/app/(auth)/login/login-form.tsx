@@ -7,7 +7,7 @@ import { FormField } from "@/shared/ui/form-field";
 
 export function LoginForm() {
   return (
-    <ActionForm action={signInAction} submitLabel="Entrar">
+    <ActionForm action={signInAction} submitLabel="Entrar" submitClassName="h-10 w-full">
       {(errors) => (
         <>
           <FormField label="E-mail" required errors={errors.email}>

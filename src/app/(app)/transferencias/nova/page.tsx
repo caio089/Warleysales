@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Nova transferência" };
 
 async function Content() {
   const result = await loadScreen(loadLookups);
-  return <Screen result={result}>{(l) => <div className="max-w-lg"><NewTransferForm councils={l.councils.map((c) => ({ value: c.id, label: c.label }))} materials={l.materials.map((m) => ({ value: m.id, label: m.label }))} /></div>}</Screen>;
+  return <Screen result={result}>{(l) => <div className="surface-card max-w-lg p-6"><NewTransferForm councils={l.councils.map((c) => ({ value: c.id, label: c.label }))} materials={l.materials.map((m) => ({ value: m.id, label: m.label }))} /></div>}</Screen>;
 }
 
 export default function NewTransferPage() {

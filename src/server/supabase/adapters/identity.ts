@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CouncilRepository, MembershipRepository } from "@/modules/identity/repository";
-import type { Council, MembershipRecord } from "@/modules/identity/schemas";
+import type { Council, MembershipRecord, ProfileSummary } from "@/modules/identity/schemas";
 import type { CouncilRole } from "@/shared/lib/authz/navigation";
 import { fail, ok } from "@/shared/lib/result";
 import { isUniqueViolation, selectAll, unwrap } from "../db";
@@ -11,6 +11,7 @@ interface CouncilRow {
   acronym: string;
   responsible_user_id: string | null;
   institutional_info: string | null;
+  whatsapp_e164: string | null;
   active: boolean;
 }
 
@@ -20,6 +21,7 @@ const toCouncil = (row: CouncilRow): Council => ({
   acronym: row.acronym,
   responsibleUserId: row.responsible_user_id,
   institutionalInfo: row.institutional_info,
+  whatsappE164: row.whatsapp_e164,
   active: row.active,
 });
 
@@ -29,6 +31,7 @@ const toRow = (council: Council): CouncilRow => ({
   acronym: council.acronym,
   responsible_user_id: council.responsibleUserId,
   institutional_info: council.institutionalInfo,
+  whatsapp_e164: council.whatsappE164,
   active: council.active,
 });
 
@@ -75,6 +78,34 @@ export class SupabaseMembershipRepository implements MembershipRepository {
   async listByCouncil(councilId: string): Promise<MembershipRecord[]> {
     const rows = unwrap("memberships.list", await this.db.from("council_memberships").select("user_id, council_id, role").eq("council_id", councilId).returns<MembershipRow[]>());
     return rows.map((r) => ({ userId: r.user_id, councilId: r.council_id, role: r.role }));
+  }
+
+  async listAll(): Promise<MembershipRecord[]> {
+    const rows = unwrap("memberships.listAll", await this.db.from("council_memberships").select("user_id, council_id, role").returns<MembershipRow[]>());
+    return rows.map((r) => ({ userId: r.user_id, councilId: r.council_id, role: r.role }));
+  }
+
+  async listProfiles(): Promise<ProfileSummary[]> {
+    const rows = unwrap(
+      "memberships.profiles",
+      await this.db.from("profiles").select("id, full_name, active").order("full_name").returns<{ id: string; full_name: string; active: boolean }[]>(),
+    );
+    return rows.map((r) => ({ id: r.id, fullName: r.full_name, active: r.active }));
+  }
+
+  async upsert(record: MembershipRecord): Promise<void> {
+    unwrap("memberships.upsert", await this.db.from("council_memberships").upsert(
+      { user_id: record.userId, council_id: record.councilId, role: record.role },
+      { onConflict: "user_id,council_id" },
+    ));
+  }
+
+  async remove(userId: string, councilId: string): Promise<boolean> {
+    const rows = unwrap(
+      "memberships.remove",
+      await this.db.from("council_memberships").delete().eq("user_id", userId).eq("council_id", councilId).select("user_id").returns<{ user_id: string }[]>(),
+    );
+    return rows.length > 0;
   }
 
   async managerIds(councilId: string): Promise<string[]> {

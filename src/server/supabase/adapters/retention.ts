@@ -39,6 +39,11 @@ export class SupabaseRetentionRepository implements RetentionRepository {
     return rows.length > 0;
   }
 
+  async listActiveHolds() {
+    const rows = unwrap("retention.listActiveHolds", await this.db.from("retention_holds").select("id, process_id, reason, created_by, released_at").is("released_at", null).returns<HoldRow[]>());
+    return rows.map((r) => ({ id: r.id, processId: r.process_id, reason: r.reason, createdBy: r.created_by, releasedAt: r.released_at ? new Date(r.released_at) : null }));
+  }
+
   async countActiveHolds(processId: string) {
     const { count, error } = await this.db.from("retention_holds").select("id", { count: "exact", head: true }).eq("process_id", processId).is("released_at", null);
     return unwrap("retention.countActiveHolds", { data: count, error });

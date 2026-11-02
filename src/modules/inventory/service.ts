@@ -133,6 +133,7 @@ export class InventoryService {
     const allowed = await guard(this.audit, actor, "stock.adjust", parsed.data.councilId, "stock_minimum", parsed.data.materialId);
     if (!allowed.ok) return allowed;
     await this.repository.setMinimum(parsed.data, parsed.data.minimum);
+    await this.audit.record({ actorId: actor.userId, action: "stock.set_minimum", entity: "stock_balance", entityId: parsed.data.materialId, councilId: parsed.data.councilId, result: "success", details: { minimum: parsed.data.minimum } });
     return ok(true);
   }
 

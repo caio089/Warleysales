@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { loadScreen } from "@/server/screen";
+import { canInAnyCouncil } from "@/shared/lib/authz/policy";
+import { ok } from "@/shared/lib/result";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
@@ -11,10 +13,14 @@ import { NewSupplierForm } from "./new-supplier-form";
 export const metadata: Metadata = { title: "Fornecedores" };
 
 async function Content() {
-  const result = await loadScreen(({ services, actor }) => services.suppliers.list(actor));
+  const result = await loadScreen(async ({ services, actor }) => {
+    const suppliers = await services.suppliers.list(actor);
+    if (!suppliers.ok) return suppliers;
+    return ok({ suppliers: suppliers.data, canCreate: canInAnyCouncil(actor, "supplier.manage") });
+  });
   return (
     <Screen result={result}>
-      {(suppliers) => (
+      {({ suppliers, canCreate }) => (
         <div className="space-y-8">
           <SimpleTable
             caption="Fornecedores"
@@ -22,7 +28,7 @@ async function Content() {
             columns={[{ key: "name", header: "Razão social" }, { key: "cnpj", header: "CNPJ" }, { key: "email", header: "E-mail" }, { key: "phone", header: "Telefone" }, { key: "active", header: "Situação" }]}
             emptyTitle="Nenhum fornecedor cadastrado"
           />
-          <section aria-labelledby="novo" className="max-w-lg rounded-lg border p-4"><h2 id="novo" className="mb-4 text-base font-semibold">Novo fornecedor</h2><NewSupplierForm /></section>
+          {canCreate ? <section aria-labelledby="novo" className="surface-card max-w-lg p-6"><h2 id="novo" className="mb-4 font-heading text-lg font-medium tracking-tight text-primary">Novo fornecedor</h2><NewSupplierForm /></section> : null}
         </div>
       )}
     </Screen>

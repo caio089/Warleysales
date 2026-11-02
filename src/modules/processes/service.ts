@@ -7,7 +7,7 @@ import { internalError, parseInput, type RuntimeDeps } from "@/shared/lib/servic
 import { effectiveProgressPercent } from "./domain/completion";
 import { calculateProgress, type DocumentalProgress } from "./domain/progress";
 import { changeProcessStatus } from "./domain/process-status";
-import { parseProcessNumber } from "./domain/process-number";
+import { formatProcessNumber, parseProcessNumber } from "./domain/process-number";
 import type { ProcessRepository } from "./repository";
 import { changeProcessStatusSchema, createProcessSchema, type AdministrativeProcess } from "./schemas";
 
@@ -45,7 +45,7 @@ export class ProcessService {
         councilId,
         sequence: parsedNumber.data.sequence,
         year: parsedNumber.data.year,
-        number,
+        number: formatProcessNumber(parsedNumber.data.sequence, parsedNumber.data.year),
         title,
         status: "em_andamento",
         documentalCompletedAt: null,

@@ -20,7 +20,7 @@ function setup() {
   const inventory = new InventoryService(new InMemoryInventoryRepository(rt.now), audit, rt);
   const contracts = new ContractService(new InMemoryContractRepository(), audit, rt);
   const atas = new AtaService(new InMemoryAtaRepository(), audit, rt);
-  return { processes, report: new ReportService(processes, inventory, contracts, atas) };
+  return { processes, report: new ReportService(processes, inventory, contracts, atas, rt) };
 }
 
 describe("ReportService", () => {
@@ -39,5 +39,26 @@ describe("ReportService", () => {
   it("operador não acessa relatórios (matriz de navegação)", async () => {
     const { report } = setup();
     expect((await report.operationalSummary(operatorOf(COUNCIL_A))).ok).toBe(false);
+  });
+  it("operador acessa o dashboard operacional do próprio conselho", async () => {
+    const { report } = setup();
+    const r = await report.dashboard(operatorOf(COUNCIL_A));
+    expect(r.ok).toBe(true);
+  });
+  it("filtra o consolidado pelo conselho informado", async () => {
+    const { report, processes } = setup();
+    await processes.create(managerOf(COUNCIL_A), { councilId: COUNCIL_A, number: "001/2026", title: "Processo A" });
+    await processes.create(managerOf(COUNCIL_B), { councilId: COUNCIL_B, number: "001/2026", title: "Processo B" });
+    const admin = { userId: crypto.randomUUID(), isCentralAdmin: true, isSpecialDeleter: false, memberships: [] };
+    const all = await report.operationalSummary(admin);
+    const onlyA = await report.operationalSummary(admin, { councilId: COUNCIL_A });
+    expect(all.ok && all.data.processes.total).toBe(2);
+    expect(onlyA.ok && onlyA.data.processes.total).toBe(1);
+  });
+  it("dashboard sem dados não inventa pauta de atenção", async () => {
+    const { report } = setup();
+    const r = await report.dashboard(managerOf(COUNCIL_A));
+    expect(r.ok && r.data.attention).toEqual([]);
+    expect(r.ok && r.data.deadlines).toEqual([]);
   });
 });
