@@ -10,6 +10,7 @@ export type ErrorCode =
   | "CONFLICT"
   | "INVALID_STATE"
   | "INSUFFICIENT_BALANCE"
+  | "UNAVAILABLE"
   | "INTERNAL";
 
 export type Result<T> =

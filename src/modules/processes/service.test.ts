@@ -219,3 +219,14 @@ describe("RetentionService (R6/R7, P2)", () => {
     expect(!r.ok && r.code).toBe("FORBIDDEN");
   });
 });
+
+describe("RetentionService.overview", () => {
+  it("lista elegibilidade somente para administração central", async () => {
+    const p = await newProcess(ctx);
+    await attachAll(ctx, p.id);
+    ctx.runtime.advanceDays(31);
+    const admin = await ctx.retention.overview(centralAdmin());
+    expect(admin.ok && admin.data[0]).toMatchObject({ number: "001/2026", action: "blocked" }); // sem relatório de encerramento
+    expect((await ctx.retention.overview(managerOf(COUNCIL_A))).ok).toBe(false);
+  });
+});

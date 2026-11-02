@@ -2,6 +2,7 @@ import type { AuditRecorder } from "@/modules/audit/service";
 import { refreshCompletion } from "@/modules/processes/completion-refresher";
 import type { ProcessRepository } from "@/modules/processes/repository";
 import { guard } from "@/shared/lib/authz/guard";
+import { can } from "@/shared/lib/authz/policy";
 import { log } from "@/shared/lib/logger";
 import { fail, ok, type Result } from "@/shared/lib/result";
 import { internalError, parseInput, type RuntimeDeps } from "@/shared/lib/service-support";
@@ -129,5 +130,12 @@ export class DocumentService {
     const allowed = await guard(this.audit, actor, "council.read", attachment.councilId, "attachment", attachment.id);
     if (!allowed.ok) return fail("NOT_FOUND", "Documento não encontrado.");
     return ok(await this.storage.createSignedUrl(attachment.storagePath, SIGNED_URL_TTL_SECONDS));
+  }
+
+  /** Lista os anexos de um processo (somente de quem lê o conselho dono). */
+  async listByProcess(actor: Parameters<typeof guard>[1], processId: string): Promise<Result<Attachment[]>> {
+    const process = await this.processes.findById(processId);
+    if (!process || !can(actor, "council.read", process.councilId)) return fail("NOT_FOUND", "Processo não encontrado.");
+    return ok((await this.documents.listByProcess(processId)).filter((a) => a.retentionState !== "disposed" && a.uploadStatus === "confirmed"));
   }
 }

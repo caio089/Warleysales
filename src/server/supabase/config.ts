@@ -1,0 +1,8 @@
+/** Variáveis públicas do Supabase (URL e chave publicável). Validadas sem expor valores. */
+export function getSupabaseConfig(): { url: string; publishableKey: string } | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  return url && publishableKey ? { url, publishableKey } : null;
+}
+
+export const isSupabaseConfigured = (): boolean => getSupabaseConfig() !== null;

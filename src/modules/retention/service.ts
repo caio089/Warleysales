@@ -22,6 +22,15 @@ export interface CleanupSummary {
 const authorizationSchema = z.object({ processId: idSchema, reference: z.string().trim().min(3, "Informe a referência do ato.") });
 const holdSchema = z.object({ processId: idSchema, reason: z.string().trim().min(3, "Informe o motivo.") });
 
+export interface RetentionOverviewRow {
+  processId: string;
+  councilId: string;
+  number: string;
+  documentalCompletedAt: Date;
+  action: "not_eligible" | "blocked" | "archive_only" | "eligible_for_disposal";
+  reasons: string[];
+}
+
 export class RetentionService {
   constructor(
     private readonly retention: RetentionRepository,
@@ -124,5 +133,25 @@ export class RetentionService {
     await this.retention.recordRun({ key, processId: process.id, outcome: "disposed", at: now });
     await this.audit.record({ actorId: null, action: "retention.dispose", entity: "administrative_process", entityId: process.id, councilId: process.councilId, result: "success", details: { system: "retention-job", files: attachments.length } });
     return true;
+  }
+
+  /** Visão administrativa: situação de limpeza de cada processo documentalmente completo. */
+  async overview(actor: Actor): Promise<Result<RetentionOverviewRow[]>> {
+    const allowed = await guard(this.audit, actor, "retention.manage", undefined, "retention_overview");
+    if (!allowed.ok) return allowed;
+    const now = this.runtime.now();
+    const rows: RetentionOverviewRow[] = [];
+    for (const process of await this.processes.listByCouncils("all")) {
+      if (!process.documentalCompletedAt) continue;
+      const decision = evaluateCleanupEligibility({
+        documentalCompletedAt: process.documentalCompletedAt,
+        hasClosingReport: process.closingReportRegistered,
+        activeHoldCount: await this.retention.countActiveHolds(process.id),
+        hasRetentionAuthorization: await this.retention.hasAuthorization(process.id),
+        now,
+      });
+      rows.push({ processId: process.id, councilId: process.councilId, number: process.number, documentalCompletedAt: process.documentalCompletedAt, action: decision.action, reasons: decision.reasons });
+    }
+    return ok(rows);
   }
 }
