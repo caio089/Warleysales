@@ -163,6 +163,18 @@ export class SupabaseStorage implements StoragePort {
     if (error) throw new Error(`Falha no upload para o Storage: ${error.message}`);
   }
 
+  async createSignedUploadUrl(path: string) {
+    const { data, error } = await this.db.storage.from(BUCKET).createSignedUploadUrl(path);
+    if (error || !data) throw new Error(`Falha ao gerar URL de upload: ${error?.message ?? "sem dados"}`);
+    return { path: data.path, token: data.token };
+  }
+
+  async download(path: string) {
+    const { data, error } = await this.db.storage.from(BUCKET).download(path);
+    if (error || !data) return null;
+    return new Uint8Array(await data.arrayBuffer());
+  }
+
   async remove(path: string) {
     const { error } = await this.db.storage.from(BUCKET).remove([path]);
     if (error) throw new Error(`Falha ao remover do Storage: ${error.message}`);

@@ -22,6 +22,8 @@ export class InMemoryStorage implements StoragePort {
     }
     this.objects.set(path, bytes);
   }
+  async createSignedUploadUrl(path: string) { return { path, token: `memory-token:${path}` }; }
+  async download(path: string) { return this.objects.get(path) ?? null; }
   async remove(path: string) { this.objects.delete(path); }
   async createSignedUrl(path: string, ttlSeconds: number) { return `memory://${path}?ttl=${ttlSeconds}`; }
 }

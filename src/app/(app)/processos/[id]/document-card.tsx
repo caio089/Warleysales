@@ -2,7 +2,8 @@
 
 import { CheckCircle2, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { downloadUrlAction, manualDeleteFormAction, unlinkDocumentFormAction, uploadDocumentAction } from "@/modules/documents/actions";
+import { confirmDocumentUploadAction, downloadUrlAction, manualDeleteFormAction, prepareDocumentUploadAction, unlinkDocumentFormAction } from "@/modules/documents/actions";
+import { sha256Hex, uploadToSignedUrl } from "@/shared/lib/browser-upload";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { FileUpload } from "@/shared/ui/file-upload";
 import { ActionForm } from "@/shared/ui/forms/action-form";
@@ -72,12 +73,18 @@ export function DocumentCard({ processId, typeCode, label, valid, files, canUplo
         <FileUpload
           label="Selecionar arquivo"
           onUpload={async (file, report) => {
-            report(10);
-            const body = new FormData();
-            body.set("file", file);
-            const result = await uploadDocumentAction(processId, typeCode, body);
+            // Upload direto: (1) servidor autoriza e emite token, (2) navegador envia ao Storage, (3) servidor valida e confirma.
+            report(5);
+            const sha256 = await sha256Hex(file);
+            const prepared = await prepareDocumentUploadAction(processId, typeCode, { fileName: file.name, size: file.size, sha256 });
+            if (!prepared.ok) return prepared;
+            report(20);
+            const sent = await uploadToSignedUrl(prepared.data.storagePath, prepared.data.token, file, prepared.data.mime);
+            if (!sent.ok) return sent;
+            report(85);
+            const confirmed = await confirmDocumentUploadAction(processId, prepared.data.attachmentId);
             report(100);
-            return result;
+            return confirmed;
           }}
         />
       ) : null}

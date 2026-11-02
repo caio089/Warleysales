@@ -2,18 +2,26 @@
 
 import { revalidatePath } from "next/cache";
 import { runAction } from "@/server/action-runner";
+import type { PreparedUpload } from "@/modules/documents/schemas";
 import type { Result } from "@/shared/lib/result";
 import { fail, ok } from "@/shared/lib/result";
 import type { ActionState } from "@/shared/ui/forms/action-state";
 
-/** Upload (2 fases dentro do serviço). Os bytes são lidos no servidor; o cliente nunca define o conselho. */
-export async function uploadDocumentAction(processId: string, typeCode: string, formData: FormData): Promise<Result<{ attachmentId: string }>> {
-  const file = formData.get("file");
-  if (!(file instanceof File)) return fail("VALIDATION", "Selecione um arquivo.");
-  const bytes = new Uint8Array(await file.arrayBuffer());
+/** Fase 1 do upload direto: registra o anexo pendente e devolve o token assinado (o conselho vem do servidor, R14). */
+export async function prepareDocumentUploadAction(
+  processId: string,
+  typeCode: string,
+  file: { fileName: string; size: number; sha256: string },
+): Promise<Result<PreparedUpload>> {
+  const state = await runAction(({ services, actor }) => services.documents.prepareUpload(actor, { processId, typeCode, ...file }), "Envio iniciado.");
+  if (state.status !== "success" || !state.data) return fail("VALIDATION", state.status === "error" ? state.message : "Falha ao iniciar o envio.");
+  return ok(state.data);
+}
 
-  const state = await runAction(({ services, actor }) => services.documents.upload(actor, { processId, typeCode, fileName: file.name }, bytes), "Documento enviado.");
-  if (state.status !== "success" || !state.data) return fail("VALIDATION", state.status === "error" ? state.message : "Falha no envio.");
+/** Fase final: o servidor valida o objeto gravado (tamanho, magic bytes e SHA-256) e confirma o anexo. */
+export async function confirmDocumentUploadAction(processId: string, attachmentId: string): Promise<Result<{ attachmentId: string }>> {
+  const state = await runAction(({ services, actor }) => services.documents.confirmUpload(actor, { attachmentId }), "Documento enviado.");
+  if (state.status !== "success" || !state.data) return fail("VALIDATION", state.status === "error" ? state.message : "Falha ao confirmar o envio.");
   revalidatePath(`/processos/${processId}`);
   return ok({ attachmentId: state.data.id });
 }
