@@ -7,6 +7,7 @@ import {
   FileSignature,
   FileText,
   History,
+  Home,
   LayoutDashboard,
   Package,
   ScrollText,
@@ -37,13 +38,14 @@ export interface NavItem {
 const ALL_ROLES: CouncilRole[] = ["council_manager", "council_operator", "viewer"];
 
 export const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, allowedRoles: ALL_ROLES },
+  { label: "Meu conselho", href: "/meu-conselho", icon: Home, allowedRoles: ALL_ROLES },
+  { label: "Visão geral", href: "/dashboard", icon: LayoutDashboard, allowedRoles: ALL_ROLES },
   { label: "Conselhos", href: "/conselhos", icon: Building2, allowedRoles: [], centralOnly: true },
   { label: "Processos", href: "/processos", icon: FileText, allowedRoles: ALL_ROLES },
   { label: "Solicitações", href: "/solicitacoes", icon: ShoppingCart, allowedRoles: ALL_ROLES },
   { label: "Estoque", href: "/estoque", icon: Package, allowedRoles: ALL_ROLES },
   { label: "Transferências", href: "/transferencias", icon: ArrowLeftRight, allowedRoles: ALL_ROLES },
-  { label: "Atas de registro de preços", href: "/atas", icon: ScrollText, allowedRoles: ALL_ROLES },
+  { label: "Atas", href: "/atas", icon: ScrollText, allowedRoles: ALL_ROLES },
   { label: "Contratos", href: "/contratos", icon: FileSignature, allowedRoles: ALL_ROLES },
   { label: "Fornecedores", href: "/fornecedores", icon: Truck, allowedRoles: ALL_ROLES },
   { label: "Reuniões", href: "/reunioes", icon: CalendarDays, allowedRoles: ALL_ROLES },

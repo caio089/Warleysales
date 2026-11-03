@@ -33,6 +33,7 @@ interface DataTableProps<T> {
   pageSize?: number;
   emptyTitle?: string;
   emptyDescription?: string;
+  emptyAction?: ReactNode;
 }
 
 /** Tabela com busca, filtros, ordenação por cabeçalho (teclado) e paginação. */
@@ -45,6 +46,7 @@ export function DataTable<T>({
   pageSize = 10,
   emptyTitle = "Nenhum registro encontrado",
   emptyDescription,
+  emptyAction,
 }: DataTableProps<T>) {
   const searchId = useId();
   const [search, setSearch] = useState("");
@@ -97,57 +99,61 @@ export function DataTable<T>({
       </div>
 
       {result.total === 0 ? (
-        <EmptyState title={emptyTitle} description={emptyDescription} />
+        <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />
       ) : (
-        <div className="surface-card overflow-x-auto">
-          <table className="w-full text-sm">
-            <caption className="sr-only">{caption}</caption>
-            <thead className="bg-secondary/70 text-left">
-              <tr>
-                {columns.map((col) => {
-                  const active = sort.key === col.key;
-                  const ariaSort = active ? (sort.direction === "asc" ? "ascending" : "descending") : "none";
-                  const Icon = !active ? ArrowUpDown : sort.direction === "asc" ? ArrowUp : ArrowDown;
-                  return (
-                    <th key={col.key} scope="col" aria-sort={col.sortable ? ariaSort : undefined} className="px-4 py-3 text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
-                      {col.sortable ? (
-                        <button
-                          type="button"
-                          className="inline-flex items-center gap-1 rounded-md tracking-[0.12em] uppercase transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                          onClick={() => { setSort((s) => nextSort(s, col.key)); setPage(1); }}
-                        >
-                          {col.header}
-                          <Icon className="size-3.5" aria-hidden />
-                        </button>
-                      ) : col.header}
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {result.rows.map((row) => (
-                <tr key={getRowId(row)} className="border-t border-border/70 transition-colors hover:bg-primary/[0.03]">
-                  {columns.map((col) => (
-                    <td key={col.key} className={col.className ?? "px-4 py-3"}>
-                      {col.render ? col.render(row) : (col.accessor(row) ?? "—")}
-                    </td>
-                  ))}
+        <div className="surface-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <caption className="sr-only">{caption}</caption>
+              <thead className="sticky top-0 bg-secondary/90 text-left backdrop-blur-sm">
+                <tr>
+                  {columns.map((col) => {
+                    const active = sort.key === col.key;
+                    const ariaSort = active ? (sort.direction === "asc" ? "ascending" : "descending") : "none";
+                    const Icon = !active ? ArrowUpDown : sort.direction === "asc" ? ArrowUp : ArrowDown;
+                    return (
+                      <th key={col.key} scope="col" aria-sort={col.sortable ? ariaSort : undefined} className="px-4 py-3.5 text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+                        {col.sortable ? (
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 rounded-md tracking-[0.12em] uppercase transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            onClick={() => { setSort((s) => nextSort(s, col.key)); setPage(1); }}
+                          >
+                            {col.header}
+                            <Icon className="size-3.5" aria-hidden />
+                          </button>
+                        ) : col.header}
+                      </th>
+                    );
+                  })}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {result.rows.map((row) => (
+                  <tr key={getRowId(row)} className="border-t border-border/70 transition-colors hover:bg-primary/[0.035]">
+                    {columns.map((col) => (
+                      <td key={col.key} className={col.className ?? "px-4 py-3.5"}>
+                        {col.render ? col.render(row) : (col.accessor(row) ?? "—")}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span aria-live="polite">{result.total} registro(s)</span>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" disabled={result.page <= 1} onClick={() => setPage(result.page - 1)}>Anterior</Button>
-          <span>Página {result.page} de {result.pageCount}</span>
-          <Button variant="outline" size="sm" disabled={result.page >= result.pageCount} onClick={() => setPage(result.page + 1)}>Próxima</Button>
+      {result.total > 0 ? (
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span aria-live="polite">{result.total} registro(s) no banco</span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" disabled={result.page <= 1} onClick={() => setPage(result.page - 1)}>Anterior</Button>
+            <span>Página {result.page} de {result.pageCount}</span>
+            <Button variant="outline" size="sm" disabled={result.page >= result.pageCount} onClick={() => setPage(result.page + 1)}>Próxima</Button>
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

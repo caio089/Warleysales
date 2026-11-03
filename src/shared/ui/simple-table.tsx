@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { formatCurrency, formatNumber } from "@/shared/lib/format";
 import { formatDateOnly, formatDateTimeFortaleza } from "@/shared/lib/time";
 import { DataTable, type DataTableColumn } from "./data-table";
@@ -50,6 +51,7 @@ interface SimpleTableProps {
   filterKeys?: { key: string; label: string; dictionary?: StatusDictionary }[];
   emptyTitle?: string;
   emptyDescription?: string;
+  emptyAction?: ReactNode;
 }
 
 function renderCell(column: SimpleColumn, row: SimpleRow) {
@@ -75,7 +77,7 @@ function renderCell(column: SimpleColumn, row: SimpleRow) {
 }
 
 /** Tabela de leitura com busca/ordenação/paginação, configurada apenas por dados serializáveis. */
-export function SimpleTable({ caption, rows, columns, filterKeys = [], emptyTitle, emptyDescription }: SimpleTableProps) {
+export function SimpleTable({ caption, rows, columns, filterKeys = [], emptyTitle, emptyDescription, emptyAction }: SimpleTableProps) {
   const tableColumns: DataTableColumn<SimpleRow>[] = columns.map((c) => ({
     key: c.key,
     header: c.header,
@@ -94,5 +96,5 @@ export function SimpleTable({ caption, rows, columns, filterKeys = [], emptyTitl
     };
   });
 
-  return <DataTable caption={caption} data={rows} columns={tableColumns} getRowId={(r) => r.id} filters={filters} emptyTitle={emptyTitle} emptyDescription={emptyDescription} />;
+  return <DataTable caption={caption} data={rows} columns={tableColumns} getRowId={(r) => r.id} filters={filters} emptyTitle={emptyTitle} emptyDescription={emptyDescription} emptyAction={emptyAction} />;
 }

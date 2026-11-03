@@ -14,7 +14,10 @@ export async function scheduleMeetingFormAction(_previous: ActionState, formData
   const result = await runAction(({ services, actor }) => services.meetings.schedule(actor, {
     councilId: formData.get("councilId"), title: formData.get("title"), scheduledAt: fortalezaLocalToIso(formData.get("scheduledAt")),
   }), "Reunião agendada.");
-  if (result.status === "success") revalidatePath("/reunioes");
+  if (result.status === "success") {
+    revalidatePath("/reunioes");
+    revalidatePath("/meu-conselho");
+  }
   return result.status === "success" ? { status: "success", message: result.message } : result;
 }
 

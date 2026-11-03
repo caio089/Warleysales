@@ -1,4 +1,4 @@
-import { Bell } from "lucide-react";
+import { Bell, Database } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -43,6 +43,15 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
       navHrefs={navHrefs}
       topbarSlot={
         <>
+          {!unconfigured ? (
+            <span
+              title="Gravações vão para o Postgres do Supabase"
+              className="hidden items-center gap-1.5 rounded-full border border-success-foreground/15 bg-success px-2.5 py-1 text-[0.7rem] font-semibold tracking-wide text-success-foreground sm:inline-flex"
+            >
+              <Database className="size-3" aria-hidden />
+              Banco conectado
+            </span>
+          ) : null}
           <Link
             href="/alertas"
             aria-label={unreadAlerts > 0 ? `Alertas e notificações, ${unreadAlerts} não lida(s)` : "Alertas e notificações"}
@@ -74,7 +83,7 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
       }
     >
       {unconfigured ? (
-        <div role="status" className="mb-4 rounded-lg border border-warning-foreground/30 bg-warning p-3 text-sm text-warning-foreground">
+        <div role="status" className="mb-4 rounded-xl border border-warning-foreground/30 bg-warning p-3 text-sm text-warning-foreground">
           <strong>Fonte de dados não configurada.</strong> As telas mostram apenas a estrutura; nenhum dado é simulado e nenhuma operação é gravada.
         </div>
       ) : null}

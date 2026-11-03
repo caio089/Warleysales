@@ -6,14 +6,44 @@ import { SelectField, TextAreaField, TextField } from "@/shared/ui/forms/fields"
 
 type Option = { value: string; label: string };
 
-export function NewMeetingForm({ councils }: { councils: Option[] }) {
+export function NewMeetingForm({
+  councils,
+  defaultCouncilId,
+  lockCouncil = false,
+}: {
+  councils: Option[];
+  defaultCouncilId?: string;
+  /** Quando true, o conselho já está definido (painel do conselho) e não aparece no formulário. */
+  lockCouncil?: boolean;
+}) {
   return (
-    <ActionForm action={scheduleMeetingFormAction} submitLabel="Agendar">
-      {(e) => (<>
-        <SelectField name="councilId" label="Conselho" required options={councils} errors={e.councilId} />
-        <TextField name="title" label="Título" required errors={e.title} />
-        <TextField name="scheduledAt" label="Data e hora (horário de Fortaleza)" type="datetime-local" required errors={e.scheduledAt} />
-      </>)}
+    <ActionForm
+      action={scheduleMeetingFormAction}
+      submitLabel="Agendar reunião"
+      hiddenFields={lockCouncil && defaultCouncilId ? { councilId: defaultCouncilId } : undefined}
+    >
+      {(e) => (
+        <>
+          {!lockCouncil ? (
+            <SelectField
+              name="councilId"
+              label="Conselho"
+              required
+              options={councils}
+              defaultValue={defaultCouncilId}
+              errors={e.councilId}
+            />
+          ) : null}
+          <TextField name="title" label="Título" required errors={e.title} />
+          <TextField
+            name="scheduledAt"
+            label="Data e hora (horário de Fortaleza)"
+            type="datetime-local"
+            required
+            errors={e.scheduledAt}
+          />
+        </>
+      )}
     </ActionForm>
   );
 }

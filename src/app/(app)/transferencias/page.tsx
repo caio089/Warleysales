@@ -24,7 +24,7 @@ async function Content() {
     <Screen result={result}>
       {({ transfers, lookups, canCreate }) => (
         <>
-        <PageHeader title="Transferências" description="Material em trânsito não está disponível em nenhum dos conselhos." actions={canCreate ? <Link href="/transferencias/nova" className={buttonVariants()}>Nova transferência</Link> : undefined} />
+        <PageHeader eyebrow="Estoque" title="Transferências" description="Material em trânsito não fica disponível na origem nem no destino." actions={canCreate ? <Link href="/transferencias/nova" className={buttonVariants()}>Nova transferência</Link> : undefined} />
         <SimpleTable
           caption="Transferências entre conselhos"
           rows={transfers.map((t) => ({ id: t.id, origin: lookups.councilLabel[t.originCouncilId] ?? "—", destination: lookups.councilLabel[t.destinationCouncilId] ?? "—", status: t.status, items: t.items.length, createdAt: t.createdAt.toISOString(), href: `/transferencias/${t.id}` }))}
@@ -33,7 +33,9 @@ async function Content() {
             { key: "status", header: "Status", kind: "status", dictionary: "transfer" }, { key: "items", header: "Itens", kind: "number" }, { key: "createdAt", header: "Solicitada em", kind: "datetime" },
           ]}
           filterKeys={[{ key: "status", label: "Status", dictionary: "transfer" }]}
-          emptyTitle="Nenhuma transferência"
+          emptyTitle="Nenhuma transferência no banco"
+          emptyDescription="Solicite a transferência pelo conselho de destino. A origem aprova, separa e despacha."
+          emptyAction={canCreate ? <Link href="/transferencias/nova" className={buttonVariants()}>Nova transferência</Link> : undefined}
         />
         </>
       )}

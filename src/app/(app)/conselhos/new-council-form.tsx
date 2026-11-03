@@ -10,7 +10,7 @@ const WHATSAPP_HINT = "Celular com DDD. Fica gravado para você enviar mensagens
 
 export function NewCouncilForm() {
   return (
-    <ActionForm action={createCouncilFormAction} submitLabel="Criar conselho">
+    <ActionForm action={createCouncilFormAction} submitLabel="Cadastrar conselho / empresa">
       {(e) => (
         <>
           <TextField name="name" label="Nome" required errors={e.name} />
@@ -33,7 +33,7 @@ export function NewCouncilForm() {
 /** Edição do conselho (admin central): mesmo contrato do cadastro, incluindo o WhatsApp. */
 export function EditCouncilForm({ council }: { council: Council }) {
   return (
-    <ActionForm action={updateCouncilFormAction} submitLabel="Salvar alterações" hiddenFields={{ councilId: council.id }}>
+    <ActionForm action={updateCouncilFormAction} submitLabel="Salvar alterações" hiddenFields={{ councilId: council.id }} resetOnSuccess={false}>
       {(e) => (
         <>
           <TextField name="name" label="Nome" required defaultValue={council.name} errors={e.name} />

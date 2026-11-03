@@ -14,7 +14,7 @@ export function MinimumForm({ councils, materials }: { councils: Option[]; mater
     <section aria-labelledby="minimo" className="surface-card p-6">
       <h2 id="minimo" className="font-heading text-lg font-medium tracking-tight text-primary">Estoque mínimo</h2>
       <p className="mt-1 mb-4 text-sm leading-relaxed text-muted-foreground">Usado para classificar atenção e crítico. Só gestor altera.</p>
-      <ActionForm action={setMinimumFormAction} submitLabel="Definir mínimo">
+      <ActionForm action={setMinimumFormAction} submitLabel="Definir mínimo" resetOnSuccess={false}>
         {(e) => (
           <>
             <SelectField name="councilId" label="Conselho" required options={councils} defaultValue={defaultCouncilId} errors={e.councilId} />

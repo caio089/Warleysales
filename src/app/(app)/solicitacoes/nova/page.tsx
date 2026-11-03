@@ -41,7 +41,11 @@ async function Content() {
 export default function NewRequestPage() {
   return (
     <>
-      <PageHeader title="Nova solicitação" description="A solicitação nasce como rascunho. Aprovar não altera o estoque: ele só aumenta no recebimento." />
+      <PageHeader
+        eyebrow="Solicitações"
+        title="Nova solicitação"
+        description="1) Preencha e salve o rascunho · 2) Na tela seguinte, clique em Enviar · 3) O gestor aprova · 4) No recebimento o estoque sobe."
+      />
       <Suspense fallback={<LoadingState />}><Content /></Suspense>
     </>
   );

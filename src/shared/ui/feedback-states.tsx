@@ -15,14 +15,20 @@ function StateShell({ icon: Icon, title, description, action, role, iconClassNam
   return (
     <div
       role={role}
-      className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border/90 bg-card/70 px-8 py-14 text-center shadow-[inset_0_1px_0_oklch(1_0_0_/_0.6)]"
+      className="relative flex flex-col items-center justify-center gap-4 overflow-hidden rounded-2xl border border-dashed border-border/90 bg-card/80 px-8 py-16 text-center"
     >
-      <span className="grid size-14 place-items-center rounded-2xl bg-secondary">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,oklch(0.28_0.07_250_/_0.05),transparent_60%)]"
+      />
+      <span className="relative grid size-14 place-items-center rounded-2xl bg-secondary shadow-sm">
         <Icon className={cn("size-6 text-muted-foreground", iconClassName)} aria-hidden />
       </span>
-      <p className="font-heading text-lg font-medium tracking-tight text-primary">{title}</p>
-      {description ? <p className="max-w-md text-sm leading-relaxed text-muted-foreground">{description}</p> : null}
-      {action ? <div className="mt-2">{action}</div> : null}
+      <div className="relative space-y-2">
+        <p className="font-heading text-xl font-medium tracking-tight text-primary">{title}</p>
+        {description ? <p className="mx-auto max-w-md text-sm leading-relaxed text-muted-foreground">{description}</p> : null}
+      </div>
+      {action ? <div className="relative mt-1">{action}</div> : null}
     </div>
   );
 }

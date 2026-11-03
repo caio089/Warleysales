@@ -17,7 +17,11 @@ async function Content() {
 export default function NewProcessPage() {
   return (
     <>
-      <PageHeader title="Novo processo" description="O número segue o formato NNN/AAAA e é único por conselho." />
+      <PageHeader
+        eyebrow="Processos"
+        title="Novo processo"
+        description="Informe conselho, número (NNN/AAAA) e objeto. Depois você anexa os 7 documentos na tela do processo."
+      />
       <Suspense fallback={<LoadingState />}><Content /></Suspense>
     </>
   );

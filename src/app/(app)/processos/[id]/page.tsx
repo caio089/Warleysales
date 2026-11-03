@@ -4,6 +4,8 @@ import { loadScreen } from "@/server/screen";
 import { ok } from "@/shared/lib/result";
 import { DOCUMENT_TYPES } from "@/modules/processes/domain/document-types";
 import { can } from "@/shared/lib/authz/policy";
+import { processNextStep } from "@/shared/ui/flow-copy";
+import { NextStepCallout } from "@/shared/ui/flow-guide";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
 import { ProgressBar } from "@/shared/ui/progress-bar";
@@ -37,9 +39,27 @@ async function ProcessContent({ params }: { params: Promise<{ id: string }> }) {
         const status = presentationOf(PROCESS_STATUS, view.process.status);
         const completion = presentationOf(COMPLETION_STATUS, view.completion);
         const typesCount = view.process.snapshot ? DOCUMENT_TYPES.length : view.progress.validTypes.length;
+        const next = processNextStep({
+          completion: view.completion,
+          typesDone: typesCount,
+          typesTotal: DOCUMENT_TYPES.length,
+          canUpload: canManage,
+          status: view.process.status,
+        });
         return (
           <>
-            <PageHeader title={`Processo ${view.process.number}`} description={view.process.title} actions={<><StatusBadge label={status.label} tone={status.tone} /><StatusBadge label={completion.label} tone={completion.tone} /></>} />
+            <PageHeader
+              eyebrow="Processos"
+              title={`Processo ${view.process.number}`}
+              description={view.process.title}
+              actions={
+                <>
+                  <StatusBadge label={status.label} tone={status.tone} />
+                  <StatusBadge label={completion.label} tone={completion.tone} />
+                </>
+              }
+            />
+            <NextStepCallout {...next} />
             <ProcessActions
               processId={view.process.id}
               status={view.process.status}
@@ -49,24 +69,40 @@ async function ProcessContent({ params }: { params: Promise<{ id: string }> }) {
               documentalComplete={view.completion === "completa"}
             />
             <section aria-label="Progresso documental" className="surface-card mb-6 p-5">
-              <p className="mb-2 text-sm font-medium">Progresso documental ({typesCount}/{DOCUMENT_TYPES.length} tipos{view.process.snapshot ? ", snapshot após limpeza" : ""})</p>
+              <p className="mb-2 text-sm font-medium">
+                Documentos anexados ({typesCount}/{DOCUMENT_TYPES.length}
+                {view.process.snapshot ? ", snapshot após limpeza" : ""})
+              </p>
               <ProgressBar value={view.displayPercent} label="Progresso documental" />
-              <p className="mt-2 text-xs text-muted-foreground">Calculado automaticamente: tipos distintos com anexo válido ÷ 7. Não é editável. A conclusão documental não encerra o processo.</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Sobe sozinho quando cada tipo recebe um anexo válido. Completar os 7 documentos não conclui o processo —
+                isso é a situação administrativa (bloco acima).
+              </p>
             </section>
-            <section aria-label="Documentos obrigatórios" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {DOCUMENT_TYPES.map((type) => (
-                <DocumentCard
-                  key={type.code}
-                  processId={view.process.id}
-                  typeCode={type.code}
-                  label={type.label}
-                  valid={view.progress.validTypes.includes(type.code)}
-                  files={documents.filter((d) => d.typeCode === type.code && d.linkStatus === "active").map((d) => ({ id: d.id, name: d.fileName }))}
-                  canUpload={canManage}
-                  canUnlink={canUnlink}
-                  canManualDelete={isSpecialDeleter}
-                />
-              ))}
+            <section aria-label="Documentos obrigatórios" className="space-y-3">
+              <div>
+                <h2 className="font-heading text-lg font-medium tracking-tight text-primary">Os 7 documentos</h2>
+                <p className="text-sm text-muted-foreground">
+                  Em cada card, envie o arquivo do tipo indicado. Ordem sugerida: DFD → ETP → MR → TR → PP → PJ → ED.
+                </p>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {DOCUMENT_TYPES.map((type, index) => (
+                  <DocumentCard
+                    key={type.code}
+                    processId={view.process.id}
+                    typeCode={type.code}
+                    label={`${index + 1}. ${type.label}`}
+                    valid={view.progress.validTypes.includes(type.code)}
+                    files={documents
+                      .filter((d) => d.typeCode === type.code && d.linkStatus === "active")
+                      .map((d) => ({ id: d.id, name: d.fileName }))}
+                    canUpload={canManage}
+                    canUnlink={canUnlink}
+                    canManualDelete={isSpecialDeleter}
+                  />
+                ))}
+              </div>
             </section>
           </>
         );
@@ -76,5 +112,9 @@ async function ProcessContent({ params }: { params: Promise<{ id: string }> }) {
 }
 
 export default function ProcessPage({ params }: { params: Promise<{ id: string }> }) {
-  return <Suspense fallback={<LoadingState />}><ProcessContent params={params} /></Suspense>;
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <ProcessContent params={params} />
+    </Suspense>
+  );
 }

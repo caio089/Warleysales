@@ -8,6 +8,7 @@ import { loadScreen } from "@/server/screen";
 import { canInAnyCouncil } from "@/shared/lib/authz/policy";
 import { formatPercent } from "@/shared/lib/format";
 import { ok } from "@/shared/lib/result";
+import { StartHereCard } from "@/shared/ui/flow-guide";
 import { KpiCard } from "@/shared/ui/kpi-card";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader, SectionLabel } from "@/shared/ui/page-header";
@@ -70,6 +71,30 @@ async function DashboardContent({
 
         return (
           <div className="space-y-8">
+            <section aria-label="Comece por aqui" className="grid gap-4 md:grid-cols-3">
+              <StartHereCard
+                step={1}
+                href="/meu-conselho"
+                title="Painel do meu conselho"
+                description="Solicitações, documentos, estoque e reuniões do seu conselho em um só lugar."
+                cta="Abrir meu conselho"
+              />
+              <StartHereCard
+                step={2}
+                href={canCreateProcess ? "/processos/novo" : "/processos"}
+                title="Cadastrar documentos"
+                description="Abra um processo e anexe os 7 tipos. O progresso sobe sozinho."
+                cta={canCreateProcess ? "Abrir novo processo" : "Ver processos"}
+              />
+              <StartHereCard
+                step={3}
+                href="/solicitacoes/nova"
+                title="Pedir material"
+                description="Criar → enviar → aprovar → receber. Estoque só muda no recebimento."
+                cta="Nova solicitação"
+              />
+            </section>
+
             <DashboardFilters councils={lookups.councils} councilId={councilId} focus={focus} />
 
             <Suspense fallback={<BriefingFallback />}>
@@ -132,7 +157,11 @@ async function DashboardContent({
 export default function DashboardPage({ searchParams }: PageProps<"/dashboard">) {
   return (
     <>
-      <PageHeader title="Dashboard" description="Visão geral, alertas e prazos dos conselhos conforme o seu acesso." />
+      <PageHeader
+        eyebrow="Conselhos"
+        title="Painel operacional"
+        description="Comece pelos 3 atalhos abaixo. Os números são reais do banco — alertas, prazos e documentação do seu escopo."
+      />
       <Suspense fallback={<LoadingState />}>
         <DashboardContent searchParams={searchParams} />
       </Suspense>

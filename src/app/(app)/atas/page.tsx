@@ -24,7 +24,7 @@ async function Content() {
     <Screen result={result}>
       {({ atas, lookups, canCreate }) => (
         <>
-        <PageHeader title="Atas de registro de preços" description="Vigência de 1 ano, prorrogável uma vez por igual período (art. 84, Lei 14.133/2021)." actions={canCreate ? <Link href="/atas/nova" className={buttonVariants()}>Nova ata</Link> : undefined} />
+        <PageHeader eyebrow="Compras" title="Atas de registro de preços" description="Vigência de 1 ano, prorrogável 1× (art. 84, Lei 14.133/2021). Rascunho não consome saldo." actions={canCreate ? <Link href="/atas/nova" className={buttonVariants()}>Nova ata</Link> : undefined} />
         <SimpleTable
           caption="Atas de registro de preços"
           rows={atas.map((a) => ({ id: a.ata.id, number: a.ata.number, council: lookups.councilLabel[a.ata.councilId] ?? "—", status: a.ata.status === "rascunho" ? "Rascunho" : a.validity === "vigente" ? "Vigente" : "Vencida", endDate: a.endDate, extensions: a.ata.extensions.length, href: `/atas/${a.ata.id}` }))}
@@ -33,8 +33,9 @@ async function Content() {
             { key: "status", header: "Situação" }, { key: "endDate", header: "Vigência até", kind: "date" }, { key: "extensions", header: "Prorrogações", kind: "number" },
           ]}
           filterKeys={[{ key: "status", label: "Situação" }]}
-          emptyTitle="Nenhuma ata cadastrada"
-          emptyDescription="Atas de registro de preços são distintas de contratos, estoque e atas de reunião."
+          emptyTitle="Nenhuma ata no banco"
+          emptyDescription="Cadastre a ata, ative e use nas solicitações para o saldo comprometido aparecer."
+          emptyAction={canCreate ? <Link href="/atas/nova" className={buttonVariants()}>Criar ata</Link> : undefined}
         />
         </>
       )}

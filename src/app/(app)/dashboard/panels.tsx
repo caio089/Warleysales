@@ -191,12 +191,12 @@ export function StatusDistribution({ rows, total }: { rows: { status: string; co
 }
 
 const SHORTCUTS = [
-  { href: "/processos/novo", label: "Novo processo", detail: "Cadastro com os 7 documentos", icon: ClipboardList },
+  { href: "/processos/novo", label: "Novo processo", detail: "Abrir e anexar os 7 documentos", icon: ClipboardList },
+  { href: "/solicitacoes", label: "Solicitações", detail: "Criar → enviar → aprovar → receber", icon: Truck },
   { href: "/estoque", label: "Estoque", detail: "Saldos e itens críticos", icon: Package },
+  { href: "/atas", label: "Atas", detail: "Saldo de registro de preços", icon: ScrollText },
   { href: "/contratos", label: "Contratos", detail: "Vigências e aditivos", icon: FileStack },
-  { href: "/atas", label: "Atas de preços", detail: "Saldo e prazos legais", icon: ScrollText },
-  { href: "/solicitacoes", label: "Solicitações", detail: "Compras e atendimento", icon: Truck },
-  { href: "/alertas", label: "Central de alertas", detail: "Marcos de vencimento", icon: Bell },
+  { href: "/alertas", label: "Alertas", detail: "Vencimentos e avisos", icon: Bell },
 ] as const;
 
 export function ShortcutGrid({ canCreateProcess = true }: { canCreateProcess?: boolean }) {

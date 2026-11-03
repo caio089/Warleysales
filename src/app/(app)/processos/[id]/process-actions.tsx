@@ -20,14 +20,23 @@ export function ProcessActions({ processId, status, canChangeStatus, canRegister
   const next = PROCESS_TRANSITIONS[status] ?? [];
   const statusOptions = next.map((value) => ({ value, label: PROCESS_STATUS[value]?.label ?? value }));
 
-  if (!canChangeStatus && !canRegisterClosing) return null;
+  if (!canChangeStatus && !canRegisterClosing) {
+    return (
+      <p className="mb-6 rounded-xl border border-dashed border-border/80 bg-secondary/40 px-4 py-3 text-sm text-muted-foreground">
+        Você pode acompanhar e baixar documentos. Alterar a situação administrativa ou o relatório de encerramento
+        exige permissão de gestão neste conselho.
+      </p>
+    );
+  }
 
   return (
     <div className="mb-6 grid gap-6 lg:grid-cols-2">
       {canChangeStatus && statusOptions.length > 0 ? (
         <section aria-labelledby="situacao" className="surface-card p-6">
           <h2 id="situacao" className="mb-1 font-heading text-lg font-medium tracking-tight text-primary">Situação administrativa</h2>
-          <p className="mb-4 text-sm text-muted-foreground">Independe da documentação. 100% não conclui o processo.</p>
+          <p className="mb-4 text-sm text-muted-foreground">
+            É o andamento do processo (em andamento, concluído…). Não confundir com “documentação completa” — são coisas diferentes.
+          </p>
           <ActionForm action={changeProcessStatusFormAction} submitLabel="Atualizar situação" hiddenFields={{ processId }}>
             {(e) => <SelectField name="status" label="Nova situação" required options={statusOptions} errors={e.status} />}
           </ActionForm>

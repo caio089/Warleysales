@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { runAction } from "@/server/action-runner";
 import type { ActionState } from "@/shared/ui/forms/action-state";
 
@@ -15,8 +16,9 @@ export async function createCouncilFormAction(_previous: ActionState, formData: 
       }),
     "Conselho criado com sucesso.",
   );
-  if (result.status === "success") revalidatePath("/conselhos");
-  return result.status === "success" ? { status: "success", message: result.message } : result;
+  if (result.status !== "success" || !result.data) return result;
+  revalidatePath("/conselhos");
+  redirect(`/conselhos/${result.data.id}`);
 }
 
 export async function updateCouncilFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {

@@ -56,8 +56,8 @@ async function Content() {
                 { key: "level", header: "Nível", kind: "status", dictionary: "stock" },
               ]}
               filterKeys={[{ key: "level", label: "Nível", dictionary: "stock" }, { key: "council", label: "Conselho" }]}
-              emptyTitle="Nenhum saldo registrado"
-              emptyDescription="Informe a quantidade no formulário. Cada entrada vira uma movimentação no ledger."
+              emptyTitle="Nenhum saldo no banco"
+              emptyDescription="Informe a quantidade ao lado. A entrada é gravada no ledger e o saldo aparece aqui na hora."
             />
             {canMove ? (
               <div className="space-y-6">
@@ -96,8 +96,9 @@ export default function StockPage() {
   return (
     <>
       <PageHeader
+        eyebrow="Materiais"
         title="Estoque"
-        description="Informe a quantidade aqui. O saldo físico, reservado e disponível é calculado pelas movimentações."
+        description="Saldo físico, reservado e disponível vêm do ledger. Cada quantidade informada vira uma movimentação permanente."
         actions={
           <>
             <Link href="/estoque/materiais" className={buttonVariants({ variant: "outline" })}>Materiais</Link>

@@ -10,7 +10,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "db:bundle": "bash scripts/bundle-migrations.sh",
-    "db:check": "node scripts/check-supabase.mjs"
+    "db:check": "node scripts/check-supabase.mjs",
+    "db:seed-demo": "node scripts/seed-demo.mjs"
   },
   "dependencies": {
     "@ai-sdk/groq": "^4.0.74",

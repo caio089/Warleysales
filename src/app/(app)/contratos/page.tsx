@@ -24,7 +24,7 @@ async function Content() {
     <Screen result={result}>
       {({ contracts, lookups, canCreate }) => (
         <>
-        <PageHeader title="Contratos" description="Prazos e valores com histórico de aditivos preservado." actions={canCreate ? <Link href="/contratos/novo" className={buttonVariants()}>Novo contrato</Link> : undefined} />
+        <PageHeader eyebrow="Contratos" title="Contratos" description="Prazos e valores com histórico de aditivos preservado. Sem regra fixa de 13+1 meses." actions={canCreate ? <Link href="/contratos/novo" className={buttonVariants()}>Novo contrato</Link> : undefined} />
         <SimpleTable
           caption="Contratos"
           rows={contracts.map((c) => ({ id: c.contract.id, number: c.contract.number, council: lookups.councilLabel[c.contract.councilId] ?? "—", object: c.contract.object, endDate: c.terms.endDate, remaining: c.remainingDays, elapsed: c.elapsedPercent, href: `/contratos/${c.contract.id}` }))}
@@ -33,7 +33,9 @@ async function Content() {
             { key: "endDate", header: "Vigência até", kind: "date" }, { key: "remaining", header: "Dias restantes", kind: "number" }, { key: "elapsed", header: "Vigência decorrida", kind: "progress" },
           ]}
           filterKeys={[{ key: "council", label: "Conselho" }]}
-          emptyTitle="Nenhum contrato cadastrado"
+          emptyTitle="Nenhum contrato no banco"
+          emptyDescription="Cadastre o primeiro contrato. Aditivos preservam prazo e valor anteriores."
+          emptyAction={canCreate ? <Link href="/contratos/novo" className={buttonVariants()}>Criar contrato</Link> : undefined}
         />
         </>
       )}

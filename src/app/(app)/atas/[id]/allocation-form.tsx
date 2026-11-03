@@ -12,7 +12,7 @@ export function AllocationForm({ ataId, items, councils }: { ataId: string; item
     <section aria-labelledby="aloc" className="surface-card max-w-lg p-6">
       <h2 id="aloc" className="mb-1 font-heading text-lg font-medium tracking-tight text-primary">Alocação por conselho</h2>
       <p className="mb-4 text-sm text-muted-foreground">Opcional. Substitui as alocações do item. Sem preenchimento, o saldo é comum.</p>
-      <ActionForm action={setAllocationsFormAction} submitLabel="Salvar alocação" hiddenFields={{ ataId }}>
+      <ActionForm action={setAllocationsFormAction} submitLabel="Salvar alocação" hiddenFields={{ ataId }} resetOnSuccess={false}>
         {(e) => (
           <>
             <SelectField name="itemId" label="Item" required options={items} errors={e.itemId} />
