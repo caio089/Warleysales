@@ -26,7 +26,7 @@ function one(value: string | string[] | undefined): string | undefined {
 async function DashboardContent({
   searchParams,
 }: {
-  searchParams: PageProps<"/dashboard">["searchParams"];
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const raw = await searchParams;
   const { councilId, focus } = parseDashboardQuery({
@@ -154,7 +154,7 @@ async function DashboardContent({
   );
 }
 
-export default function DashboardPage({ searchParams }: PageProps<"/dashboard">) {
+export default function DashboardPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   return (
     <>
       <PageHeader

@@ -6,7 +6,7 @@ interface BrandMarkProps {
   compact?: boolean;
 }
 
-/** Marca institucional: colunas (conselhos) + traço laranja de realce. */
+/** Marca institucional: colunas + traço laranja de realce. */
 export function BrandMark({ inverted = false, compact = false }: BrandMarkProps) {
   return (
     <div className={cn("flex items-center gap-3", compact && "gap-2.5")}>
@@ -26,10 +26,10 @@ export function BrandMark({ inverted = false, compact = false }: BrandMarkProps)
       {compact ? null : (
         <div className="min-w-0 leading-tight">
           <p className={cn("font-heading text-[1.05rem] font-semibold tracking-tight", inverted ? "text-white" : "text-primary")}>
-            Conselhos
+            Warley
           </p>
           <p className={cn("text-[0.7rem] tracking-[0.14em] uppercase", inverted ? "text-white/55" : "text-muted-foreground")}>
-            Gestão central
+            Gestão Operacional
           </p>
         </div>
       )}
