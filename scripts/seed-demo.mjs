@@ -529,6 +529,54 @@ async function main() {
   });
   assertOk("req aprovada", r3);
 
+  const AR = demoId("mat-ar-condicionado");
+  await upsertMaterial({
+    id: AR,
+    code: "AC-12000",
+    name: "Ar-condicionado split 12.000 BTUs",
+    unit: "UN",
+  });
+
+  const sentAt = new Date();
+  const draftedAt = new Date(sentAt.getTime() - 1000 * 60 * 40);
+  const { error: rAc } = await sb.rpc("save_purchase_request", {
+    p: {
+      id: demoId("req-crq-ar"),
+      council_id: CRQ,
+      title: "Compra de ar-condicionado para a sala de sessões",
+      status: "enviada",
+      created_by: actorId,
+      created_at: draftedAt.toISOString(),
+      items: [
+        {
+          id: demoId("req-crq-ar-item"),
+          material_id: AR,
+          quantity: 2,
+          ata_item_id: null,
+          received_total: 0,
+        },
+      ],
+      events: [
+        {
+          from_status: null,
+          to_status: "rascunho",
+          actor_id: actorId,
+          at: draftedAt.toISOString(),
+          note: "Secretaria do CRQ abriu a demanda para climatizar a sala de sessões da sede.",
+        },
+        {
+          from_status: "rascunho",
+          to_status: "enviada",
+          actor_id: actorId,
+          at: sentAt.toISOString(),
+          note: "CRQ solicita a compra de 2 aparelhos split 12.000 BTUs. A sala está sem refrigeração e a reunião ordinária desta semana depende disso. Pedimos análise e retorno.",
+        },
+      ],
+      receipt_keys: [],
+    },
+  });
+  assertOk("req ar-condicionado", rAc);
+
   // Comprometer ata dos itens aprovados (ledger)
   const { data: commitCount } = await sb.from("ata_commitments").select("id", { count: "exact", head: true }).eq("item_id", ATA_ITEM_NB);
   const expected = commitCount ?? 0;

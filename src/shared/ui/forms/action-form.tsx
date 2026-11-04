@@ -13,8 +13,10 @@ interface ActionFormProps {
   children: (fieldErrors: Record<string, string[]>) => ReactNode;
   /** Valores fixos enviados junto (ex.: id da entidade). */
   hiddenFields?: Record<string, string>;
-  submitVariant?: "default" | "destructive" | "outline";
+  submitVariant?: "default" | "destructive" | "outline" | "highlight";
   submitClassName?: string;
+  /** Texto do botão enquanto a action está em andamento. */
+  pendingLabel?: string;
   /**
    * Nome de um campo oculto com chave de idempotência. A chave é gerada no cliente após a
    * montagem (evita divergência de hidratação) e renovada após cada sucesso; em caso de erro
@@ -36,6 +38,7 @@ export function ActionForm({
   hiddenFields,
   submitVariant = "default",
   submitClassName,
+  pendingLabel = "Gravando…",
   idempotencyField,
   resetOnSuccess = true,
 }: ActionFormProps) {
@@ -87,7 +90,7 @@ export function ActionForm({
         </p>
       ) : null}
       <Button type="submit" variant={submitVariant} className={submitClassName ?? "min-w-28"} disabled={pending}>
-        {pending ? "Gravando…" : submitLabel}
+        {pending ? pendingLabel : submitLabel}
       </Button>
     </form>
   );
