@@ -1,19 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { AlertTriangle, CheckCircle2, History, Package, PackagePlus, PackageX } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { canInAnyCouncil } from "@/shared/lib/authz/policy";
 import { ok } from "@/shared/lib/result";
+import { KpiCard } from "@/shared/ui/kpi-card";
 import { LoadingState } from "@/shared/ui/feedback-states";
-import { PageHeader } from "@/shared/ui/page-header";
+import { PageHeader, SectionLabel } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { SimpleTable } from "@/shared/ui/simple-table";
 import { MovementForm } from "./movimentacoes/movement-form";
 import { MinimumForm } from "./minimum-form";
 
-export const metadata: Metadata = { title: "Estoque" };
+export const metadata: Metadata = { title: "Gestão de Estoque" };
 
 async function Content() {
   const result = await loadScreen(async (ctx) => {
@@ -27,47 +29,115 @@ async function Content() {
       canAdjust: canInAnyCouncil(ctx.actor, "stock.adjust"),
     });
   });
+
   return (
     <Screen result={result}>
       {({ levels, lookups, canMove, canAdjust }) => {
         const councils = lookups.councils.map((c) => ({ value: c.id, label: c.label }));
         const materials = lookups.materials.map((m) => ({ value: m.id, label: m.label }));
+
+        const totalPhysical = levels.reduce((acc, l) => acc + Number(l.physical), 0);
+        const totalReserved = levels.reduce((acc, l) => acc + Number(l.reserved), 0);
+        const totalAvailable = levels.reduce((acc, l) => acc + Number(l.available), 0);
+        const criticalItems = levels.filter((l) => l.level !== "normal");
+
         return (
-          <div className="flex flex-col-reverse gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
-            <SimpleTable
-              caption="Saldos de estoque"
-              rows={levels.map((l) => ({
-                id: `${l.councilId}:${l.materialId}`,
-                council: lookups.councilLabel[l.councilId] ?? "—",
-                material: lookups.materialLabel[l.materialId] ?? "—",
-                physical: l.physical,
-                reserved: l.reserved,
-                available: l.available,
-                minimum: l.minimum,
-                level: l.level,
-              }))}
-              columns={[
-                { key: "council", header: "Conselho" },
-                { key: "material", header: "Material" },
-                { key: "physical", header: "Físico", kind: "number" },
-                { key: "reserved", header: "Reservado", kind: "number" },
-                { key: "available", header: "Disponível", kind: "number" },
-                { key: "minimum", header: "Mínimo", kind: "number" },
-                { key: "level", header: "Nível", kind: "status", dictionary: "stock" },
-              ]}
-              filterKeys={[{ key: "level", label: "Nível", dictionary: "stock" }, { key: "council", label: "Conselho" }]}
-              emptyTitle="Nenhum saldo no banco"
-              emptyDescription="Informe a quantidade ao lado. A entrada é gravada no ledger e o saldo aparece aqui na hora."
-            />
-            {canMove ? (
-              <div className="space-y-6">
-                <section aria-labelledby="informar-quantidade" className="surface-card p-6">
-                  <h2 id="informar-quantidade" className="font-heading text-lg font-medium tracking-tight text-primary">
-                    Informar quantidade
-                  </h2>
-                  <p className="mt-1 mb-4 text-sm leading-relaxed text-muted-foreground">
-                    A quantidade entra no saldo do conselho. O tipo padrão é entrada.
+          <div className="space-y-8">
+            {/* KPIs de Estoque */}
+            <section aria-label="Métricas de Estoque" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              <KpiCard
+                href="/estoque/materiais"
+                icon={<Package className="size-4" aria-hidden />}
+                label="Catálogo de Produtos"
+                value={materials.length}
+                hint="Materiais cadastrados"
+              />
+              <KpiCard
+                icon={<Package className="size-4" aria-hidden />}
+                label="Saldo Disponível Total"
+                value={`${totalAvailable} un`}
+                hint="Pronto para uso/entrega"
+              />
+              <KpiCard
+                icon={<Package className="size-4" aria-hidden />}
+                label="Saldo Físico Total"
+                value={`${totalPhysical} un`}
+                hint="Total em armazém"
+              />
+              <KpiCard
+                icon={<Package className="size-4" aria-hidden />}
+                label="Saldo Reservado"
+                value={`${totalReserved} un`}
+                hint="Em trânsito / alocado"
+              />
+              <KpiCard
+                icon={<PackageX className="size-4" aria-hidden />}
+                label="Itens Críticos"
+                value={criticalItems.length}
+                accent={criticalItems.length > 0}
+                hint={criticalItems.length > 0 ? "Abaixo do mínimo" : "Estoque regular"}
+              />
+            </section>
+
+            {/* Tabela de Saldos em Largura Total */}
+            <section aria-label="Tabela de Saldos" className="space-y-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <SectionLabel>Saldos de Estoque por Empresa</SectionLabel>
+                  <p className="text-xs text-muted-foreground">
+                    O saldo disponível é o físico deduzido do reservado. Níveis calculados conforme o mínimo de segurança.
                   </p>
+                </div>
+              </div>
+
+              <SimpleTable
+                caption="Saldos de estoque"
+                rows={levels.map((l) => ({
+                  id: `${l.councilId}:${l.materialId}`,
+                  council: lookups.councilLabel[l.councilId] ?? "—",
+                  material: lookups.materialLabel[l.materialId] ?? "—",
+                  available: l.available,
+                  physical: l.physical,
+                  reserved: l.reserved,
+                  minimum: l.minimum,
+                  level: l.level,
+                }))}
+                columns={[
+                  { key: "council", header: "Empresa Destinatária" },
+                  { key: "material", header: "Produto" },
+                  { key: "available", header: "Disponível", kind: "number" },
+                  { key: "physical", header: "Físico", kind: "number" },
+                  { key: "reserved", header: "Reservado", kind: "number" },
+                  { key: "minimum", header: "Mínimo", kind: "number" },
+                  { key: "level", header: "Situação", kind: "status", dictionary: "stock" },
+                ]}
+                filterKeys={[
+                  { key: "council", label: "Empresa" },
+                  { key: "level", label: "Situação", dictionary: "stock" },
+                ]}
+                emptyTitle="Nenhum saldo registrado"
+                emptyDescription="Lance a primeira entrada de material abaixo para alimentar o estoque."
+              />
+            </section>
+
+            {/* Painéis Operacionais: Lançar Movimentação & Ajustar Estoque Mínimo */}
+            {canMove ? (
+              <div className="grid gap-6 lg:grid-cols-2">
+                <section aria-labelledby="informar-quantidade" className="surface-card p-6">
+                  <div className="mb-4 flex items-center gap-2">
+                    <span className="grid size-9 place-items-center rounded-xl bg-secondary text-primary">
+                      <PackagePlus className="size-4" aria-hidden />
+                    </span>
+                    <div>
+                      <h2 id="informar-quantidade" className="font-heading text-base font-semibold tracking-tight text-primary">
+                        Registrar Movimentação de Estoque
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        Lança entradas, consumos ou ajustes permanentemente no ledger.
+                      </p>
+                    </div>
+                  </div>
+
                   {materials.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
                       Cadastre um material em{" "}
@@ -77,12 +147,30 @@ async function Content() {
                       antes de lançar quantidade.
                     </p>
                   ) : councils.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Cadastre um conselho antes de lançar estoque.</p>
+                    <p className="text-sm text-muted-foreground">Cadastre uma empresa antes de lançar estoque.</p>
                   ) : (
                     <MovementForm councils={councils} materials={materials} defaultType="entry" allowAdjust={canAdjust} />
                   )}
                 </section>
-                {canAdjust && materials.length > 0 && councils.length > 0 ? <MinimumForm councils={councils} materials={materials} /> : null}
+
+                {canAdjust && materials.length > 0 && councils.length > 0 ? (
+                  <section aria-labelledby="estoque-minimo" className="surface-card p-6">
+                    <div className="mb-4 flex items-center gap-2">
+                      <span className="grid size-9 place-items-center rounded-xl bg-secondary text-primary">
+                        <AlertTriangle className="size-4" aria-hidden />
+                      </span>
+                      <div>
+                        <h2 id="estoque-minimo" className="font-heading text-base font-semibold tracking-tight text-primary">
+                          Configurar Estoque Mínimo de Segurança
+                        </h2>
+                        <p className="text-xs text-muted-foreground">
+                          Define a linha de alerta para disparo automático de avisos de reposição.
+                        </p>
+                      </div>
+                    </div>
+                    <MinimumForm councils={councils} materials={materials} />
+                  </section>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -96,17 +184,24 @@ export default function StockPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Materiais"
-        title="Estoque"
-        description="Saldo físico, reservado e disponível vêm do ledger. Cada quantidade informada vira uma movimentação permanente."
+        eyebrow="Operação & Armazenagem"
+        title="Gestão de Estoque"
+        description="Controle rigoroso de saldos disponíveis, estoque reservado e quantidades físicas por empresa, alimentado por ledger imutável."
         actions={
-          <>
-            <Link href="/estoque/materiais" className={buttonVariants({ variant: "outline" })}>Materiais</Link>
-            <Link href="/estoque/movimentacoes" className={buttonVariants({ variant: "outline" })}>Histórico</Link>
-          </>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href="/estoque/materiais" className={buttonVariants({ variant: "outline" })}>
+              Catálogo de Produtos
+            </Link>
+            <Link href="/estoque/movimentacoes" className={buttonVariants({ variant: "outline" })}>
+              <History className="mr-1.5 size-4" />
+              Histórico do Ledger
+            </Link>
+          </div>
         }
       />
-      <Suspense fallback={<LoadingState />}><Content /></Suspense>
+      <Suspense fallback={<LoadingState />}>
+        <Content />
+      </Suspense>
     </>
   );
 }
