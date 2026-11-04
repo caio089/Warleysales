@@ -33,27 +33,29 @@ export interface NavItem {
   allowedRoles: CouncilRole[];
   /** Quando true, somente administração central. */
   centralOnly?: boolean;
+  /** Seção lógica da barra de navegação. */
+  section?: "Principal" | "Operação" | "Relacionamento" | "Sistema";
 }
 
 const ALL_ROLES: CouncilRole[] = ["council_manager", "council_operator", "viewer"];
 
 export const NAV_ITEMS: NavItem[] = [
-  { label: "Meu conselho", href: "/meu-conselho", icon: Home, allowedRoles: ALL_ROLES },
-  { label: "Visão geral", href: "/dashboard", icon: LayoutDashboard, allowedRoles: ALL_ROLES },
-  { label: "Conselhos", href: "/conselhos", icon: Building2, allowedRoles: [], centralOnly: true },
-  { label: "Processos", href: "/processos", icon: FileText, allowedRoles: ALL_ROLES },
-  { label: "Solicitações", href: "/solicitacoes", icon: ShoppingCart, allowedRoles: ALL_ROLES },
-  { label: "Entregas", href: "/entregas", icon: Truck, allowedRoles: ALL_ROLES },
-  { label: "Estoque", href: "/estoque", icon: Package, allowedRoles: ALL_ROLES },
-  { label: "Transferências", href: "/transferencias", icon: ArrowLeftRight, allowedRoles: ALL_ROLES },
-  { label: "Atas", href: "/atas", icon: ScrollText, allowedRoles: ALL_ROLES },
-  { label: "Contratos", href: "/contratos", icon: FileSignature, allowedRoles: ALL_ROLES },
-  { label: "Fornecedores", href: "/fornecedores", icon: Truck, allowedRoles: ALL_ROLES },
-  { label: "Reuniões", href: "/reunioes", icon: CalendarDays, allowedRoles: ALL_ROLES },
-  { label: "Relatórios", href: "/relatorios", icon: BarChart3, allowedRoles: ["council_manager", "viewer"] },
-  { label: "Alertas", href: "/alertas", icon: AlertTriangle, allowedRoles: ALL_ROLES },
-  { label: "Auditoria", href: "/administracao/auditoria", icon: History, allowedRoles: ["council_manager"] },
-  { label: "Administração", href: "/administracao", icon: Settings, allowedRoles: [], centralOnly: true },
+  { label: "Visão geral", href: "/dashboard", icon: LayoutDashboard, allowedRoles: ALL_ROLES, section: "Principal" },
+  { label: "Meu conselho", href: "/meu-conselho", icon: Home, allowedRoles: ALL_ROLES, section: "Principal" },
+  { label: "Conselhos", href: "/conselhos", icon: Building2, allowedRoles: [], centralOnly: true, section: "Principal" },
+  { label: "Solicitações", href: "/solicitacoes", icon: ShoppingCart, allowedRoles: ALL_ROLES, section: "Operação" },
+  { label: "Entregas", href: "/entregas", icon: Truck, allowedRoles: ALL_ROLES, section: "Operação" },
+  { label: "Estoque", href: "/estoque", icon: Package, allowedRoles: ALL_ROLES, section: "Operação" },
+  { label: "Transferências", href: "/transferencias", icon: ArrowLeftRight, allowedRoles: ALL_ROLES, section: "Operação" },
+  { label: "Reuniões", href: "/reunioes", icon: CalendarDays, allowedRoles: ALL_ROLES, section: "Relacionamento" },
+  { label: "Processos", href: "/processos", icon: FileText, allowedRoles: ALL_ROLES, section: "Relacionamento" },
+  { label: "Contratos", href: "/contratos", icon: FileSignature, allowedRoles: ALL_ROLES, section: "Relacionamento" },
+  { label: "Atas", href: "/atas", icon: ScrollText, allowedRoles: ALL_ROLES, section: "Relacionamento" },
+  { label: "Fornecedores", href: "/fornecedores", icon: Truck, allowedRoles: ALL_ROLES, section: "Relacionamento" },
+  { label: "Alertas", href: "/alertas", icon: AlertTriangle, allowedRoles: ALL_ROLES, section: "Sistema" },
+  { label: "Relatórios", href: "/relatorios", icon: BarChart3, allowedRoles: ["council_manager", "viewer"], section: "Sistema" },
+  { label: "Auditoria", href: "/administracao/auditoria", icon: History, allowedRoles: ["council_manager"], section: "Sistema" },
+  { label: "Administração", href: "/administracao", icon: Settings, allowedRoles: [], centralOnly: true, section: "Sistema" },
 ];
 
 /**
