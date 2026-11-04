@@ -8,6 +8,25 @@ export interface BriefingFacts {
   stock: OperationalSummary["stock"];
   contracts: OperationalSummary["contracts"];
   atas: OperationalSummary["atas"];
+  totalCompanies?: number;
+  requestsSummary?: {
+    pending: number;
+    inProgress: number;
+    completed: number;
+  };
+  stockAttention?: {
+    company: string;
+    material: string;
+    available: number;
+    minimum: number;
+    level: string;
+  }[];
+  upcomingMeetings?: {
+    company: string;
+    title: string;
+    scheduledAt: string;
+  }[];
+  pendingDeliveriesCount?: number;
   unreadAlerts: number;
   alertTitles: string[];
 }
@@ -87,6 +106,25 @@ export function buildBriefingFacts(input: {
   councilLabel?: string | null;
   unreadAlerts: number;
   alertTitles: string[];
+  totalCompanies?: number;
+  requestsSummary?: {
+    pending: number;
+    inProgress: number;
+    completed: number;
+  };
+  stockAttention?: {
+    company: string;
+    material: string;
+    available: number;
+    minimum: number;
+    level: string;
+  }[];
+  upcomingMeetings?: {
+    company: string;
+    title: string;
+    scheduledAt: string;
+  }[];
+  pendingDeliveriesCount?: number;
 }): BriefingFacts {
   return {
     councilLabel: input.councilLabel ?? null,
@@ -94,14 +132,20 @@ export function buildBriefingFacts(input: {
     stock: input.summary.stock,
     contracts: input.summary.contracts,
     atas: input.summary.atas,
+    totalCompanies: input.totalCompanies,
+    requestsSummary: input.requestsSummary,
+    stockAttention: input.stockAttention,
+    upcomingMeetings: input.upcomingMeetings,
+    pendingDeliveriesCount: input.pendingDeliveriesCount,
     unreadAlerts: input.unreadAlerts,
     alertTitles: input.alertTitles.slice(0, 5),
   };
 }
 
 export const BRIEFING_SYSTEM_PROMPT = [
-  "Você redige um briefing operacional em português do Brasil para gestores de conselhos administrativos.",
-  "Use SOMENTE os números e títulos do JSON. Nunca invente quantidade, prazo, conselho ou alerta.",
-  "Se totais forem 0, diga com clareza que a base está vazia e não há o que monitorar ainda.",
-  "Não use markdown. headline curta; bullets objetivos; tone = ok | atencao | critico conforme os fatos.",
+  "Você redige um briefing operacional executivo em português do Brasil para a central de operações do Warley com as empresas clientes.",
+  "Analise as prioridades operacionais a partir do JSON fornecido: solicitações aguardando atendimento, empresas com necessidade de reposição de estoque, entregas pendentes e reuniões agendadas.",
+  "Use SOMENTE os dados, nomes de empresas, produtos e números do JSON. Nunca invente valores, prazos ou empresas fictícias.",
+  "Se tudo estiver normal e sem alertas ou pendências, destaque a estabilidade operacional.",
+  "Não use markdown no texto gerado. headline curta e direta (máx 140 chars); até 4 bullets objetivos com contexto e recomendação prática; tone = ok | atencao | critico.",
 ].join(" ");

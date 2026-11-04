@@ -1,6 +1,19 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { ClipboardList, FileCheck2, FileWarning, Gauge, PackageX, ScrollText, Timer, Warehouse } from "lucide-react";
+import {
+  Building2,
+  CalendarDays,
+  ClipboardList,
+  FileCheck2,
+  FileWarning,
+  Package,
+  PackageX,
+  ScrollText,
+  ShoppingCart,
+  Timer,
+  Truck,
+  Warehouse,
+} from "lucide-react";
 import { buildBriefingFacts } from "@/modules/insights/briefing";
 import { parseDashboardQuery } from "@/modules/reports/dashboard-query";
 import { loadLookups } from "@/server/lookups";
@@ -8,16 +21,25 @@ import { loadScreen } from "@/server/screen";
 import { canInAnyCouncil } from "@/shared/lib/authz/policy";
 import { formatPercent } from "@/shared/lib/format";
 import { ok } from "@/shared/lib/result";
-import { StartHereCard } from "@/shared/ui/flow-guide";
 import { KpiCard } from "@/shared/ui/kpi-card";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader, SectionLabel } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { BriefingCard, BriefingFallback } from "./briefing-card";
 import { DashboardFilters } from "./filters";
-import { AlertsPanel, AttentionPanel, DeadlinesPanel, ShortcutGrid, StatusDistribution } from "./panels";
+import {
+  AlertsPanel,
+  AttentionPanel,
+  DeadlinesPanel,
+  DeliveriesSummaryPanel,
+  RecentRequestsPanel,
+  ReplenishmentPanel,
+  ShortcutGrid,
+  StatusDistribution,
+  UpcomingMeetingsPanel,
+} from "./panels";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export const metadata: Metadata = { title: "Central Operacional" };
 
 function one(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -33,32 +55,127 @@ async function DashboardContent({
     councilId: one(raw.councilId),
     focus: one(raw.focus),
   });
+
   const result = await loadScreen(async (ctx) => {
-    const [dash, alerts, lookups] = await Promise.all([
+    const [dash, alerts, lookups, requests, meetings, stockLevels] = await Promise.all([
       ctx.services.reports.dashboard(ctx.actor, { councilId }),
       ctx.services.notifications.listMine(ctx.actor),
       loadLookups(ctx),
+      ctx.services.purchases.list(ctx.actor),
+      ctx.services.meetings.list(ctx.actor),
+      ctx.services.inventory.listLevels(ctx.actor, councilId),
     ]);
     if (!dash.ok) return dash;
     if (!alerts.ok) return alerts;
     if (!lookups.ok) return lookups;
-    return ok({ dash: dash.data, alerts: alerts.data, lookups: lookups.data, canCreateProcess: canInAnyCouncil(ctx.actor, "process.create") });
+    if (!requests.ok) return requests;
+    if (!meetings.ok) return meetings;
+    if (!stockLevels.ok) return stockLevels;
+
+    return ok({
+      dash: dash.data,
+      alerts: alerts.data,
+      lookups: lookups.data,
+      requests: requests.data,
+      meetings: meetings.data,
+      stockLevels: stockLevels.data,
+      canCreateProcess: canInAnyCouncil(ctx.actor, "process.create"),
+      canDecideRequest: canInAnyCouncil(ctx.actor, "request.decide"),
+    });
   });
 
-  const showDocs = focus === "todos" || focus === "documentos" || focus === "atencao";
-  const showOps = focus === "todos" || focus === "atencao" || focus === "prazos";
+  const showDocs = focus === "todos" || focus === "documentos";
   const showPrazos = focus === "todos" || focus === "prazos" || focus === "atencao";
 
   return (
     <Screen result={result}>
-      {({ dash, alerts, lookups, canCreateProcess }) => {
+      {({ dash, alerts, lookups, requests, meetings, stockLevels, canCreateProcess }) => {
         const councilLabel = councilId ? (lookups.councilLabel[councilId] ?? null) : null;
+
+        // Filtro de escopo por empresa
+        const scopedRequests = councilId ? requests.filter((r) => r.councilId === councilId) : requests;
+        const scopedMeetings = councilId ? meetings.filter((m) => m.councilId === councilId) : meetings;
+
+        // Cálculos operacionais de solicitações
+        const reqPending = scopedRequests.filter((r) =>
+          ["enviada", "em_analise", "aguardando_correcao"].includes(r.status),
+        ).length;
+        const reqInProgress = scopedRequests.filter((r) =>
+          ["aprovada", "em_atendimento", "parcialmente_atendida"].includes(r.status),
+        ).length;
+        const reqCompleted = scopedRequests.filter((r) => r.status === "atendida").length;
+
+        // Entregas realizadas vs pendentes
+        let deliveredUnits = 0;
+        let pendingDeliveryUnits = 0;
+        scopedRequests.forEach((r) => {
+          if (["aprovada", "em_atendimento", "parcialmente_atendida", "atendida"].includes(r.status)) {
+            r.items.forEach((item) => {
+              deliveredUnits += Number(item.receivedTotal || 0);
+              if (["aprovada", "em_atendimento", "parcialmente_atendida"].includes(r.status)) {
+                pendingDeliveryUnits += Math.max(0, Number(item.quantity) - Number(item.receivedTotal || 0));
+              }
+            });
+          }
+        });
+
+        // Estoque crítico / empresas com necessidade de reposição
+        const replenishmentItems = stockLevels
+          .filter((l) => l.level !== "normal")
+          .map((l) => ({
+            companyId: l.councilId,
+            company: lookups.councilLabel[l.councilId] ?? "Empresa",
+            material: lookups.materialLabel[l.materialId] ?? "Material",
+            available: l.available,
+            minimum: l.minimum,
+            level: l.level,
+          }));
+
+        // Próximas reuniões
+        const upcomingMeetings = scopedMeetings
+          .filter((m) => m.status === "agendada")
+          .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime())
+          .map((m) => ({
+            id: m.id,
+            title: m.title,
+            company: lookups.councilLabel[m.councilId] ?? "Empresa",
+            scheduledAt: m.scheduledAt.toISOString(),
+          }));
+
+        // Solicitações recentes para o painel operacional
+        const recentRequests = [...scopedRequests]
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+          .slice(0, 6)
+          .map((r) => ({
+            id: r.id,
+            title: r.title,
+            company: lookups.councilLabel[r.councilId] ?? "Empresa",
+            status: r.status,
+            createdAt: r.createdAt.toISOString(),
+            itemsCount: r.items.length,
+          }));
+
+        // Fatos enriquecidos para IA
         const facts = buildBriefingFacts({
           summary: dash.summary,
           councilLabel,
+          totalCompanies: lookups.councils.length,
+          requestsSummary: {
+            pending: reqPending,
+            inProgress: reqInProgress,
+            completed: reqCompleted,
+          },
+          stockAttention: replenishmentItems.slice(0, 5),
+          upcomingMeetings: upcomingMeetings.slice(0, 3).map((m) => ({
+            company: m.company,
+            title: m.title,
+            scheduledAt: m.scheduledAt,
+          })),
+          pendingDeliveriesCount: pendingDeliveryUnits,
           unreadAlerts: alerts.unread,
           alertTitles: alerts.items.filter((n) => !n.readAt).map((n) => n.title),
         });
+
         const alertItems = alerts.items.slice(0, 5).map((n) => ({
           id: n.id,
           title: n.title,
@@ -67,85 +184,101 @@ async function DashboardContent({
           at: n.createdAt.toISOString(),
           href: n.entityType === "contract" ? `/contratos/${n.entityId}` : `/atas/${n.entityId}`,
         }));
+
         const s = dash.summary;
 
         return (
           <div className="space-y-8">
-            <section aria-label="Comece por aqui" className="grid gap-4 md:grid-cols-3">
-              <StartHereCard
-                step={1}
-                href="/meu-conselho"
-                title="Painel do meu conselho"
-                description="Solicitações, documentos, estoque e reuniões do seu conselho em um só lugar."
-                cta="Abrir meu conselho"
-              />
-              <StartHereCard
-                step={2}
-                href={canCreateProcess ? "/processos/novo" : "/processos"}
-                title="Cadastrar documentos"
-                description="Abra um processo e anexe os 7 tipos. O progresso sobe sozinho."
-                cta={canCreateProcess ? "Abrir novo processo" : "Ver processos"}
-              />
-              <StartHereCard
-                step={3}
-                href="/solicitacoes/nova"
-                title="Pedir material"
-                description="Criar → enviar → aprovar → receber. Estoque só muda no recebimento."
-                cta="Nova solicitação"
-              />
-            </section>
-
             <DashboardFilters councils={lookups.councils} councilId={councilId} focus={focus} />
 
+            {/* Ilha de Inteligência Artificial — Briefing Operacional em tempo real */}
             <Suspense fallback={<BriefingFallback />}>
               <BriefingCard facts={facts} />
             </Suspense>
 
-            {showDocs ? (
-              <section aria-label="Processos" className="space-y-3">
-                <SectionLabel>Processos</SectionLabel>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <KpiCard href="/processos" icon={<ClipboardList className="size-4" aria-hidden />} label="Processos" value={s.processes.total} />
-                  <KpiCard href="/processos" icon={<FileCheck2 className="size-4" aria-hidden />} label="Documentação completa" value={s.processes.completed} />
-                  <KpiCard href="/processos" icon={<FileWarning className="size-4" aria-hidden />} label="Documentação pendente" value={s.processes.pending} accent={s.processes.pending > 0} />
-                  <KpiCard icon={<Gauge className="size-4" aria-hidden />} label="Progresso médio" value={s.processes.averageProgress === null ? null : formatPercent(s.processes.averageProgress)} />
-                </div>
-              </section>
-            ) : null}
+            {/* Grid Estratégico de Indicadores-Chave (KPIs) */}
+            <section aria-label="Indicadores Prioritários" className="space-y-3">
+              <SectionLabel>Indicadores Estratégicos da Operação</SectionLabel>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <KpiCard
+                  href="/conselhos"
+                  icon={<Building2 className="size-4" aria-hidden />}
+                  label="Empresas Parceiras"
+                  value={lookups.councils.length}
+                  hint="Ativas na plataforma"
+                />
+                <KpiCard
+                  href="/solicitacoes"
+                  icon={<ShoppingCart className="size-4" aria-hidden />}
+                  label="Solicitações Pendentes"
+                  value={reqPending}
+                  accent={reqPending > 0}
+                  hint={`${reqInProgress} em andamento`}
+                />
+                <KpiCard
+                  href="/solicitacoes"
+                  icon={<Truck className="size-4" aria-hidden />}
+                  label="Entregas Pendentes"
+                  value={`${pendingDeliveryUnits} un`}
+                  accent={pendingDeliveryUnits > 0}
+                  hint={`${deliveredUnits} un já entregues`}
+                />
+                <KpiCard
+                  href="/estoque"
+                  icon={<PackageX className="size-4" aria-hidden />}
+                  label="Estoque Crítico"
+                  value={replenishmentItems.length}
+                  accent={replenishmentItems.length > 0}
+                  hint={replenishmentItems.length > 0 ? "Exige reposição" : "Estável"}
+                />
+                <KpiCard
+                  href="/reunioes"
+                  icon={<CalendarDays className="size-4" aria-hidden />}
+                  label="Próximas Reuniões"
+                  value={upcomingMeetings.length}
+                  hint="Agendadas"
+                />
+              </div>
+            </section>
 
-            {showOps ? (
-              <section aria-label="Estoque, contratos e atas" className="space-y-3">
-                <SectionLabel>Estoque, contratos e atas</SectionLabel>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <KpiCard href="/estoque" accent icon={<PackageX className="size-4" aria-hidden />} label="Itens críticos" value={s.stock.critical} hint={`${s.stock.withoutAvailability} sem disponibilidade`} />
-                  <KpiCard href="/contratos" accent icon={<Timer className="size-4" aria-hidden />} label="Contratos a vencer (30 dias)" value={s.contracts.expiring30} hint={`${s.contracts.expired} vencido(s)`} />
-                  <KpiCard href="/contratos" icon={<Warehouse className="size-4" aria-hidden />} label="Contratos" value={s.contracts.total} />
-                  <KpiCard href="/atas" icon={<ScrollText className="size-4" aria-hidden />} label="Atas de registro de preços" value={s.atas.total} hint={`${s.atas.expired} vencida(s)`} />
-                </div>
-              </section>
-            ) : null}
-
-            <div className="grid gap-4 lg:grid-cols-3">
-              <div className="dash-panel h-full">
-                <AlertsPanel items={alertItems} unread={alerts.unread} />
-              </div>
-              <div className="dash-panel h-full">
-                <AttentionPanel items={dash.attention} />
-              </div>
-              <div className="dash-panel h-full">
-                {showPrazos ? (
-                  <DeadlinesPanel items={dash.deadlines} />
-                ) : (
-                  <StatusDistribution rows={dash.processStatuses} total={s.processes.total} />
-                )}
-              </div>
+            {/* Painéis Centrais da Operação: Reposição vs Solicitações */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              <ReplenishmentPanel items={replenishmentItems} />
+              <RecentRequestsPanel items={recentRequests} />
             </div>
 
-            {showDocs && showPrazos ? <StatusDistribution rows={dash.processStatuses} total={s.processes.total} /> : null}
+            {/* Painéis de Acompanhamento: Entregas, Reuniões e Alertas */}
+            <div className="grid gap-6 lg:grid-cols-3">
+              <DeliveriesSummaryPanel delivered={deliveredUnits} pending={pendingDeliveryUnits} />
+              <UpcomingMeetingsPanel items={upcomingMeetings.slice(0, 4)} />
+              <AlertsPanel items={alertItems} unread={alerts.unread} />
+            </div>
 
+            {/* Processos e Documentação (quando aplicável ou selecionado no filtro) */}
+            {showDocs ? (
+              <section aria-label="Processos e Documentação" className="space-y-3">
+                <SectionLabel>Documentação e Governança</SectionLabel>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <KpiCard href="/processos" icon={<ClipboardList className="size-4" aria-hidden />} label="Processos Totais" value={s.processes.total} />
+                  <KpiCard href="/processos" icon={<FileCheck2 className="size-4" aria-hidden />} label="Docs Completos" value={s.processes.completed} />
+                  <KpiCard href="/processos" icon={<FileWarning className="size-4" aria-hidden />} label="Docs Pendentes" value={s.processes.pending} accent={s.processes.pending > 0} />
+                  <KpiCard icon={<ClipboardList className="size-4" aria-hidden />} label="Progresso Médio" value={s.processes.averageProgress === null ? null : formatPercent(s.processes.averageProgress)} />
+                </div>
+              </section>
+            ) : null}
+
+            {/* Prazos de Atas e Contratos */}
+            {showPrazos && dash.deadlines.length > 0 ? (
+              <div className="grid gap-6 lg:grid-cols-2">
+                <DeadlinesPanel items={dash.deadlines} />
+                <StatusDistribution rows={dash.processStatuses} total={s.processes.total} />
+              </div>
+            ) : null}
+
+            {/* Atalhos Rápidos da Central de Controle */}
             <div className="space-y-3">
-              <SectionLabel>Atalhos</SectionLabel>
-              <ShortcutGrid canCreateProcess={canCreateProcess} />
+              <SectionLabel>Ações Rápidas</SectionLabel>
+              <ShortcutGrid />
             </div>
           </div>
         );
@@ -154,13 +287,17 @@ async function DashboardContent({
   );
 }
 
-export default function DashboardPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+export default function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   return (
     <>
       <PageHeader
-        eyebrow="Conselhos"
-        title="Painel operacional"
-        description="Comece pelos 3 atalhos abaixo. Os números são reais do banco — alertas, prazos e documentação do seu escopo."
+        eyebrow="Central do Warley"
+        title="Painel de Controle Operacional"
+        description="Acompanhamento integrado de empresas parceiras, demandas de materiais, entregas pendentes e estoque em tempo real."
       />
       <Suspense fallback={<LoadingState />}>
         <DashboardContent searchParams={searchParams} />
