@@ -46,10 +46,10 @@ export function requestNextStep(
       };
     case "em_analise":
       return {
-        title: "Decidir a solicitação",
+        title: "Aprovar ou não",
         description: perms.canDecide
-          ? "Aprove (compromete saldo da ata, se houver vínculo), peça correção ou rejeite. Aprovar ainda não muda o estoque."
-          : "Aguardando decisão do gestor.",
+          ? "Sim autoriza a compra. O estoque só muda quando o material chegar. Não pede o motivo."
+          : "Aguardando a decisão de quem analisa.",
         tone: perms.canDecide ? "action" : "info",
       };
     case "aguardando_correcao":

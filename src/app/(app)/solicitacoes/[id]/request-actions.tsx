@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { receiveFormAction, requestStepFormAction } from "@/modules/purchases/actions";
 import { nextStates } from "@/shared/lib/state-machine";
 import { REQUEST_TRANSITIONS, type PurchaseRequestStatus } from "@/modules/purchases/domain/request-status";
+import { Button } from "@/components/ui/button";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { TextField } from "@/shared/ui/forms/fields";
 
@@ -15,110 +17,129 @@ interface Props {
   pendingItems: { id: string; label: string; pending: number }[];
 }
 
-/** Ações disponíveis = transições válidas ∩ permissões. Sem botão = mensagem clara. */
+type DeclinePath = "fix" | "reject";
+
+/** Uma ação principal por vez. Motivo só aparece se a compra não for aprovada. */
 export function RequestActions({ requestId, status, canDecide, canCreate, canReceive, pendingItems }: Props) {
+  const [decline, setDecline] = useState<DeclinePath | null>(null);
   const next = nextStates(REQUEST_TRANSITIONS, status);
-  const steps: {
-    step: string;
-    label: string;
-    to: PurchaseRequestStatus;
-    allowed: boolean;
-    note?: boolean;
-    destructive?: boolean;
-  }[] = [
-    { step: "submit", label: "Enviar solicitação", to: "enviada", allowed: canCreate },
-    { step: "startReview", label: "Iniciar análise", to: "em_analise", allowed: canDecide },
-    { step: "approve", label: "Aprovar", to: "aprovada", allowed: canDecide },
-    { step: "requestCorrection", label: "Pedir correção", to: "aguardando_correcao", allowed: canDecide, note: true },
-    { step: "reject", label: "Rejeitar", to: "rejeitada", allowed: canDecide, note: true, destructive: true },
-    { step: "cancel", label: "Cancelar", to: "cancelada", allowed: canCreate || canDecide, destructive: true },
-  ];
-  const available = steps.filter(
-    (s) => s.allowed && next.includes(s.to) && !(s.step === "startReview" && status === "aguardando_correcao"),
-  );
+  const canApprove = canDecide && next.includes("aprovada");
+  const canFix = canDecide && next.includes("aguardando_correcao");
+  const canReject = canDecide && next.includes("rejeitada");
+  const canSubmit = canCreate && next.includes("enviada");
+  const canStartReview = canDecide && next.includes("em_analise") && status !== "aguardando_correcao";
   const canResubmit = status === "aguardando_correcao" && canCreate;
   const canReopen = status === "rejeitada" && canDecide;
+  const canCancel = (canCreate || canDecide) && next.includes("cancelada");
   const receiving =
     canReceive && ["aprovada", "em_atendimento", "parcialmente_atendida"].includes(status) && pendingItems.length > 0;
-  const hasActions = available.length > 0 || canResubmit || canReopen || receiving;
+
+  const deciding = canApprove && (canFix || canReject);
 
   return (
     <section aria-labelledby="acoes" className="space-y-4">
-      <div>
-        <h2 id="acoes" className="text-base font-semibold">
-          O que você pode fazer agora
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Só aparecem botões permitidos para o seu perfil neste status.
-        </p>
-      </div>
-      {!hasActions ? (
-        <p className="rounded-xl border border-dashed border-border/80 bg-secondary/40 px-4 py-3 text-sm text-muted-foreground">
-          Nenhuma ação disponível para você neste momento. Se o próximo passo for de outra pessoa (gestor ou estoque),
-          acompanhe pelo status e pelo histórico.
-        </p>
-      ) : null}
-      <div className="flex flex-wrap gap-3">
-        {available.map((s) => (
-          <ActionForm
-            key={s.step}
-            action={requestStepFormAction}
-            submitLabel={s.label}
-            submitVariant={s.destructive ? "destructive" : "default"}
-            hiddenFields={{ requestId, step: s.step }}
-          >
-            {(e) => (s.note ? <TextField name="note" label="Motivo" required errors={e.note} /> : null)}
-          </ActionForm>
-        ))}
-        {canResubmit ? (
+      <h2 id="acoes" className="text-base font-semibold">
+        {deciding ? "Pode seguir com esta compra?" : "Próxima ação"}
+      </h2>
+
+      {deciding && decline === null ? (
+        <div className="flex flex-wrap items-center gap-3">
           <ActionForm
             action={requestStepFormAction}
-            submitLabel="Reenviar após correção"
-            hiddenFields={{ requestId, step: "resubmitAfterCorrection" }}
+            submitLabel="Sim, aprovar"
+            pendingLabel="Aprovando…"
+            submitClassName="h-11 px-6"
+            hiddenFields={{ requestId, step: "approve" }}
           >
             {() => null}
           </ActionForm>
-        ) : null}
-        {canReopen ? (
+          <Button type="button" variant="outline" className="h-11" onClick={() => setDecline(canFix ? "fix" : "reject")}>
+            Não
+          </Button>
+        </div>
+      ) : null}
+
+      {deciding && decline !== null ? (
+        <div className="max-w-lg space-y-3 rounded-2xl border border-border/80 bg-secondary/40 p-4">
+          <p className="text-sm text-muted-foreground">
+            {decline === "fix"
+              ? "A solicitação volta para quem pediu, com o seu recado."
+              : "A compra para aqui. Quem pediu vê o motivo no histórico."}
+          </p>
+          <div className="flex gap-2">
+            {canFix ? (
+              <Button type="button" variant={decline === "fix" ? "default" : "outline"} size="sm" onClick={() => setDecline("fix")}>
+                Pedir ajuste
+              </Button>
+            ) : null}
+            {canReject ? (
+              <Button type="button" variant={decline === "reject" ? "destructive" : "outline"} size="sm" onClick={() => setDecline("reject")}>
+                Recusar
+              </Button>
+            ) : null}
+          </div>
           <ActionForm
             action={requestStepFormAction}
-            submitLabel="Reabrir (excepcional)"
-            submitVariant="outline"
-            hiddenFields={{ requestId, step: "reopen" }}
+            submitLabel={decline === "fix" ? "Enviar para ajuste" : "Recusar a compra"}
+            pendingLabel="Enviando…"
+            submitVariant={decline === "reject" ? "destructive" : "default"}
+            hiddenFields={{ requestId, step: decline === "fix" ? "requestCorrection" : "reject" }}
           >
-            {(e) => <TextField name="note" label="Justificativa da reabertura" required errors={e.note} />}
+            {(errors) => (
+              <TextField name="note" label="Motivo" required placeholder="Uma frase basta" errors={errors.note} />
+            )}
           </ActionForm>
-        ) : null}
-      </div>
+          <button type="button" className="text-sm text-muted-foreground underline-offset-4 hover:underline" onClick={() => setDecline(null)}>
+            Voltar para aprovar
+          </button>
+        </div>
+      ) : null}
+
+      {!deciding && canSubmit ? (
+        <ActionForm action={requestStepFormAction} submitLabel="Enviar para análise" pendingLabel="Enviando…" submitClassName="h-11 px-6" hiddenFields={{ requestId, step: "submit" }}>
+          {() => null}
+        </ActionForm>
+      ) : null}
+
+      {!deciding && canStartReview ? (
+        <ActionForm action={requestStepFormAction} submitLabel="Abrir para decidir" pendingLabel="Abrindo…" submitClassName="h-11 px-6" hiddenFields={{ requestId, step: "startReview" }}>
+          {() => null}
+        </ActionForm>
+      ) : null}
+
+      {canResubmit ? (
+        <ActionForm action={requestStepFormAction} submitLabel="Reenviar corrigida" pendingLabel="Reenviando…" submitClassName="h-11 px-6" hiddenFields={{ requestId, step: "resubmitAfterCorrection" }}>
+          {() => null}
+        </ActionForm>
+      ) : null}
+
       {receiving ? (
         <div className="surface-card max-w-md p-6">
-          <h3 className="mb-1 font-heading text-lg font-medium tracking-tight text-primary">Registrar recebimento</h3>
-          <p className="mb-4 text-sm text-muted-foreground">
-            Informe quanto chegou de cada item. É nesta hora que o estoque sobe — não na aprovação.
-          </p>
-          <ActionForm
-            action={receiveFormAction}
-            submitLabel="Confirmar recebimento no estoque"
-            hiddenFields={{ requestId }}
-            idempotencyField="receiptKey"
-          >
+          <h3 className="mb-1 font-heading text-lg font-medium tracking-tight text-primary">O que chegou?</h3>
+          <p className="mb-4 text-sm text-muted-foreground">O número já vem preenchido com tudo. Diminua só se chegou menos.</p>
+          <ActionForm action={receiveFormAction} submitLabel="Lançar no estoque" pendingLabel="Lançando…" hiddenFields={{ requestId }} idempotencyField="receiptKey">
             {() =>
-              pendingItems.map((i) => (
-                <div key={i.id}>
-                  <input type="hidden" name="itemId" value={i.id} />
-                  <TextField
-                    name="received"
-                    label={`${i.label} (ainda falta: ${i.pending})`}
-                    type="number"
-                    step="0.001"
-                    min="0"
-                    defaultValue="0"
-                  />
+              pendingItems.map((item) => (
+                <div key={item.id}>
+                  <input type="hidden" name="itemId" value={item.id} />
+                  <TextField name="received" label={item.label} type="number" step="0.001" min="0" defaultValue={String(item.pending)} />
                 </div>
               ))
             }
           </ActionForm>
         </div>
+      ) : null}
+
+      {canReopen ? (
+        <ActionForm action={requestStepFormAction} submitLabel="Reabrir" submitVariant="outline" hiddenFields={{ requestId, step: "reopen" }}>
+          {(errors) => <TextField name="note" label="Por que reabrir" required errors={errors.note} />}
+        </ActionForm>
+      ) : null}
+
+      {canCancel && !deciding ? (
+        <ActionForm action={requestStepFormAction} submitLabel="Cancelar solicitação" submitVariant="outline" hiddenFields={{ requestId, step: "cancel" }}>
+          {() => null}
+        </ActionForm>
       ) : null}
     </section>
   );
