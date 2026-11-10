@@ -10,6 +10,7 @@ import {
   FileText,
   Package,
   PackageCheck,
+  PackagePlus,
   Plus,
   ScrollText,
   ShoppingCart,
@@ -22,6 +23,7 @@ import type { Meeting } from "@/modules/meetings/schemas";
 import type { ProcessView } from "@/modules/processes/service";
 import type { PurchaseRequest } from "@/modules/purchases/schemas";
 import type { StockLevelView } from "@/modules/inventory/service";
+import type { MaterialOrder } from "@/modules/orders/schemas";
 import type { DashboardSnapshot } from "@/modules/reports/service";
 import type { SavingsSummary } from "@/modules/formalizations/service";
 import { loadLookups, type Lookups } from "@/server/lookups";
@@ -39,6 +41,7 @@ import { StatusBadge } from "@/shared/ui/status-badge";
 import { presentationOf, REQUEST_STATUS } from "@/shared/ui/status-presentation";
 import { ActionHub, buildCouncilActions } from "./action-hub";
 import { CouncilPicker } from "./council-picker";
+import { MaterialOrderDialog, type AvailableStockItem } from "./material-order-dialog";
 import { MeetingsOverview, ProcessesOverview, RequestsOverview } from "./overview-lists";
 import { SavingsHistoryDialog, type SavingsHistoryItem } from "./savings-history-dialog";
 
@@ -62,11 +65,14 @@ type PanelData =
       meetings: Meeting[];
       meetingsOpen: number;
       stockLevels: StockLevelView[];
+      orders: MaterialOrder[];
+      availableStock: AvailableStockItem[];
       savingsSummary: SavingsSummary;
       savingsHistory: SavingsHistoryItem[];
       canCreateRequest: boolean;
       canCreateProcess: boolean;
       canManageMeeting: boolean;
+      canCreateOrder: boolean;
       roleLabel: string;
     };
 
@@ -101,7 +107,7 @@ async function Content({
       return ok({ empty: true, lookups: lookups.data });
     }
 
-    const [dash, requests, meetings, stockRes, processes, savingsRes, homologatedRes, suppliersRes] = await Promise.all([
+    const [dash, requests, meetings, stockRes, processes, savingsRes, homologatedRes, suppliersRes, ordersRes] = await Promise.all([
       ctx.services.reports.dashboard(ctx.actor, { councilId }),
       ctx.services.purchases.list(ctx.actor),
       ctx.services.meetings.list(ctx.actor),
@@ -110,6 +116,7 @@ async function Content({
       ctx.services.formalizations.getSavingsSummary(ctx.actor, councilId),
       ctx.services.formalizations.listHomologated(ctx.actor, councilId),
       ctx.services.suppliers.list(ctx.actor),
+      ctx.services.orders.list(ctx.actor, { councilId }),
     ]);
     if (!dash.ok) return dash;
     if (!requests.ok) return requests;
@@ -118,6 +125,7 @@ async function Content({
     if (!processes.ok) return processes;
     if (!savingsRes.ok) return savingsRes;
     if (!homologatedRes.ok) return homologatedRes;
+    if (!ordersRes.ok) return ordersRes;
 
     const suppliers = suppliersRes.ok ? suppliersRes.data : [];
     const supplierNameMap = Object.fromEntries(suppliers.map((s) => [s.id, s.name]));
@@ -148,6 +156,17 @@ async function Content({
     const councilProcesses = processes.data
       .filter((p) => p.process.councilId === councilId)
       .sort((a, b) => b.process.createdAt.getTime() - a.process.createdAt.getTime());
+    const councilOrders = ordersRes.data
+      .filter((o) => o.councilId === councilId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    const availableStock: AvailableStockItem[] = stockRes.data
+      .filter((s) => s.available > 0)
+      .map((s) => ({
+        materialId: s.materialId,
+        materialName: lookups.data.materialLabel[s.materialId] ?? s.materialId,
+        available: s.available,
+      }));
 
     // Cálculos de solicitações da empresa
     const pendingRequestsCount = councilRequests.filter((r) =>
@@ -197,11 +216,14 @@ async function Content({
       meetings: councilMeetings.slice(0, 6),
       meetingsOpen: councilMeetings.filter((m) => m.status === "agendada").length,
       stockLevels: stockRes.data,
+      orders: councilOrders,
+      availableStock,
       savingsSummary: savingsRes.data,
       savingsHistory,
       canCreateRequest: can(ctx.actor, "request.create", councilId),
       canCreateProcess: can(ctx.actor, "process.create", councilId),
       canManageMeeting: can(ctx.actor, "meeting.manage", councilId),
+      canCreateOrder: can(ctx.actor, "stock.move", councilId),
       roleLabel,
     });
   });
@@ -237,11 +259,14 @@ async function Content({
           meetings,
           meetingsOpen,
           stockLevels,
+          orders,
+          availableStock,
           savingsSummary,
           savingsHistory,
           canCreateRequest,
           canCreateProcess,
           canManageMeeting,
+          canCreateOrder,
           roleLabel,
         } = data;
 
@@ -343,7 +368,7 @@ async function Content({
             {/* Resumo Operacional da Empresa */}
             <div className="space-y-3">
               <SectionLabel>Visão Geral das Demandas e Entregas</SectionLabel>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                 <KpiCard
                   href="/solicitacoes"
                   icon={<ShoppingCart className="size-4" aria-hidden />}
@@ -373,6 +398,14 @@ async function Content({
                   label="Itens Disponíveis"
                   value={stockLevels.length}
                   hint="No catálogo da empresa"
+                />
+                <KpiCard
+                  href="#pedidos-materiais"
+                  icon={<PackagePlus className="size-4" aria-hidden />}
+                  label="Pedidos de Material"
+                  value={orders.length}
+                  accent={orders.filter((o) => o.status === "pendente").length > 0}
+                  hint={`${orders.filter((o) => o.status === "pendente").length} aguardando Warley`}
                 />
                 <KpiCard
                   href="#agendar-reuniao"
@@ -413,6 +446,57 @@ async function Content({
                 ]}
                 emptyTitle="Nenhum produto em estoque"
                 emptyDescription="Quando as solicitações forem aprovadas e recebidas, os itens aparecerão disponíveis aqui."
+              />
+            </section>
+
+            {/* Seção de Pedidos de Materiais da Empresa */}
+            <section id="pedidos-materiais" aria-label="Pedidos de Materiais da Empresa" className="space-y-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <SectionLabel>Pedidos de Materiais da Empresa</SectionLabel>
+                    {orders.length > 0 ? (
+                      <span className="rounded-full bg-secondary px-2 py-0.5 text-[0.68rem] font-semibold text-muted-foreground">
+                        {orders.length} pedido{orders.length > 1 ? "s" : ""}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Solicitações de retirada efetuadas contra o saldo liberado em estoque, aguardando ou homologados por Warley.
+                  </p>
+                </div>
+                {canCreateOrder ? (
+                  <MaterialOrderDialog
+                    councilId={councilId}
+                    availableStock={availableStock}
+                  />
+                ) : null}
+              </div>
+
+              <SimpleTable
+                caption="Pedidos de Materiais da Empresa"
+                rows={orders.map((o) => ({
+                  id: o.id,
+                  number: o.number,
+                  createdAt: o.createdAt.toISOString(),
+                  items: o.items
+                    .map((it) => `${it.quantity}x ${lookups.materialLabel[it.materialId] ?? it.materialId}`)
+                    .join(", "),
+                  notes:
+                    o.status === "rejeitado" && o.rejectionReason
+                      ? `Recusado: ${o.rejectionReason}`
+                      : o.notes || "—",
+                  status: o.status,
+                }))}
+                columns={[
+                  { key: "number", header: "Nº Pedido" },
+                  { key: "createdAt", header: "Data", kind: "datetime" },
+                  { key: "items", header: "Itens Solicitados" },
+                  { key: "notes", header: "Observações / Motivo" },
+                  { key: "status", header: "Situação", kind: "status", dictionary: "order" },
+                ]}
+                emptyTitle="Nenhum pedido de material realizado"
+                emptyDescription="Quando você solicitar materiais do saldo liberado, eles aparecerão registrados aqui."
               />
             </section>
 

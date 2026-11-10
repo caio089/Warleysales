@@ -59,6 +59,13 @@ export const COMPLETION_STATUS: Dictionary = {
   pendente: { label: "Documentação pendente", tone: "warning" },
 };
 
+export const ORDER_STATUS: Dictionary = {
+  pendente: { label: "Pendente", tone: "warning" },
+  aprovado: { label: "Aprovado", tone: "success" },
+  rejeitado: { label: "Rejeitado", tone: "danger" },
+  cancelado: { label: "Cancelado", tone: "neutral" },
+};
+
 /** Busca segura: status desconhecido nunca quebra a tela. */
 export function presentationOf(dictionary: Dictionary, key: string): StatusPresentation {
   return dictionary[key] ?? { label: key, tone: "neutral" };

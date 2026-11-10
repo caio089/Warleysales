@@ -29,6 +29,7 @@ import { Screen } from "@/shared/ui/screen";
 import { BriefingCard, BriefingFallback } from "./briefing-card";
 import { DashboardFilters } from "./filters";
 import { FormalizationQueue, type PendingFormalizationItem } from "./formalization-queue";
+import { OrderQueue, type PendingOrderItem } from "./order-queue";
 import {
   AlertsPanel,
   AttentionPanel,
@@ -70,6 +71,7 @@ async function DashboardContent({
       savingsSummary,
       suppliersRes,
       processesRes,
+      pendingOrdersRes,
     ] = await Promise.all([
       ctx.services.reports.dashboard(ctx.actor, { councilId }),
       ctx.services.notifications.listMine(ctx.actor),
@@ -81,6 +83,9 @@ async function DashboardContent({
       ctx.services.formalizations.getSavingsSummary(ctx.actor, councilId),
       ctx.services.suppliers.list(ctx.actor),
       ctx.services.processes.list(ctx.actor),
+      ctx.actor.isCentralAdmin
+        ? ctx.services.orders.list(ctx.actor, { status: "pendente", ...(councilId ? { councilId } : {}) })
+        : Promise.resolve(ok([])),
     ]);
     if (!dash.ok) return dash;
     if (!alerts.ok) return alerts;
@@ -90,6 +95,7 @@ async function DashboardContent({
     if (!stockLevels.ok) return stockLevels;
     if (!pendingFormalizations.ok) return pendingFormalizations;
     if (!savingsSummary.ok) return savingsSummary;
+    if (!pendingOrdersRes.ok) return pendingOrdersRes;
 
     const suppliers = suppliersRes.ok ? suppliersRes.data : [];
     const processes = processesRes.ok ? processesRes.data : [];
@@ -114,6 +120,21 @@ async function DashboardContent({
       createdAt: f.createdAt,
     }));
 
+    const pendingOrderQueue: PendingOrderItem[] = pendingOrdersRes.data.map((o) => ({
+      id: o.id,
+      number: o.number,
+      councilId: o.councilId,
+      councilName: lookups.data.councilLabel[o.councilId] ?? o.councilId,
+      requestedBy: o.requestedBy,
+      notes: o.notes,
+      createdAt: o.createdAt,
+      items: o.items.map((it) => ({
+        materialId: it.materialId,
+        materialName: lookups.data.materialLabel[it.materialId] ?? it.materialId,
+        quantity: it.quantity,
+      })),
+    }));
+
     return ok({
       dash: dash.data,
       alerts: alerts.data,
@@ -122,6 +143,7 @@ async function DashboardContent({
       meetings: meetings.data,
       stockLevels: stockLevels.data,
       pendingQueue,
+      pendingOrderQueue,
       savingsSummary: savingsSummary.data,
       isWarley: ctx.actor.isCentralAdmin,
       canCreateProcess: canInAnyCouncil(ctx.actor, "process.create"),
@@ -142,6 +164,7 @@ async function DashboardContent({
         meetings,
         stockLevels,
         pendingQueue,
+        pendingOrderQueue,
         savingsSummary,
         isWarley,
         canCreateProcess,
@@ -250,6 +273,11 @@ async function DashboardContent({
             {/* Fila de Veredito de Warley (Homologações de Contratações) */}
             {isWarley ? (
               <FormalizationQueue items={pendingQueue} />
+            ) : null}
+
+            {/* Fila de Expedição de Warley (Pedidos de Materiais) */}
+            {isWarley ? (
+              <OrderQueue items={pendingOrderQueue} />
             ) : null}
 
             {/* Ilha de Inteligência Artificial — Briefing Operacional em tempo real */}

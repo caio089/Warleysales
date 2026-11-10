@@ -11,6 +11,7 @@ import { StatusBadge } from "./status-badge";
 import {
   COMPLETION_STATUS,
   MEETING_STATUS,
+  ORDER_STATUS,
   presentationOf,
   PROCESS_STATUS,
   REQUEST_STATUS,
@@ -25,6 +26,7 @@ const DICTIONARIES = {
   meeting: MEETING_STATUS,
   stock: STOCK_LEVEL,
   completion: COMPLETION_STATUS,
+  order: ORDER_STATUS,
 } as const;
 
 export type StatusDictionary = keyof typeof DICTIONARIES;
