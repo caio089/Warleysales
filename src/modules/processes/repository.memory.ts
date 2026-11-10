@@ -16,4 +16,10 @@ export class InMemoryProcessRepository implements ProcessRepository {
     return this.table.all((p) => councilIds === "all" || councilIds.includes(p.councilId));
   }
   async update(id: string, changes: Partial<AdministrativeProcess>) { return this.table.update(id, changes); }
+  async nextSequence(councilId: string, year: number): Promise<number> {
+    const matches = this.table.all((p) => p.councilId === councilId && p.year === year);
+    if (matches.length === 0) return 1;
+    const max = Math.max(...matches.map((p) => p.sequence));
+    return max + 1;
+  }
 }

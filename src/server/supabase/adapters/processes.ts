@@ -94,6 +94,19 @@ export class SupabaseProcessRepository implements ProcessRepository {
     const row = unwrap("processes.update", await this.db.from("administrative_processes").update(patch).eq("id", id).select().maybeSingle<ProcessRow>());
     return row ? toProcess(row) : null;
   }
+
+  async nextSequence(councilId: string, year: number): Promise<number> {
+    const { data, error } = await this.db
+      .from("administrative_processes")
+      .select("sequence")
+      .eq("council_id", councilId)
+      .eq("year", year)
+      .order("sequence", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ sequence: number }>();
+    if (error || !data) return 1;
+    return Number(data.sequence) + 1;
+  }
 }
 
 interface AttachmentRow {

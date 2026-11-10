@@ -28,6 +28,12 @@ export class ProcessService {
     private readonly runtime: RuntimeDeps,
   ) {}
 
+  async getNextNumber(councilId: string, year?: number): Promise<string> {
+    const targetYear = year ?? this.runtime.now().getFullYear();
+    const seq = await this.processes.nextSequence(councilId, targetYear);
+    return formatProcessNumber(seq, targetYear);
+  }
+
   async create(actor: Actor, input: unknown): Promise<Result<AdministrativeProcess>> {
     const parsed = parseInput(createProcessSchema, input);
     if (!parsed.ok) return parsed;

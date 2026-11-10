@@ -8,4 +8,5 @@ export interface ProcessRepository {
   findById(id: string): Promise<AdministrativeProcess | null>;
   listByCouncils(councilIds: readonly string[] | "all"): Promise<AdministrativeProcess[]>;
   update(id: string, changes: Partial<AdministrativeProcess>): Promise<AdministrativeProcess | null>;
+  nextSequence(councilId: string, year: number): Promise<number>;
 }

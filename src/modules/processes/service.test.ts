@@ -46,6 +46,15 @@ let ctx: Ctx;
 beforeEach(() => { ctx = setup(); });
 
 describe("ProcessService", () => {
+  it("calcula o próximo número sequencial para o conselho no ano vigente", async () => {
+    const next1 = await ctx.processes.getNextNumber(COUNCIL_A, 2026);
+    expect(next1).toBe("001/2026");
+
+    await ctx.processes.create(managerOf(COUNCIL_A), { councilId: COUNCIL_A, number: "001/2026", title: "Processo 1" });
+    const next2 = await ctx.processes.getNextNumber(COUNCIL_A, 2026);
+    expect(next2).toBe("002/2026");
+  });
+
   it("cria processo, audita e impede número duplicado no conselho (P4)", async () => {
     await newProcess(ctx);
     const dup = await ctx.processes.create(managerOf(COUNCIL_A), { councilId: COUNCIL_A, number: "001/2026", title: "Outro" });
