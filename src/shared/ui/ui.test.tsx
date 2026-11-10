@@ -1,6 +1,15 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@/modules/documents/actions", () => ({
+  loadProcessDocumentsAction: vi.fn(),
+  prepareDocumentUploadAction: vi.fn(),
+  confirmDocumentUploadAction: vi.fn(),
+  downloadUrlAction: vi.fn(),
+}));
+
 import { LinkedProcessCard } from "@/app/(app)/solicitacoes/[id]/linked-process-card";
+import { ProcessesTable } from "@/app/(app)/processos/process-attachment-sheet";
 import type { ProcessView } from "@/modules/processes/service";
 import { ActivityTimeline } from "./activity-timeline";
 import { DataSourceUnavailableState, EmptyState, ErrorState } from "./feedback-states";
@@ -81,5 +90,28 @@ describe("componentes compartilhados (renderização no servidor)", () => {
     expect(html).toContain("0 de 7 documentos");
     expect(html).toContain('href="/processos?abrir=proc-123"');
     expect(html).toContain("Anexar documentos do processo →");
+  });
+  it("ProcessesTable exibe cabeçalhos, dados e botão de ação rápida 'Anexar'", () => {
+    const rows = [
+      {
+        id: "proc-1",
+        number: "001/2026",
+        title: "Aquisição de computadores",
+        council: "Conselho Regional A",
+        status: "em_andamento",
+        completion: "pendente",
+        progress: 42,
+        href: "/processos/proc-1",
+      },
+    ];
+    const html = renderToStaticMarkup(<ProcessesTable rows={rows} />);
+    expect(html).toContain("001/2026");
+    expect(html).toContain("Aquisição de computadores");
+    expect(html).toContain("Conselho Regional A");
+    expect(html).toContain("Em andamento");
+    expect(html).toContain("Documentação pendente");
+    expect(html).toContain("42%");
+    expect(html).toContain("Anexar");
+    expect(html).toContain("Ações");
   });
 });

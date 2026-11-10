@@ -120,4 +120,25 @@ describe("DocumentService — upload direto por URL assinada", () => {
     const second = await ctx.documents.confirmUpload(actor, { attachmentId: prepared.data.attachmentId });
     expect(first.ok && second.ok).toBe(true);
   });
+
+  it("listByProcess e processes.get fornecem dados e tipos válidos para anexagem rápida", async () => {
+    const processId = await newProcess();
+    const actor = managerOf(COUNCIL_A);
+    const prepared = await ctx.documents.prepareUpload(actor, { processId, typeCode: "DFD", ...declared(PDF) });
+    if (!prepared.ok) throw new Error(prepared.message);
+    await ctx.storage.put(prepared.data.storagePath, PDF);
+    await ctx.documents.confirmUpload(actor, { attachmentId: prepared.data.attachmentId });
+
+    const docs = await ctx.documents.listByProcess(actor, processId);
+    expect(docs.ok).toBe(true);
+    if (!docs.ok) return;
+    expect(docs.data).toHaveLength(1);
+    expect(docs.data[0].typeCode).toBe("DFD");
+    expect(docs.data[0].uploadStatus).toBe("confirmed");
+
+    const proc = await ctx.processes.get(actor, processId);
+    expect(proc.ok).toBe(true);
+    if (!proc.ok) return;
+    expect(proc.data.progress.validTypes).toContain("DFD");
+  });
 });

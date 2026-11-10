@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { runAction } from "@/server/action-runner";
-import type { PreparedUpload } from "@/modules/documents/schemas";
+import type { AdministrativeProcess } from "@/modules/processes/schemas";
+import type { Attachment, PreparedUpload } from "@/modules/documents/schemas";
 import type { Result } from "@/shared/lib/result";
 import { fail, ok } from "@/shared/lib/result";
 import type { ActionState } from "@/shared/ui/forms/action-state";
@@ -42,4 +43,28 @@ export async function manualDeleteFormAction(_previous: ActionState, formData: F
 export async function downloadUrlAction(attachmentId: string): Promise<Result<string>> {
   const state = await runAction(({ services, actor }) => services.documents.getDownloadUrl(actor, { attachmentId }), "ok");
   return state.status === "success" && state.data ? ok(state.data) : fail("NOT_FOUND", "Não foi possível gerar o link de download.");
+}
+
+/** Carrega os dados do processo e seus documentos confirmados para anexagem rápida (R1, R14). */
+export async function loadProcessDocumentsAction(processId: string): Promise<Result<{
+  process: AdministrativeProcess;
+  documents: Attachment[];
+  validTypes: string[];
+}>> {
+  const state = await runAction(async ({ services, actor }) => {
+    const processResult = await services.processes.get(actor, processId);
+    if (!processResult.ok) return processResult;
+    const documentsResult = await services.documents.listByProcess(actor, processId);
+    if (!documentsResult.ok) return documentsResult;
+    return ok({
+      process: processResult.data.process,
+      documents: documentsResult.data,
+      validTypes: [...processResult.data.progress.validTypes],
+    });
+  }, "ok");
+
+  if (state.status !== "success" || !state.data) {
+    return fail("VALIDATION", state.status === "error" ? state.message : "Falha ao carregar documentos do processo.");
+  }
+  return ok(state.data);
 }
