@@ -17,6 +17,8 @@ import type { MeetingRepository } from "@/modules/meetings/repository";
 import { RepositoryAlertSource } from "@/modules/notifications/alert-source";
 import { NotificationService } from "@/modules/notifications/service";
 import type { NotificationRepository } from "@/modules/notifications/repository";
+import { MaterialOrderService } from "@/modules/orders/service";
+import type { MaterialOrderRepository } from "@/modules/orders/repository";
 import type { ProcessRepository } from "@/modules/processes/repository";
 import { ProcessService } from "@/modules/processes/service";
 import { PurchaseRequestService } from "@/modules/purchases/service";
@@ -48,6 +50,7 @@ export interface Repositories {
   meetings: MeetingRepository;
   notifications: NotificationRepository;
   formalizations: FormalizationRepository;
+  orders: MaterialOrderRepository;
 }
 
 export interface Services {
@@ -67,6 +70,7 @@ export interface Services {
   meetings: MeetingService;
   notifications: NotificationService;
   reports: ReportService;
+  orders: MaterialOrderService;
 }
 
 /** Composição das dependências (raiz de composição). Pura: sem acesso a env nem a rede. */
@@ -76,6 +80,7 @@ export function createServices(repos: Repositories, runtime: RuntimeDeps): Servi
   const atas = new AtaService(repos.atas, audit, runtime);
   const contracts = new ContractService(repos.contracts, audit, runtime);
   const processes = new ProcessService(repos.processes, repos.documents, audit, runtime);
+  const orders = new MaterialOrderService(repos.orders, inventory, audit, runtime);
   const formalizations = new FormalizationService(
     repos.formalizations,
     processes,
@@ -103,5 +108,6 @@ export function createServices(repos: Repositories, runtime: RuntimeDeps): Servi
     meetings: new MeetingService(repos.meetings, audit, runtime),
     notifications: new NotificationService(repos.notifications, alertSource, audit, runtime),
     reports: new ReportService(processes, inventory, contracts, atas, runtime),
+    orders,
   };
 }

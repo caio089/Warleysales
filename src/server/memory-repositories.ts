@@ -7,6 +7,7 @@ import { InMemoryCouncilRepository, InMemoryMembershipRepository } from "@/modul
 import { InMemoryInventoryRepository } from "@/modules/inventory/repository.memory";
 import { InMemoryMeetingRepository } from "@/modules/meetings/repository.memory";
 import { InMemoryNotificationRepository } from "@/modules/notifications/repository.memory";
+import { InMemoryMaterialOrderRepository } from "@/modules/orders/repository.memory";
 import { InMemoryProcessRepository } from "@/modules/processes/repository.memory";
 import { InMemoryPurchaseRequestRepository } from "@/modules/purchases/repository.memory";
 import { InMemoryRetentionRepository } from "@/modules/retention/repository.memory";
@@ -36,5 +37,6 @@ export function createMemoryRepositories(clock: () => Date = () => new Date()): 
     meetings: new InMemoryMeetingRepository(),
     notifications: new InMemoryNotificationRepository(),
     formalizations: new InMemoryFormalizationRepository(),
+    orders: new InMemoryMaterialOrderRepository(clock),
   };
 }

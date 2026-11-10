@@ -5,7 +5,7 @@ import { addQuantity, percentage } from "@/shared/lib/decimal";
 import { fail, ok, type Result } from "@/shared/lib/result";
 import { parseInput, type RuntimeDeps } from "@/shared/lib/service-support";
 import { classifyStockLevel, reconciliationDifference, type StockLevel } from "./domain/levels";
-import { applyMovement, availableOf, physicalFromLedger, provisionBlocked, releaseBlocked, releaseReservation, reserve, type MovementType } from "./domain/stock";
+import { applyMovement, availableOf, dispatchReservedStock, physicalFromLedger, provisionBlocked, releaseBlocked, releaseReservation, reserve, reserveStock, unreserveStock, type MovementType } from "./domain/stock";
 import type { InventoryRepository, StockKey } from "./repository";
 import { createMaterialSchema, registerMovementSchema, setMinimumSchema, type Material } from "./schemas";
 
@@ -198,6 +198,124 @@ export class InventoryService {
             reason: "Homologação de formalização (liberação de saldo)",
             reference: null,
             actorId: null,
+          },
+        });
+      });
+      if (!result.ok) return result;
+    }
+
+    return ok(undefined);
+  }
+
+  /**
+   * Reserva saldo liberado para pedido de material (R11/R12).
+   * Se algum item falhar, faz rollback dos itens já reservados nesta chamada.
+   */
+  async reserveForOrder(
+    actor: Actor,
+    councilId: string,
+    items: { materialId: string; quantity: number }[],
+  ): Promise<Result<void>> {
+    const allowed = await guard(this.audit, actor, "stock.move", councilId, "stock_balance");
+    if (!allowed.ok) return allowed;
+
+    for (const item of items) {
+      if (!item.materialId || typeof item.materialId !== "string") {
+        return fail("VALIDATION", "Material inválido.");
+      }
+      if (!Number.isFinite(item.quantity) || item.quantity <= 0) {
+        return fail("VALIDATION", "A quantidade deve ser maior que zero.");
+      }
+    }
+
+    const reservedItems: { materialId: string; quantity: number }[] = [];
+    for (const item of items) {
+      const result = await this.repository.transact({ councilId, materialId: item.materialId }, (state) => {
+        const next = reserveStock(state.balance, item.quantity);
+        return next.ok ? ok({ balance: next.data, value: undefined }) : next;
+      });
+      if (!result.ok) {
+        // Rollback atomicamente os itens já reservados
+        for (const rev of reservedItems) {
+          await this.repository.transact({ councilId, materialId: rev.materialId }, (state) => {
+            const rollbackNext = unreserveStock(state.balance, rev.quantity);
+            return rollbackNext.ok ? ok({ balance: rollbackNext.data, value: undefined }) : rollbackNext;
+          });
+        }
+        return result;
+      }
+      reservedItems.push(item);
+    }
+
+    return ok(undefined);
+  }
+
+  /**
+   * Estorna a reserva de materiais de um pedido cancelado ou rejeitado (R11/R12).
+   */
+  async unreserveOrder(
+    councilId: string,
+    items: { materialId: string; quantity: number }[],
+  ): Promise<Result<void>> {
+    for (const item of items) {
+      if (!item.materialId || typeof item.materialId !== "string") {
+        return fail("VALIDATION", "Material inválido.");
+      }
+      if (!Number.isFinite(item.quantity) || item.quantity <= 0) {
+        return fail("VALIDATION", "A quantidade deve ser maior que zero.");
+      }
+    }
+
+    for (const item of items) {
+      const result = await this.repository.transact({ councilId, materialId: item.materialId }, (state) => {
+        const next = unreserveStock(state.balance, item.quantity);
+        return next.ok ? ok({ balance: next.data, value: undefined }) : next;
+      });
+      if (!result.ok) return result;
+    }
+
+    return ok(undefined);
+  }
+
+  /**
+   * Despacha pedido homologado por Warley: baixa o reservado e o físico no mesmo passo,
+   * registrando a saída no ledger (R11/R12).
+   */
+  async dispatchOrder(
+    councilId: string,
+    items: { materialId: string; quantity: number }[],
+    orderId: string,
+    actorId?: string | null,
+  ): Promise<Result<void>> {
+    for (const item of items) {
+      if (!item.materialId || typeof item.materialId !== "string") {
+        return fail("VALIDATION", "Material inválido.");
+      }
+      if (!Number.isFinite(item.quantity) || item.quantity <= 0) {
+        return fail("VALIDATION", "A quantidade deve ser maior que zero.");
+      }
+    }
+
+    for (const item of items) {
+      const idempotencyKey = `dispatch:${orderId}:${item.materialId}`;
+      const result = await this.repository.transact({ councilId, materialId: item.materialId }, (state) => {
+        if (state.processedKeys.has(idempotencyKey)) {
+          return ok({ balance: state.balance, value: undefined });
+        }
+        const next = dispatchReservedStock(state.balance, item.quantity);
+        if (!next.ok) return next;
+        return ok({
+          balance: next.data,
+          value: undefined,
+          movement: {
+            councilId,
+            materialId: item.materialId,
+            type: "transfer_out",
+            quantity: item.quantity,
+            idempotencyKey,
+            reason: "Expedição de Pedido de Material Homologada por Warley",
+            reference: orderId,
+            actorId: actorId ?? null,
           },
         });
       });

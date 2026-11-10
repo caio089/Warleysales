@@ -8,6 +8,7 @@ import { SupabaseCouncilRepository, SupabaseMembershipRepository } from "./adapt
 import { SupabaseInventoryRepository } from "./adapters/inventory";
 import { SupabaseMeetingRepository } from "./adapters/meetings";
 import { SupabaseNotificationRepository } from "./adapters/notifications";
+import { SupabaseMaterialOrderRepository } from "./adapters/orders";
 import { SupabaseDocumentRepository, SupabaseProcessRepository, SupabaseStorage } from "./adapters/processes";
 import { SupabasePurchaseRequestRepository } from "./adapters/purchases";
 import { SupabaseRetentionRepository } from "./adapters/retention";
@@ -35,5 +36,6 @@ export function createSupabaseRepositories(): Repositories {
     meetings: new SupabaseMeetingRepository(db),
     notifications: new SupabaseNotificationRepository(db),
     formalizations: new SupabaseFormalizationRepository(db),
+    orders: new SupabaseMaterialOrderRepository(db),
   };
 }

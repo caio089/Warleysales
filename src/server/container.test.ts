@@ -13,6 +13,7 @@ describe("raiz de composição", () => {
     const audit = await services.audit.list(manager);
     expect(audit.ok && audit.data.some((e) => e.action === "process.create")).toBe(true);
     expect(services.formalizations).toBeDefined();
-    expect(Object.keys(services)).toHaveLength(16);
+    expect(services.orders).toBeDefined();
+    expect(Object.keys(services)).toHaveLength(17);
   });
 });
