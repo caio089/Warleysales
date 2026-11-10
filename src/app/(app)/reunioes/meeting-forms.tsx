@@ -13,7 +13,7 @@ export function NewMeetingForm({
 }: {
   councils: Option[];
   defaultCouncilId?: string;
-  /** Quando true, o conselho já está definido (painel do conselho) e não aparece no formulário. */
+  /** Quando true, o órgão já está definido (painel do órgão) e não aparece no formulário. */
   lockCouncil?: boolean;
 }) {
   return (
@@ -27,7 +27,7 @@ export function NewMeetingForm({
           {!lockCouncil ? (
             <SelectField
               name="councilId"
-              label="Conselho"
+              label="Órgão"
               required
               options={councils}
               defaultValue={defaultCouncilId}
