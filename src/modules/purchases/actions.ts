@@ -14,8 +14,15 @@ function readItems(formData: FormData) {
 }
 
 export async function createRequestFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  const createProcess = formData.get("createProcess") === "on" || formData.get("createProcess") === "true";
   const result = await runAction(
-    ({ services, actor }) => services.purchases.create(actor, { councilId: formData.get("councilId"), title: formData.get("title"), items: readItems(formData) }),
+    ({ services, actor }) =>
+      services.purchases.create(actor, {
+        councilId: formData.get("councilId"),
+        title: formData.get("title"),
+        createProcess,
+        items: readItems(formData),
+      }),
     "Solicitação criada como rascunho.",
   );
   if (result.status !== "success" || !result.data) return result.status === "success" ? result : result;

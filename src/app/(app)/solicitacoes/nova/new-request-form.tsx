@@ -25,6 +25,21 @@ export function NewRequestForm({
           <>
             <SelectField name="councilId" label="Conselho" required options={councils} errors={e.councilId} />
             <TextField name="title" label="Título" required errors={e.title} />
+            <label className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 p-3.5 transition-colors hover:bg-muted/30 cursor-pointer">
+              <input
+                type="checkbox"
+                name="createProcess"
+                defaultChecked
+                value="on"
+                className="mt-0.5 size-4 rounded border-input text-primary focus:ring-ring"
+              />
+              <div className="space-y-0.5 text-sm">
+                <span className="font-medium text-foreground">Gerar processo administrativo correspondente</span>
+                <p className="text-xs text-muted-foreground">
+                  Abre automaticamente o processo para inserção dos 7 documentos obrigatórios (DFD, ETP, MR, TR, PP, PJ e ED).
+                </p>
+              </div>
+            </label>
             <fieldset className="space-y-3">
               <legend className="text-sm font-medium">Itens</legend>
               <p className="text-xs text-muted-foreground">Ao aprovar, o item da ata vigente consome o saldo (rascunho não consome). Sem vínculo, a ata permanece intacta.</p>
