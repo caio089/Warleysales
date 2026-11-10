@@ -57,7 +57,7 @@ export const NAV_ITEMS: NavItem[] = [
   // ── Acompanhamento Geral ──────────────────────────────────────────────
   { label: "Visão geral",   href: "/dashboard",    icon: LayoutDashboard, allowedRoles: ALL_ROLES, group: "acompanhamento" },
   { label: "Meu painel",    href: "/meu-conselho", icon: Home,            allowedRoles: ALL_ROLES, group: "acompanhamento" },
-  { label: "Empresas",      href: "/conselhos",    icon: Building2,       allowedRoles: [], centralOnly: true, group: "acompanhamento" },
+  { label: "Órgãos",        href: "/conselhos",    icon: Building2,       allowedRoles: [], centralOnly: true, group: "acompanhamento" },
   { label: "Solicitações",  href: "/solicitacoes", icon: ShoppingCart,    allowedRoles: ALL_ROLES, group: "acompanhamento" },
   { label: "Reuniões",      href: "/reunioes",     icon: CalendarDays,    allowedRoles: ALL_ROLES, group: "acompanhamento" },
 

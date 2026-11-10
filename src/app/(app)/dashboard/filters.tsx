@@ -34,13 +34,13 @@ export function DashboardFilters({ councils, councilId, focus }: DashboardFilter
   return (
     <div className="surface-card flex flex-col gap-4 p-4 xl:flex-row xl:items-end xl:justify-between">
       <label className="flex min-w-0 flex-1 flex-col gap-1.5 xl:max-w-sm">
-        <span className="text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">Empresa Parceira</span>
+        <span className="text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">Órgão</span>
         <select
           className="h-11 rounded-xl border border-input bg-card px-3 text-sm font-medium text-foreground shadow-xs transition-colors focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
           value={councilId ?? ""}
           onChange={(event) => router.push(hrefFor(event.target.value || undefined, focus))}
         >
-          <option value="">Todas as empresas cadastradas</option>
+          <option value="">Todos os órgãos cadastrados</option>
           {councils.map((council) => (
             <option key={council.id} value={council.id}>
               {council.label}

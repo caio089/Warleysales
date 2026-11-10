@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
+import { ArrowLeft } from "lucide-react";
 import { loadScreen } from "@/server/screen";
 import { ok } from "@/shared/lib/result";
 import { DOCUMENT_TYPES } from "@/modules/processes/domain/document-types";
@@ -72,6 +74,15 @@ async function ProcessContent({ params }: { params: Promise<{ id: string }> }) {
         });
         return (
           <>
+            <div className="mb-4">
+              <Link
+                href="/processos"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+              >
+                <ArrowLeft className="size-3.5" aria-hidden />
+                <span>Voltar para Processos</span>
+              </Link>
+            </div>
             <PageHeader
               eyebrow="Processos"
               title={`Processo ${view.process.number}`}

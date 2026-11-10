@@ -205,7 +205,7 @@ async function DashboardContent({
           .map((r) => ({
             id: r.id,
             title: r.title,
-            company: lookups.councilLabel[r.councilId] ?? "Empresa",
+            company: lookups.councilLabel[r.councilId] ?? "Órgão",
             status: r.status,
             createdAt: r.createdAt.toISOString(),
             itemsCount: r.items.length,
@@ -264,9 +264,9 @@ async function DashboardContent({
                 <KpiCard
                   href="/conselhos"
                   icon={<Building2 className="size-4" aria-hidden />}
-                  label="Empresas Parceiras"
+                  label="Órgãos Parceiros"
                   value={lookups.councils.length}
-                  hint="Ativas na plataforma"
+                  hint="Ativos na plataforma"
                 />
                 <KpiCard
                   icon={<TrendingDown className="size-4" aria-hidden />}
@@ -364,7 +364,7 @@ export default function DashboardPage({
       <PageHeader
         eyebrow="Central do Warley"
         title="Painel de Controle Operacional"
-        description="Acompanhamento integrado de empresas parceiras, demandas de materiais, entregas pendentes e estoque em tempo real."
+        description="Acompanhamento integrado de órgãos parceiros, demandas de materiais, entregas pendentes e estoque em tempo real."
       />
       <Suspense fallback={<LoadingState />}>
         <DashboardContent searchParams={searchParams} />

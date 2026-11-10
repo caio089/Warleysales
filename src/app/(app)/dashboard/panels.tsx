@@ -82,7 +82,7 @@ function PanelHeader({
   );
 }
 
-/** Painel de empresas que necessitam de reposição / atenção de estoque */
+/** Painel de órgãos que necessitam de reposição / atenção de estoque */
 export function ReplenishmentPanel({
   items,
 }: {
@@ -90,9 +90,9 @@ export function ReplenishmentPanel({
 }) {
   return (
     <section className="surface-card card-hover flex h-full flex-col p-5" aria-label="Necessidade de reposição">
-      <PanelHeader icon={AlertTriangle} title="Empresas com Necessidade de Reposição" meta={`${items.length} item(ns)`} href="/estoque" />
+      <PanelHeader icon={AlertTriangle} title="Órgãos com Necessidade de Reposição" meta={`${items.length} item(ns)`} href="/estoque" />
       {items.length === 0 ? (
-        <PanelEmpty icon={CheckCircle2}>Todas as empresas estão com níveis de estoque regulares acima do mínimo.</PanelEmpty>
+        <PanelEmpty icon={CheckCircle2}>Todos os órgãos estão com níveis de estoque regulares acima do mínimo.</PanelEmpty>
       ) : (
         <ul className="space-y-2.5">
           {items.map((item, idx) => (
@@ -357,7 +357,7 @@ export function StatusDistribution({ rows, total }: { rows: { status: string; co
 
 const SHORTCUTS = [
   { href: "/solicitacoes/nova", label: "Nova Solicitação", detail: "Registrar pedido de material", icon: ShoppingCart },
-  { href: "/conselhos", label: "Empresas", detail: "Ver empresas e contatos WhatsApp", icon: Building2 },
+  { href: "/conselhos", label: "Órgãos", detail: "Ver órgãos e contatos WhatsApp", icon: Building2 },
   { href: "/estoque", label: "Estoque & Reposição", detail: "Saldos, entradas e níveis críticos", icon: Package },
   { href: "/reunioes", label: "Reuniões", detail: "Agendar e registrar atas", icon: CalendarDays },
   { href: "/processos", label: "Documentos", detail: "Processos e arquivos anexados", icon: ClipboardList },

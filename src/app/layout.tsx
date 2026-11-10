@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: { default: "Warley — Central Operacional", template: "%s · Warley" },
-  description: "Central de gestão operacional com empresas parceiras — solicitações, estoque, entregas e documentos.",
+  description: "Central de gestão operacional com órgãos parceiros — solicitações, estoque, entregas e documentos.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

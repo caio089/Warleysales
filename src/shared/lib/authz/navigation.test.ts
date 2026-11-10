@@ -11,7 +11,7 @@ describe("filterNavigation", () => {
   it("usuário de conselho não vê itens exclusivos da administração central", () => {
     const result = labels(filterNavigation({ isCentralAdmin: false, roles: ["council_operator"] }));
     expect(result).not.toContain("Administração");
-    expect(result).not.toContain("Empresas");
+    expect(result).not.toContain("Órgãos");
     expect(result).toContain("Processos");
   });
 

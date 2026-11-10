@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { canInAnyCouncil } from "@/shared/lib/authz/policy";
@@ -35,7 +35,15 @@ async function Content() {
                 <Link href="/solicitacoes/nova" className={buttonVariants()}>
                   Nova solicitação
                 </Link>
-              ) : undefined
+              ) : (
+                <Button
+                  disabled
+                  variant="outline"
+                  title="Seu perfil não possui permissão para criar solicitações neste órgão."
+                >
+                  Nova solicitação
+                </Button>
+              )
             }
           />
           <FlowGuide title="Fluxo em 4 passos" steps={REQUEST_FLOW_STEPS} />
@@ -52,7 +60,7 @@ async function Content() {
             }))}
             columns={[
               { key: "title", header: "Solicitação", kind: "link", hrefKey: "href" },
-              { key: "council", header: "Conselho" },
+              { key: "council", header: "Órgão" },
               { key: "status", header: "Status", kind: "status", dictionary: "request" },
               { key: "items", header: "Itens", kind: "number" },
               { key: "createdAt", header: "Criada em", kind: "datetime" },

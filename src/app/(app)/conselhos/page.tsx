@@ -11,7 +11,7 @@ import { PageHeader, SectionLabel } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { StatusBadge } from "@/shared/ui/status-badge";
 
-export const metadata: Metadata = { title: "Empresas Parceiras" };
+export const metadata: Metadata = { title: "Órgãos Parceiros" };
 
 async function CouncilsContent() {
   const result = await loadScreen(async ({ services, actor }) => {
@@ -58,13 +58,13 @@ async function CouncilsContent() {
     <Screen result={result}>
       {({ councils, totalActive, totalWithPending, totalWithCriticalStock }) => (
         <div className="space-y-8">
-          {/* Métricas das Empresas */}
-          <section aria-label="Métricas das Empresas" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Métricas dos Órgãos */}
+          <section aria-label="Métricas dos Órgãos" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <KpiCard
               icon={<Building2 className="size-4" aria-hidden />}
-              label="Empresas Cadastradas"
+              label="Órgãos Cadastrados"
               value={councils.length}
-              hint={`${totalActive} ativas no sistema`}
+              hint={`${totalActive} ativos no sistema`}
             />
             <KpiCard
               icon={<ShoppingCart className="size-4" aria-hidden />}
@@ -78,28 +78,28 @@ async function CouncilsContent() {
               label="Com Estoque Crítico"
               value={totalWithCriticalStock}
               accent={totalWithCriticalStock > 0}
-              hint={totalWithCriticalStock > 0 ? "Reposição prioritária" : "Todas abastecidas"}
+              hint={totalWithCriticalStock > 0 ? "Reposição prioritária" : "Todos abastecidos"}
             />
             <KpiCard
               icon={<Building2 className="size-4" aria-hidden />}
               label="Taxa de Atividade"
               value={councils.length > 0 ? `${Math.round((totalActive / councils.length) * 100)}%` : "100%"}
-              hint="Empresas operando"
+              hint="Órgãos operando"
             />
           </section>
 
-          {/* Listagem de Empresas em Cards Ricos */}
-          <section aria-label="Lista de Empresas" className="space-y-4">
-            <SectionLabel>Empresas Parceiras Cadastradas</SectionLabel>
+          {/* Listagem de Órgãos em Cards Ricos */}
+          <section aria-label="Lista de Órgãos" className="space-y-4">
+            <SectionLabel>Órgãos Parceiros Cadastrados</SectionLabel>
             {councils.length === 0 ? (
               <div className="surface-card flex flex-col items-center justify-center p-12 text-center">
                 <Building2 className="size-12 text-muted-foreground/50" />
-                <h3 className="mt-4 font-heading text-lg font-medium text-primary">Nenhuma empresa cadastrada</h3>
+                <h3 className="mt-4 font-heading text-lg font-medium text-primary">Nenhum órgão cadastrado</h3>
                 <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                  Cadastre a primeira empresa para iniciar o controle de solicitações, estoque e documentos.
+                  Cadastre o primeiro órgão para iniciar o controle de solicitações, estoque e documentos.
                 </p>
                 <Link href="/conselhos/novo" className={buttonVariants({ className: "mt-4" })}>
-                  Cadastrar Empresa
+                  Cadastrar Órgão
                 </Link>
               </div>
             ) : (
@@ -134,7 +134,7 @@ async function CouncilsContent() {
                         </p>
                       ) : null}
 
-                      {/* Indicadores Operacionais da Empresa */}
+                      {/* Indicadores Operacionais do Órgão */}
                       <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl border border-border/60 bg-secondary/40 p-2.5 text-xs">
                         <div>
                           <span className="text-[0.68rem] text-muted-foreground uppercase">Solicitações</span>
@@ -181,14 +181,14 @@ async function CouncilsContent() {
                         href={`/conselhos/${c.id}`}
                         className="text-xs font-semibold text-primary hover:text-highlight hover:underline"
                       >
-                        Visão 360° da Empresa
+                        Visão 360° do Órgão
                       </Link>
                       <Link
                         href={`/meu-conselho?councilId=${c.id}`}
                         className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary"
-                        title="Ver como a empresa enxerga o painel"
+                        title="Ver como o órgão enxerga o painel"
                       >
-                        <span>Painel Cliente</span>
+                        <span>Painel Órgão</span>
                         <ExternalLink className="size-3" />
                       </Link>
                     </div>
@@ -208,12 +208,12 @@ export default function CouncilsPage() {
     <>
       <PageHeader
         eyebrow="Operação & Relacionamento"
-        title="Empresas Parceiras"
-        description="Gestão centralizada de todas as empresas conveniadas, contatos rápidos, situação operacional e estoque vinculado."
+        title="Órgãos Parceiros"
+        description="Gestão centralizada de todos os órgãos conveniados, contatos rápidos, situação operacional e estoque vinculado."
         actions={
           <Link href="/conselhos/novo" className={buttonVariants()}>
             <Plus className="mr-1.5 size-4" />
-            Cadastrar Nova Empresa
+            Cadastrar Novo Órgão
           </Link>
         }
       />
