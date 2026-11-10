@@ -14,3 +14,15 @@ export interface AuditEntry {
 }
 
 export type NewAuditEntry = Omit<AuditEntry, "id" | "createdAt">;
+
+export interface AuditFilter {
+  councilId?: string;
+  councilIds?: readonly string[] | "all";
+  entity?: string;
+  entityId?: string;
+  actorId?: string;
+  action?: string;
+  result?: AuditResult;
+  startDate?: string | Date;
+  endDate?: string | Date;
+}
