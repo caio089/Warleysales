@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { AlertTriangle, CheckCircle2, History, Lock, Package, PackagePlus, Percent } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { calculateStockSummary } from "@/modules/inventory/service";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { canInAnyCouncil } from "@/shared/lib/authz/policy";
@@ -20,18 +21,17 @@ export const metadata: Metadata = { title: "Gestão de Estoque" };
 
 async function Content() {
   const result = await loadScreen(async (ctx) => {
-    const [levels, lookups, summary] = await Promise.all([
+    const [levels, lookups] = await Promise.all([
       ctx.services.inventory.listLevels(ctx.actor),
       loadLookups(ctx),
-      ctx.services.inventory.stockSummary(ctx.actor),
     ]);
     if (!levels.ok) return levels;
     if (!lookups.ok) return lookups;
-    if (!summary.ok) return summary;
+    const summary = calculateStockSummary(levels.data);
     return ok({
       levels: levels.data,
       lookups: lookups.data,
-      summary: summary.data,
+      summary,
       canMove: canInAnyCouncil(ctx.actor, "stock.move"),
       canAdjust: canInAnyCouncil(ctx.actor, "stock.adjust"),
     });
