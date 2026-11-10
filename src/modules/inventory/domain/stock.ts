@@ -25,6 +25,7 @@ export interface StockMovement {
 export interface StockBalance {
   physical: number;
   reserved: number;
+  blocked: number;
 }
 
 /** Disponível = físico − reservado (R12: reservado e em trânsito não estão disponíveis). */
@@ -68,7 +69,7 @@ export function applyMovement(
   if (physical < balance.reserved) {
     return fail("INSUFFICIENT_BALANCE", "A saída consumiria material reservado para outra operação.");
   }
-  return ok({ balance: { physical, reserved: balance.reserved }, duplicate: false });
+  return ok({ balance: { physical, reserved: balance.reserved, blocked: balance.blocked ?? 0 }, duplicate: false });
 }
 
 /** Reserva material disponível (ex.: transferência aprovada). */
@@ -78,7 +79,7 @@ export function reserve(balance: StockBalance, quantity: number): Result<StockBa
   if (q.data > availableOf(balance)) {
     return fail("INSUFFICIENT_BALANCE", "Quantidade disponível insuficiente para reserva.");
   }
-  return ok({ physical: balance.physical, reserved: addQuantity(balance.reserved, q.data) });
+  return ok({ physical: balance.physical, reserved: addQuantity(balance.reserved, q.data), blocked: balance.blocked ?? 0 });
 }
 
 /** Libera reserva (rejeição/cancelamento ou conversão em saída). */
@@ -86,7 +87,7 @@ export function releaseReservation(balance: StockBalance, quantity: number): Res
   const q = validateQuantity(quantity);
   if (!q.ok) return q;
   if (q.data > balance.reserved) return fail("INVALID_STATE", "Reserva menor que a quantidade a liberar.");
-  return ok({ physical: balance.physical, reserved: subtractQuantity(balance.reserved, q.data) });
+  return ok({ physical: balance.physical, reserved: subtractQuantity(balance.reserved, q.data), blocked: balance.blocked ?? 0 });
 }
 
 /** Reconstrói o saldo físico a partir do ledger (usado na reconciliação, H2). */

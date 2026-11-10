@@ -20,7 +20,7 @@ export class InMemoryInventoryRepository implements InventoryRepository {
   async listMaterials() { return [...this.materials.values()]; }
 
   async transact<T>(key: StockKey, mutate: (state: StockState) => Result<StockMutation<T>>): Promise<Result<T>> {
-    const row = this.rows.get(keyOf(key)) ?? { ...key, balance: { physical: 0, reserved: 0 }, minimum: 0, processedKeys: new Set<string>() };
+    const row = this.rows.get(keyOf(key)) ?? { ...key, balance: { physical: 0, reserved: 0, blocked: 0 }, minimum: 0, processedKeys: new Set<string>() };
     const result = mutate({ balance: row.balance, minimum: row.minimum, processedKeys: row.processedKeys });
     if (!result.ok) return result;
 
@@ -34,7 +34,7 @@ export class InMemoryInventoryRepository implements InventoryRepository {
   }
 
   async setMinimum(key: StockKey, minimum: number) {
-    const row = this.rows.get(keyOf(key)) ?? { ...key, balance: { physical: 0, reserved: 0 }, minimum: 0, processedKeys: new Set<string>() };
+    const row = this.rows.get(keyOf(key)) ?? { ...key, balance: { physical: 0, reserved: 0, blocked: 0 }, minimum: 0, processedKeys: new Set<string>() };
     this.rows.set(keyOf(key), { ...row, minimum });
   }
   async listStock(councilIds: readonly string[] | "all") {

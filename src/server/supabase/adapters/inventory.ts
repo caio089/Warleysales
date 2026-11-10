@@ -18,6 +18,7 @@ interface BalanceRow {
   material_id: string;
   physical: number | string;
   reserved: number | string;
+  blocked?: number | string;
   minimum: number | string;
   version: number;
 }
@@ -73,7 +74,11 @@ export class SupabaseInventoryRepository implements InventoryRepository {
         this.db.from("stock_movements").select("idempotency_key").eq("council_id", key.councilId).eq("material_id", key.materialId).order("id").range(from, to),
       );
       const state: StockState = {
-        balance: { physical: toNumber(row?.physical ?? 0), reserved: toNumber(row?.reserved ?? 0) },
+        balance: {
+          physical: toNumber(row?.physical ?? 0),
+          reserved: toNumber(row?.reserved ?? 0),
+          blocked: toNumber(row?.blocked ?? 0),
+        },
         minimum: toNumber(row?.minimum ?? 0),
         processedKeys: new Set(keys.map((k) => k.idempotency_key)),
       };
@@ -88,6 +93,7 @@ export class SupabaseInventoryRepository implements InventoryRepository {
         p_expected_version: row?.version ?? 0,
         p_physical: balance.physical,
         p_reserved: balance.reserved,
+        p_blocked: balance.blocked,
         p_movement: movement
           ? { type: movement.type, quantity: movement.quantity, idempotency_key: movement.idempotencyKey, reason: movement.reason, reference: movement.reference, actor_id: movement.actorId }
           : null,
@@ -113,7 +119,7 @@ export class SupabaseInventoryRepository implements InventoryRepository {
     });
     return rows.map((r) => ({
       councilId: r.council_id, materialId: r.material_id, minimum: toNumber(r.minimum),
-      balance: { physical: toNumber(r.physical), reserved: toNumber(r.reserved) }, processedKeys: new Set<string>(),
+      balance: { physical: toNumber(r.physical), reserved: toNumber(r.reserved), blocked: toNumber(r.blocked ?? 0) }, processedKeys: new Set<string>(),
     }));
   }
 
