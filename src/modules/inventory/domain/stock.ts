@@ -90,6 +90,36 @@ export function releaseReservation(balance: StockBalance, quantity: number): Res
   return ok({ physical: balance.physical, reserved: subtractQuantity(balance.reserved, q.data), blocked: balance.blocked ?? 0 });
 }
 
+/** Reserva material para pedido contra saldo liberado. */
+export function reserveStock(balance: StockBalance, quantity: number): Result<StockBalance> {
+  return reserve(balance, quantity);
+}
+
+/** Libera/estorna reserva de pedido rejeitado ou cancelado. */
+export function unreserveStock(balance: StockBalance, quantity: number): Result<StockBalance> {
+  return releaseReservation(balance, quantity);
+}
+
+/**
+ * Despacha material reservado (aprovação do pedido):
+ * decrementa tanto o saldo reservado quanto o saldo físico.
+ */
+export function dispatchReservedStock(balance: StockBalance, quantity: number): Result<StockBalance> {
+  const q = validateQuantity(quantity);
+  if (!q.ok) return q;
+  if (q.data > balance.reserved) {
+    return fail("INVALID_STATE", "Reserva menor que a quantidade a despachar.");
+  }
+  if (q.data > balance.physical) {
+    return fail("INSUFFICIENT_BALANCE", "Saldo físico insuficiente para despacho.");
+  }
+  return ok({
+    physical: subtractQuantity(balance.physical, q.data),
+    reserved: subtractQuantity(balance.reserved, q.data),
+    blocked: balance.blocked ?? 0,
+  });
+}
+
 /** Provisiona saldo bloqueado (ex.: criação de solicitação de compra). */
 export function provisionBlocked(balance: StockBalance, quantity: number): Result<StockBalance> {
   const q = validateQuantity(quantity);

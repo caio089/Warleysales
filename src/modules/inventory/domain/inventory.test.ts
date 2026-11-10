@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { applyMovement, availableOf, physicalFromLedger, provisionBlocked, releaseBlocked, releaseReservation, reserve, type StockMovement } from "./stock";
+import {
+  applyMovement,
+  availableOf,
+  dispatchReservedStock,
+  physicalFromLedger,
+  provisionBlocked,
+  releaseBlocked,
+  releaseReservation,
+  reserve,
+  reserveStock,
+  unreserveStock,
+  type StockMovement,
+} from "./stock";
 import { classifyStockLevel, reconciliationDifference } from "./levels";
 
 const mv = (type: StockMovement["type"], quantity: number, key = `${type}-${quantity}`): StockMovement => ({ type, quantity, idempotencyKey: key });
@@ -107,5 +119,100 @@ describe("estoque bloqueado (Onda 1)", () => {
   it("rejeita liberar quantidade maior que o saldo bloqueado", () => {
     const r = releaseBlocked({ physical: 5, reserved: 2, blocked: 5 }, 6);
     expect(r.ok).toBe(false);
+  });
+});
+
+describe("operações de estoque para pedidos de materiais (Onda 2)", () => {
+  it("reserveStock incrementa reserved, mantém physical e blocked, decrementa available", () => {
+    const initial = { physical: 20, reserved: 5, blocked: 10 };
+    expect(availableOf(initial)).toBe(15);
+
+    const r = reserveStock(initial, 7);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    expect(r.data.physical).toBe(20);
+    expect(r.data.reserved).toBe(12);
+    expect(r.data.blocked).toBe(10);
+    expect(availableOf(r.data)).toBe(8);
+  });
+
+  it("reserveStock rejeita quantidade acima do disponível", () => {
+    const initial = { physical: 20, reserved: 15, blocked: 5 }; // available = 5
+    const r = reserveStock(initial, 5.001);
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.code).toBe("INSUFFICIENT_BALANCE");
+    }
+  });
+
+  it("reserveStock rejeita quantidade zero ou negativa", () => {
+    const initial = { physical: 20, reserved: 0, blocked: 0 };
+    expect(reserveStock(initial, 0).ok).toBe(false);
+    expect(reserveStock(initial, -1).ok).toBe(false);
+  });
+
+  it("unreserveStock decrementa reserved, estornando para available", () => {
+    const initial = { physical: 20, reserved: 8, blocked: 10 };
+    expect(availableOf(initial)).toBe(12);
+
+    const r = unreserveStock(initial, 5);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    expect(r.data.physical).toBe(20);
+    expect(r.data.reserved).toBe(3);
+    expect(r.data.blocked).toBe(10);
+    expect(availableOf(r.data)).toBe(17);
+  });
+
+  it("unreserveStock rejeita quantidade maior que a reserva atual", () => {
+    const initial = { physical: 20, reserved: 3, blocked: 0 };
+    const r = unreserveStock(initial, 4);
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.code).toBe("INVALID_STATE");
+    }
+  });
+
+  it("unreserveStock rejeita quantidade zero ou inválida", () => {
+    const initial = { physical: 20, reserved: 5, blocked: 0 };
+    expect(unreserveStock(initial, 0).ok).toBe(false);
+    expect(unreserveStock(initial, -2).ok).toBe(false);
+  });
+
+  it("dispatchReservedStock decrementa reserved e physical, mantendo blocked e available", () => {
+    const initial = { physical: 20, reserved: 8, blocked: 15 };
+    const availBefore = availableOf(initial); // 12
+
+    const r = dispatchReservedStock(initial, 5);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+
+    expect(r.data.physical).toBe(15);
+    expect(r.data.reserved).toBe(3);
+    expect(r.data.blocked).toBe(15);
+    expect(availableOf(r.data)).toBe(availBefore); // 15 - 3 = 12
+  });
+
+  it("dispatchReservedStock rejeita despacho maior que reserved", () => {
+    const initial = { physical: 20, reserved: 4, blocked: 0 };
+    const r = dispatchReservedStock(initial, 5);
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.code).toBe("INVALID_STATE");
+    }
+  });
+
+  it("dispatchReservedStock rejeita quantidade maior que physical", () => {
+    const initial = { physical: 3, reserved: 3, blocked: 0 };
+    const r = dispatchReservedStock(initial, 4);
+    expect(r.ok).toBe(false);
+  });
+
+  it("dispatchReservedStock rejeita quantidade zero ou negativa", () => {
+    const initial = { physical: 10, reserved: 5, blocked: 0 };
+    expect(dispatchReservedStock(initial, 0).ok).toBe(false);
+    expect(dispatchReservedStock(initial, -1).ok).toBe(false);
   });
 });
