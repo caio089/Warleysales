@@ -129,4 +129,19 @@ describe("PurchaseRequestService", () => {
     const bad = await ctx.service.approve(manager(), { requestId: r.data.id });
     expect(!bad.ok && bad.code).toBe("INVALID_STATE");
   });
+  it("preserva campo processId na persistência e consulta da solicitação", async () => {
+    const r = await ctx.service.create(operatorOf(COUNCIL_A), {
+      councilId: COUNCIL_A,
+      title: "Solicitação para verificação de vínculo",
+      items: [{ materialId: MATERIAL, quantity: 1 }],
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.processId).toBeNull();
+
+    const fetched = await ctx.service.get(operatorOf(COUNCIL_A), r.data.id);
+    expect(fetched.ok).toBe(true);
+    if (!fetched.ok) return;
+    expect(fetched.data.processId).toBeNull();
+  });
 });

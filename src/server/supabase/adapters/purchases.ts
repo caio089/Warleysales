@@ -10,6 +10,7 @@ interface RequestRow {
   council_id: string;
   title: string;
   status: PurchaseRequestStatus;
+  process_id?: string | null;
   created_by: string;
   created_at: string;
   purchase_request_items: {
@@ -38,6 +39,7 @@ const toRequest = (row: RequestRow): PurchaseRequest => ({
   councilId: row.council_id,
   title: row.title,
   status: row.status,
+  processId: row.process_id ?? null,
   createdBy: row.created_by,
   createdAt: toDate(row.created_at),
   items: [...row.purchase_request_items].sort((a, b) => a.seq - b.seq).map((i) => ({
@@ -50,7 +52,9 @@ const toRequest = (row: RequestRow): PurchaseRequest => ({
 });
 
 const toPayload = (r: PurchaseRequest) => ({
-  id: r.id, council_id: r.councilId, title: r.title, status: r.status, created_by: r.createdBy, created_at: toIso(r.createdAt),
+  id: r.id, council_id: r.councilId, title: r.title, status: r.status,
+  process_id: r.processId ?? null,
+  created_by: r.createdBy, created_at: toIso(r.createdAt),
   items: r.items.map((i) => ({ id: i.id, material_id: i.materialId, quantity: i.quantity, ata_item_id: i.ataItemId, received_total: i.receivedTotal })),
   events: r.events.map((e) => ({ from_status: e.from, to_status: e.to, actor_id: e.actorId, at: toIso(e.at), note: e.note ?? null })),
   receipt_keys: r.receiptKeys,

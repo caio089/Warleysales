@@ -24,6 +24,7 @@ export interface PurchaseRequest {
   councilId: string;
   title: string;
   status: PurchaseRequestStatus;
+  processId?: string | null;
   items: PurchaseRequestItem[];
   events: RequestEvent[];
   /** Chaves de recebimento já aplicadas (idempotência do recebimento). */
