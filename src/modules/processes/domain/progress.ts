@@ -11,7 +11,7 @@ export type DocumentLinkStatus = "active" | "replaced" | "archived" | "disposed"
 
 /** Visão mínima de um anexo vinculado a um processo, suficiente para calcular progresso. */
 export interface ProcessAttachment {
-  typeCode: DocumentTypeCode;
+  typeCode: string;
   linkStatus: DocumentLinkStatus;
   uploadStatus: UploadStatus;
   retentionState: RetentionState;
@@ -40,7 +40,7 @@ export function isValidAttachment(attachment: ProcessAttachment): boolean {
 
 /** R1: progresso = tipos distintos válidos / 7 × 100. Vários arquivos do mesmo tipo contam 1. */
 export function calculateProgress(attachments: readonly ProcessAttachment[]): DocumentalProgress {
-  const validSet = new Set<DocumentTypeCode>(
+  const validSet = new Set<string>(
     attachments.filter(isValidAttachment).map((a) => a.typeCode),
   );
   const validTypes = DOCUMENT_TYPE_CODES.filter((code) => validSet.has(code));

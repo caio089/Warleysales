@@ -6,7 +6,7 @@ import { evaluateCleanupEligibility } from "./cleanup-eligibility";
 import { changeProcessStatus } from "./process-status";
 import { formatProcessNumber, parseProcessNumber } from "./process-number";
 
-const attach = (typeCode: DocumentTypeCode, overrides: Partial<ProcessAttachment> = {}): ProcessAttachment => ({
+const attach = (typeCode: string, overrides: Partial<ProcessAttachment> = {}): ProcessAttachment => ({
   typeCode,
   linkStatus: "active",
   uploadStatus: "confirmed",
@@ -42,6 +42,54 @@ describe("Cenário A — progresso documental (R1–R3)", () => {
     expect(p.percent).toBe(100);
     expect(p.isComplete).toBe(true);
     expect(p.missingTypes).toEqual([]);
+  });
+  it("anexos contendo os 7 obrigatórios + 2 adicionais (OUTRO) atingem 100% e completo", () => {
+    const p = calculateProgress([
+      ...allSeven(),
+      attach("OUTRO"),
+      attach("OUTRO"),
+    ]);
+    expect(p.percent).toBe(100);
+    expect(p.isComplete).toBe(true);
+    expect(p.missingTypes).toEqual([]);
+    expect(p.validTypes).toEqual(DOCUMENT_TYPE_CODES);
+  });
+  it("anexos contendo 5 obrigatórios + 3 adicionais atingem 71.43% (5/7)", () => {
+    const five = DOCUMENT_TYPE_CODES.slice(0, 5).map((c) => attach(c));
+    const p = calculateProgress([
+      ...five,
+      attach("OUTRO"),
+      attach("OUTRO"),
+      attach("OUTRO"),
+    ]);
+    expect(p.percent).toBe(71.43);
+    expect(p.isComplete).toBe(false);
+    expect(p.validTypes.length).toBe(5);
+    expect(p.missingTypes.length).toBe(2);
+  });
+  it("anexos contendo 5 obrigatórios + 4 adicionais atingem 71.43% (5/7)", () => {
+    const five = DOCUMENT_TYPE_CODES.slice(0, 5).map((c) => attach(c));
+    const p = calculateProgress([
+      ...five,
+      attach("OUTRO"),
+      attach("OUTRO"),
+      attach("OUTRO"),
+      attach("OUTRO"),
+    ]);
+    expect(p.percent).toBe(71.43);
+    expect(p.isComplete).toBe(false);
+    expect(p.validTypes.length).toBe(5);
+    expect(p.missingTypes.length).toBe(2);
+  });
+  it("anexos contendo apenas documentos adicionais resultam em 0%", () => {
+    const p = calculateProgress([
+      attach("OUTRO"),
+      attach("OUTRO"),
+    ]);
+    expect(p.percent).toBe(0);
+    expect(p.isComplete).toBe(false);
+    expect(p.validTypes).toEqual([]);
+    expect(p.missingTypes).toEqual(DOCUMENT_TYPE_CODES);
   });
 });
 

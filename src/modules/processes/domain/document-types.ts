@@ -15,5 +15,15 @@ export const DOCUMENT_TYPES = [
 
 export type DocumentTypeCode = (typeof DOCUMENT_TYPES)[number]["code"];
 
+export const ADDITIONAL_DOCUMENT_TYPES = [
+  { code: "OUTRO", label: "Artefato Adicional / Complementar" },
+] as const;
+
+export type AdditionalDocumentTypeCode = (typeof ADDITIONAL_DOCUMENT_TYPES)[number]["code"];
+
+export type AllDocumentTypeCode = DocumentTypeCode | AdditionalDocumentTypeCode;
+
 export const REQUIRED_DOCUMENT_COUNT = DOCUMENT_TYPES.length;
 export const DOCUMENT_TYPE_CODES: readonly DocumentTypeCode[] = DOCUMENT_TYPES.map((t) => t.code);
+export const ADDITIONAL_DOCUMENT_TYPE_CODES: readonly AdditionalDocumentTypeCode[] =
+  ADDITIONAL_DOCUMENT_TYPES.map((t) => t.code);
