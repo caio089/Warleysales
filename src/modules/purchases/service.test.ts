@@ -166,4 +166,20 @@ describe("PurchaseRequestService", () => {
     expect(proc.data.process.number).toBe("001/2026");
     expect(proc.data.process.title).toBe("Aquisição de computadores");
   });
+  it("provisiona estoque bloqueado ao criar solicitacao com itens", async () => {
+    const r = await ctx.service.create(operatorOf(COUNCIL_A), {
+      councilId: COUNCIL_A,
+      title: "Aquisição de mesas",
+      estimatedValue: 5000,
+      items: [{ materialId: MATERIAL, quantity: 10 }],
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.estimatedValue).toBe(5000);
+
+    const levels = await ctx.inventory.listLevels(operatorOf(COUNCIL_A), COUNCIL_A);
+    const item = levels.data?.find((l) => l.materialId === MATERIAL);
+    expect(item?.blocked).toBe(10);
+    expect(item?.available).toBe(0); // Disponível ainda é 0
+  });
 });

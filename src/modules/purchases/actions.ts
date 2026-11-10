@@ -15,11 +15,14 @@ function readItems(formData: FormData) {
 
 export async function createRequestFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
   const createProcess = formData.get("createProcess") === "on" || formData.get("createProcess") === "true";
+  const estValRaw = formData.get("estimatedValue");
+  const estimatedValue = estValRaw && String(estValRaw).trim() !== "" ? Number(String(estValRaw).replace(",", ".")) : undefined;
   const result = await runAction(
     ({ services, actor }) =>
       services.purchases.create(actor, {
         councilId: formData.get("councilId"),
         title: formData.get("title"),
+        estimatedValue,
         createProcess,
         items: readItems(formData),
       }),

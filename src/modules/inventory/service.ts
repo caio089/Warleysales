@@ -4,7 +4,7 @@ import { canInAnyCouncil, can, readableCouncilIds, type Actor } from "@/shared/l
 import { fail, ok, type Result } from "@/shared/lib/result";
 import { parseInput, type RuntimeDeps } from "@/shared/lib/service-support";
 import { classifyStockLevel, reconciliationDifference, type StockLevel } from "./domain/levels";
-import { applyMovement, availableOf, physicalFromLedger, releaseReservation, reserve, type MovementType } from "./domain/stock";
+import { applyMovement, availableOf, physicalFromLedger, provisionBlocked, releaseReservation, reserve, type MovementType } from "./domain/stock";
 import type { InventoryRepository, StockKey } from "./repository";
 import { createMaterialSchema, registerMovementSchema, setMinimumSchema, type Material } from "./schemas";
 
@@ -13,6 +13,7 @@ export interface StockLevelView {
   materialId: string;
   physical: number;
   reserved: number;
+  blocked: number;
   available: number;
   minimum: number;
   level: StockLevel;
@@ -108,6 +109,34 @@ export class InventoryService {
   }
 
   /**
+   * Provisiona saldo bloqueado para o órgão (ex.: criação de solicitação de compra).
+   * Não altera o saldo físico nem o disponível (R11/Onda 1).
+   */
+  async provisionBlocked(actor: Actor, councilId: string, items: { materialId: string; quantity: number }[]): Promise<Result<void>> {
+    const allowed = await guard(this.audit, actor, "request.create", councilId, "stock_balance");
+    if (!allowed.ok) return allowed;
+
+    for (const item of items) {
+      if (!item.materialId || typeof item.materialId !== "string") {
+        return fail("VALIDATION", "Material inválido.");
+      }
+      if (!Number.isFinite(item.quantity) || item.quantity <= 0) {
+        return fail("VALIDATION", "A quantidade deve ser maior que zero.");
+      }
+    }
+
+    for (const item of items) {
+      const result = await this.repository.transact({ councilId, materialId: item.materialId }, (state) => {
+        const next = provisionBlocked(state.balance, item.quantity);
+        return next.ok ? ok({ balance: next.data, value: undefined }) : next;
+      });
+      if (!result.ok) return result;
+    }
+
+    return ok(undefined);
+  }
+
+  /**
    * Saída de material reservado (transferência despachada): libera a reserva e baixa o físico
    * na MESMA transação, para o item nunca ficar disponível "no meio do caminho" (R12).
    */
@@ -144,7 +173,7 @@ export class InventoryService {
     const rows = await this.repository.listStock(scope);
     return ok(rows.map((r) => {
       const available = availableOf(r.balance);
-      return { councilId: r.councilId, materialId: r.materialId, physical: r.balance.physical, reserved: r.balance.reserved, available, minimum: r.minimum, level: classifyStockLevel(available, r.minimum) };
+      return { councilId: r.councilId, materialId: r.materialId, physical: r.balance.physical, reserved: r.balance.reserved, blocked: r.balance.blocked ?? 0, available, minimum: r.minimum, level: classifyStockLevel(available, r.minimum) };
     }));
   }
 

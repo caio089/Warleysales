@@ -75,4 +75,20 @@ describe("InventoryService", () => {
     const dup = await ctx.service.createMaterial(managerOf(COUNCIL_A), { code: "PAP-001", name: "Outro", unit: "un" });
     expect(!dup.ok && dup.code).toBe("CONFLICT");
   });
+  it("provisionBlocked provisiona saldo bloqueado atomicamente e reflete em listLevels", async () => {
+    const r = await ctx.service.provisionBlocked(operatorOf(COUNCIL_A), COUNCIL_A, [{ materialId, quantity: 15 }]);
+    expect(r.ok).toBe(true);
+
+    const levels = await ctx.service.listLevels(operatorOf(COUNCIL_A), COUNCIL_A);
+    expect(levels.ok).toBe(true);
+    const item = levels.data?.find((l) => l.materialId === materialId);
+    expect(item?.blocked).toBe(15);
+    expect(item?.physical).toBe(0);
+    expect(item?.available).toBe(0);
+
+    // Tentativa por conselho alheio deve ser rejeitada
+    const foreign = await ctx.service.provisionBlocked(operatorOf(COUNCIL_B), COUNCIL_A, [{ materialId, quantity: 5 }]);
+    expect(foreign.ok).toBe(false);
+    expect(foreign.code).toBe("FORBIDDEN");
+  });
 });

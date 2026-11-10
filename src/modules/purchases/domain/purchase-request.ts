@@ -11,6 +11,7 @@ export interface PurchaseRequest {
   title: string;
   status: PurchaseRequestStatus;
   processId?: string | null;
+  estimatedValue?: number | null;
   items: PurchaseRequestItem[];
   events: RequestEvent[];
   /** Chaves de recebimento já aplicadas (idempotência do recebimento). */

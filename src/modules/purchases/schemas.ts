@@ -25,6 +25,7 @@ export interface PurchaseRequest {
   title: string;
   status: PurchaseRequestStatus;
   processId?: string | null;
+  estimatedValue?: number | null;
   items: PurchaseRequestItem[];
   events: RequestEvent[];
   /** Chaves de recebimento já aplicadas (idempotência do recebimento). */
@@ -36,6 +37,7 @@ export interface PurchaseRequest {
 export const createRequestSchema = z.object({
   councilId: idSchema,
   title: z.string().trim().min(3).max(200),
+  estimatedValue: z.number().min(0, "Valor estimado deve ser não-negativo").nullable().optional(),
   createProcess: z.boolean().optional(),
   items: z.array(z.object({ materialId: idSchema, quantity: positiveQuantitySchema, ataItemId: idSchema.nullable().optional() })).min(1, "Informe ao menos um item."),
 });

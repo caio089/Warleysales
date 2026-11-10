@@ -90,6 +90,17 @@ export function releaseReservation(balance: StockBalance, quantity: number): Res
   return ok({ physical: balance.physical, reserved: subtractQuantity(balance.reserved, q.data), blocked: balance.blocked ?? 0 });
 }
 
+/** Provisiona saldo bloqueado (ex.: criação de solicitação de compra). */
+export function provisionBlocked(balance: StockBalance, quantity: number): Result<StockBalance> {
+  const q = validateQuantity(quantity);
+  if (!q.ok) return q;
+  return ok({
+    physical: balance.physical,
+    reserved: balance.reserved,
+    blocked: addQuantity(balance.blocked ?? 0, q.data),
+  });
+}
+
 /** Reconstrói o saldo físico a partir do ledger (usado na reconciliação, H2). */
 export function physicalFromLedger(movements: readonly StockMovement[]): number {
   return movements.reduce((sum, m) => addQuantity(sum, signedQuantity(m)), 0);

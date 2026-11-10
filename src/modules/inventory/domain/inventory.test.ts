@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyMovement, availableOf, physicalFromLedger, releaseReservation, reserve, type StockMovement } from "./stock";
+import { applyMovement, availableOf, physicalFromLedger, provisionBlocked, releaseReservation, reserve, type StockMovement } from "./stock";
 import { classifyStockLevel, reconciliationDifference } from "./levels";
 
 const mv = (type: StockMovement["type"], quantity: number, key = `${type}-${quantity}`): StockMovement => ({ type, quantity, idempotencyKey: key });
@@ -75,5 +75,22 @@ describe("níveis de estoque", () => {
     [11, 10, "normal"],
   ])("disponível %s / mínimo %s => %s", (available, minimum, level) => {
     expect(classifyStockLevel(available, minimum)).toBe(level);
+  });
+});
+
+describe("estoque bloqueado (Onda 1)", () => {
+  it("provisiona saldo bloqueado sem alterar físico ou disponível", () => {
+    const r = provisionBlocked({ physical: 10, reserved: 2, blocked: 5 }, 8);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.blocked).toBe(13);
+    expect(r.data.physical).toBe(10);
+    expect(r.data.reserved).toBe(2);
+    expect(availableOf(r.data)).toBe(8);
+  });
+
+  it("rejeita quantidade inválida ao provisionar bloqueado", () => {
+    expect(provisionBlocked({ physical: 0, reserved: 0, blocked: 0 }, 0).ok).toBe(false);
+    expect(provisionBlocked({ physical: 0, reserved: 0, blocked: 0 }, -5).ok).toBe(false);
   });
 });
