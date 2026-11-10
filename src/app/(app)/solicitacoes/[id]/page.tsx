@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import type { ProcessView } from "@/modules/processes/service";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { ok } from "@/shared/lib/result";
@@ -13,6 +14,7 @@ import { Screen } from "@/shared/ui/screen";
 import { StatusBadge } from "@/shared/ui/status-badge";
 import { REQUEST_STATUS, presentationOf } from "@/shared/ui/status-presentation";
 import { SimpleTable } from "@/shared/ui/simple-table";
+import { LinkedProcessCard } from "./linked-process-card";
 import { RequestActions } from "./request-actions";
 
 export const metadata: Metadata = { title: "Solicitação" };
@@ -24,9 +26,19 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
     if (!request.ok) return request;
     if (!lookups.ok) return lookups;
     const councilId = request.data.councilId;
+
+    let linkedProcess: ProcessView | null = null;
+    if (request.data.processId) {
+      const procResult = await ctx.services.processes.get(ctx.actor, request.data.processId);
+      if (procResult.ok) {
+        linkedProcess = procResult.data;
+      }
+    }
+
     return ok({
       request: request.data,
       lookups: lookups.data,
+      linkedProcess,
       canDecide: can(ctx.actor, "request.decide", councilId),
       canCreate: can(ctx.actor, "request.create", councilId),
       canReceive: can(ctx.actor, "stock.move", councilId),
@@ -34,7 +46,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
   });
   return (
     <Screen result={result}>
-      {({ request, lookups, canDecide, canCreate, canReceive }) => {
+      {({ request, lookups, linkedProcess, canDecide, canCreate, canReceive }) => {
         const status = presentationOf(REQUEST_STATUS, request.status);
         const next = requestNextStep(request.status, { canCreate, canDecide, canReceive });
         const pendingItems = request.items
@@ -55,6 +67,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
             <LifecycleRail steps={[...REQUEST_LIFECYCLE]} currentKey={requestRailKey(request.status)} />
             <NextStepCallout {...next} />
             <div className="space-y-8">
+              {linkedProcess ? <LinkedProcessCard processView={linkedProcess} /> : null}
               <SimpleTable
                 caption="Itens da solicitação"
                 rows={request.items.map((i) => ({

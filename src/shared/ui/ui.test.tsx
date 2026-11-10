@@ -1,5 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { LinkedProcessCard } from "@/app/(app)/solicitacoes/[id]/linked-process-card";
+import type { ProcessView } from "@/modules/processes/service";
 import { ActivityTimeline } from "./activity-timeline";
 import { DataSourceUnavailableState, EmptyState, ErrorState } from "./feedback-states";
 import { KpiCard } from "./kpi-card";
@@ -43,5 +45,41 @@ describe("componentes compartilhados (renderização no servidor)", () => {
     expect(validateFileMeta("a.exe", 10)).toMatch(/não permitido/);
     expect(validateFileMeta("a.pdf", 26 * 1024 * 1024)).toMatch(/25 MB/);
     expect(validateFileMeta("a.PDF", 100)).toBeNull();
+  });
+  it("LinkedProcessCard exibe processo vinculado, badges, progresso e link de anexagem", () => {
+    const view: ProcessView = {
+      process: {
+        id: "proc-123",
+        councilId: "council-a",
+        sequence: 1,
+        year: 2026,
+        number: "001/2026",
+        title: "Aquisição de computadores",
+        status: "em_andamento",
+        documentalCompletedAt: null,
+        snapshot: null,
+        closingReportRegistered: false,
+        createdBy: "user-1",
+        createdAt: new Date("2026-01-01"),
+      },
+      progress: {
+        validTypes: [],
+        missingTypes: ["DFD", "ETP", "MR", "TR", "PP", "PJ", "ED"],
+        percent: 0,
+        isComplete: false,
+      },
+      displayPercent: 0,
+      completion: "pendente",
+    };
+    const html = renderToStaticMarkup(<LinkedProcessCard processView={view} />);
+    expect(html).toContain("Processo Administrativo Vinculado");
+    expect(html).toContain("Processo 001/2026");
+    expect(html).toContain("Aquisição de computadores");
+    expect(html).toContain("Em andamento");
+    expect(html).toContain("Documentação pendente");
+    expect(html).toContain("0/7 documentos anexados");
+    expect(html).toContain("0 de 7 documentos");
+    expect(html).toContain('href="/processos?abrir=proc-123"');
+    expect(html).toContain("Anexar documentos do processo →");
   });
 });
