@@ -34,12 +34,12 @@ export interface NavItem {
   /** Quando true, somente administração central. */
   centralOnly?: boolean;
   /** Grupo de navegação lateral (novo modelo colapsável). */
-  group: "acompanhamento" | "estoque" | "conselho" | "sistema";
+  group: "acompanhamento" | "estoque" | "sistema";
 }
 
 /** Metadados visuais de cada grupo do menu lateral. */
 export interface NavGroup {
-  id: "acompanhamento" | "estoque" | "conselho" | "sistema";
+  id: "acompanhamento" | "estoque" | "sistema";
   label: string;
   icon: LucideIcon;
 }
@@ -47,7 +47,6 @@ export interface NavGroup {
 export const NAV_GROUPS: NavGroup[] = [
   { id: "acompanhamento", label: "Acompanhamento", icon: LayoutDashboard },
   { id: "estoque",        label: "Estoque",         icon: Package },
-  { id: "conselho",       label: "Assessoria",       icon: Building2 },
   { id: "sistema",        label: "Sistema",          icon: Settings },
 ];
 
@@ -59,18 +58,16 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Meu painel",    href: "/meu-conselho", icon: Home,            allowedRoles: ALL_ROLES, group: "acompanhamento" },
   { label: "Órgãos",        href: "/conselhos",    icon: Building2,       allowedRoles: [], centralOnly: true, group: "acompanhamento" },
   { label: "Solicitações",  href: "/solicitacoes", icon: ShoppingCart,    allowedRoles: ALL_ROLES, group: "acompanhamento" },
+  { label: "Processos",     href: "/processos",    icon: FileText,        allowedRoles: ALL_ROLES, group: "acompanhamento" },
+  { label: "Contratos",     href: "/contratos",    icon: FileSignature,   allowedRoles: ALL_ROLES, group: "acompanhamento" },
+  { label: "Atas",          href: "/atas",         icon: ScrollText,      allowedRoles: ALL_ROLES, group: "acompanhamento" },
+  { label: "Fornecedores",  href: "/fornecedores", icon: Truck,           allowedRoles: ALL_ROLES, group: "acompanhamento" },
   { label: "Reuniões",      href: "/reunioes",     icon: CalendarDays,    allowedRoles: ALL_ROLES, group: "acompanhamento" },
 
   // ── Estoque ───────────────────────────────────────────────────────────
   { label: "Estoque",        href: "/estoque",        icon: Package,       allowedRoles: ALL_ROLES, group: "estoque" },
   { label: "Entregas",       href: "/entregas",       icon: Truck,         allowedRoles: ALL_ROLES, group: "estoque" },
   { label: "Transferências", href: "/transferencias", icon: ArrowLeftRight, allowedRoles: ALL_ROLES, group: "estoque" },
-
-  // ── Assessoria / Conselho ─────────────────────────────────────────────
-  { label: "Processos",    href: "/processos",  icon: FileText,      allowedRoles: ALL_ROLES, group: "conselho" },
-  { label: "Contratos",    href: "/contratos",  icon: FileSignature, allowedRoles: ALL_ROLES, group: "conselho" },
-  { label: "Atas",         href: "/atas",       icon: ScrollText,    allowedRoles: ALL_ROLES, group: "conselho" },
-  { label: "Fornecedores", href: "/fornecedores", icon: Truck,       allowedRoles: ALL_ROLES, group: "conselho" },
 
   // ── Sistema ───────────────────────────────────────────────────────────
   { label: "Alertas",        href: "/alertas",                icon: AlertTriangle, allowedRoles: ALL_ROLES, group: "sistema" },

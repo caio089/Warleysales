@@ -33,6 +33,10 @@ describe("filterNavigation", () => {
 describe("NAV_ITEMS — integridade de grupos", () => {
   const validGroups = NAV_GROUPS.map((g) => g.id);
 
+  it("tem exatamente os 3 grupos consolidados", () => {
+    expect(NAV_GROUPS.map((g) => g.id)).toEqual(["acompanhamento", "estoque", "sistema"]);
+  });
+
   it("todo item pertence a um grupo válido", () => {
     NAV_ITEMS.forEach((item) => {
       expect(validGroups, `item "${item.label}" tem group inválido: ${item.group}`).toContain(item.group);
@@ -46,11 +50,19 @@ describe("NAV_ITEMS — integridade de grupos", () => {
     });
   });
 
-  it("admin central vê itens em todos os 4 grupos", () => {
+  it("admin central vê itens em todos os 3 grupos", () => {
     const adminItems = filterNavigation({ isCentralAdmin: true, roles: [] });
     NAV_GROUPS.forEach((group) => {
       const count = adminItems.filter((i) => i.group === group.id).length;
       expect(count, `admin não vê nenhum item no grupo "${group.label}"`).toBeGreaterThan(0);
     });
+  });
+
+  it("Processos, Contratos, Atas e Fornecedores pertencem ao grupo acompanhamento", () => {
+    const acompanhamentoLabels = NAV_ITEMS.filter((i) => i.group === "acompanhamento").map((i) => i.label);
+    expect(acompanhamentoLabels).toContain("Processos");
+    expect(acompanhamentoLabels).toContain("Contratos");
+    expect(acompanhamentoLabels).toContain("Atas");
+    expect(acompanhamentoLabels).toContain("Fornecedores");
   });
 });
