@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -16,7 +16,7 @@ import {
 import { formatCurrency, formatPercent } from "@/shared/lib/format";
 import { formatDateTimeFortaleza } from "@/shared/lib/time";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
-import { FormField, SelectControl, TextareaControl } from "@/shared/ui/form-field";
+import { FormField, TextareaControl } from "@/shared/ui/form-field";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { SelectField, TextField } from "@/shared/ui/forms/fields";
 import { StatusBadge } from "@/shared/ui/status-badge";
