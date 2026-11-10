@@ -13,6 +13,7 @@ import { Screen } from "@/shared/ui/screen";
 import { StatusBadge } from "@/shared/ui/status-badge";
 import { COMPLETION_STATUS, PROCESS_STATUS, presentationOf } from "@/shared/ui/status-presentation";
 import { DocumentCard } from "./document-card";
+import { FormalizationCard } from "./formalization-card";
 import { ProcessActions } from "./process-actions";
 
 export const metadata: Metadata = { title: "Processo" };
@@ -23,19 +24,42 @@ async function ProcessContent({ params }: { params: Promise<{ id: string }> }) {
     const view = await services.processes.get(actor, id);
     if (!view.ok) return view;
     const documents = await services.documents.listByProcess(actor, id);
+    const formalization = await services.formalizations.getByProcess(actor, id);
+    const suppliers = await services.suppliers.list(actor);
+    const purchaseRequests = await services.purchases.list(actor);
+    const linkedRequest = purchaseRequests.ok
+      ? purchaseRequests.data.find((r) => r.processId === id) ?? null
+      : null;
     const councilId = view.data.process.councilId;
     return ok({
       view: view.data,
       documents: documents.ok ? documents.data : [],
+      formalization: formalization.ok ? formalization.data : null,
+      suppliers: suppliers.ok ? suppliers.data : [],
       canManage: can(actor, "process.create", councilId),
       canUnlink: can(actor, "document.unlink", councilId),
       canRegisterClosing: can(actor, "retention.manage", councilId),
       isSpecialDeleter: actor.isSpecialDeleter,
+      isWarley: actor.isCentralAdmin,
+      defaultEstimatedValue: linkedRequest?.estimatedValue ?? null,
+      requestId: linkedRequest?.id ?? null,
     });
   });
   return (
     <Screen result={result}>
-      {({ view, documents, canManage, canUnlink, canRegisterClosing, isSpecialDeleter }) => {
+      {({
+        view,
+        documents,
+        formalization,
+        suppliers,
+        canManage,
+        canUnlink,
+        canRegisterClosing,
+        isSpecialDeleter,
+        isWarley,
+        defaultEstimatedValue,
+        requestId,
+      }) => {
         const status = presentationOf(PROCESS_STATUS, view.process.status);
         const completion = presentationOf(COMPLETION_STATUS, view.completion);
         const typesCount = view.process.snapshot ? DOCUMENT_TYPES.length : view.progress.validTypes.length;
@@ -79,6 +103,16 @@ async function ProcessContent({ params }: { params: Promise<{ id: string }> }) {
                 isso é a situação administrativa (bloco acima).
               </p>
             </section>
+            <FormalizationCard
+              processId={view.process.id}
+              councilId={view.process.councilId}
+              documentalComplete={view.progress.isComplete}
+              formalization={formalization}
+              suppliers={suppliers}
+              isWarley={isWarley}
+              defaultEstimatedValue={defaultEstimatedValue}
+              requestId={requestId}
+            />
             <section aria-label="Documentos obrigatórios" className="space-y-3">
               <div>
                 <h2 className="font-heading text-lg font-medium tracking-tight text-primary">Os 7 documentos</h2>
