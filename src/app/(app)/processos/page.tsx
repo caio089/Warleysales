@@ -11,10 +11,8 @@ import { FlowGuide } from "@/shared/ui/flow-guide";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
-import {
-  ProcessAttachmentSheet,
-  ProcessesTable,
-} from "./process-attachment-sheet";
+import { ProcessAttachmentSheet } from "./process-attachment-sheet";
+import { ProcessesTable } from "./processes-table";
 
 export const metadata: Metadata = { title: "Processos" };
 

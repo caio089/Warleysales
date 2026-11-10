@@ -9,7 +9,8 @@ vi.mock("@/modules/documents/actions", () => ({
 }));
 
 import { LinkedProcessCard } from "@/app/(app)/solicitacoes/[id]/linked-process-card";
-import { ProcessesTable } from "@/app/(app)/processos/process-attachment-sheet";
+import { ProcessesTable } from "@/app/(app)/processos/processes-table";
+import { ProcessesTable as ProcessesTableReExport } from "@/app/(app)/processos/process-attachment-sheet";
 import type { ProcessView } from "@/modules/processes/service";
 import { ActivityTimeline } from "./activity-timeline";
 import { DataSourceUnavailableState, EmptyState, ErrorState } from "./feedback-states";
@@ -92,6 +93,7 @@ describe("componentes compartilhados (renderização no servidor)", () => {
     expect(html).toContain("Anexar documentos do processo →");
   });
   it("ProcessesTable exibe cabeçalhos, dados e botão de ação rápida 'Anexar'", () => {
+    expect(ProcessesTableReExport).toBe(ProcessesTable);
     const rows = [
       {
         id: "proc-1",
