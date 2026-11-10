@@ -40,6 +40,7 @@ yarn-error.log*
 # superpowers and tools
 /.superpowers/
 /.kpaflow/
+supabase/.temp/
 
 # typescript
 *.tsbuildinfo

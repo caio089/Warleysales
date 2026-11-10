@@ -89,9 +89,7 @@ function ProcessAttachmentSheetInner({
   const searchParams = useSearchParams();
   const searchParamId = searchParams.get("abrir");
 
-  const [internalId, setInternalId] = useState<string | null>(
-    () => propProcessId ?? searchParamId,
-  );
+  const [internalId, setInternalId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<{
@@ -100,22 +98,6 @@ function ProcessAttachmentSheetInner({
     validTypes: string[];
   } | null>(null);
   const [uploadingType, setUploadingType] = useState<string | null>(null);
-
-  // Sincroniza com parâmetro de busca quando a rota muda
-  useEffect(() => {
-    if (searchParamId) {
-      setInternalId(searchParamId);
-    } else if (!propProcessId) {
-      setInternalId(null);
-    }
-  }, [searchParamId, propProcessId]);
-
-  // Sincroniza com a prop externa se fornecida
-  useEffect(() => {
-    if (propProcessId !== undefined) {
-      setInternalId(propProcessId);
-    }
-  }, [propProcessId]);
 
   // Evento customizado para abertura síncrona sem latência
   useEffect(() => {
@@ -139,7 +121,7 @@ function ProcessAttachmentSheetInner({
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  const activeProcessId = internalId;
+  const activeProcessId = propProcessId !== undefined ? propProcessId : (internalId ?? searchParamId);
   const isOpen = Boolean(activeProcessId);
 
   const loadData = useCallback(async (id: string) => {
@@ -160,18 +142,16 @@ function ProcessAttachmentSheetInner({
   }, []);
 
   useEffect(() => {
-    if (activeProcessId) {
-      setData(null);
+    if (!activeProcessId) return;
+    const timer = setTimeout(() => {
       void loadData(activeProcessId);
-    } else {
-      setData(null);
-      setError(null);
-      setUploadingType(null);
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, [activeProcessId, loadData]);
 
   const handleClose = () => {
     setInternalId(null);
+    setData(null);
     setUploadingType(null);
     if (onClose) {
       onClose();

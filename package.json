@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "db:bundle": "bash scripts/bundle-migrations.sh",
+    "db:bundle": "node scripts/bundle-migrations.mjs",
     "db:check": "node scripts/check-supabase.mjs",
     "db:seed-demo": "node scripts/seed-demo.mjs"
   },
