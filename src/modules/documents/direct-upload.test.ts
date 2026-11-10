@@ -141,4 +141,23 @@ describe("DocumentService — upload direto por URL assinada", () => {
     if (!proc.ok) return;
     expect(proc.data.progress.validTypes).toContain("DFD");
   });
+
+  it("permite upload de artefato complementar com typeCode OUTRO sem afetar validTypes obrigatórios", async () => {
+    const processId = await newProcess();
+    const actor = managerOf(COUNCIL_A);
+    const prepared = await ctx.documents.prepareUpload(actor, { processId, typeCode: "OUTRO", ...declared(PDF, "anexo-extra.pdf") });
+    expect(prepared.ok).toBe(true);
+    if (!prepared.ok) return;
+    await ctx.storage.put(prepared.data.storagePath, PDF);
+    const confirmed = await ctx.documents.confirmUpload(actor, { attachmentId: prepared.data.attachmentId });
+    expect(confirmed.ok).toBe(true);
+
+    const docs = await ctx.documents.listByProcess(actor, processId);
+    expect(docs.ok && docs.data).toHaveLength(1);
+    expect(docs.ok && docs.data[0].typeCode).toBe("OUTRO");
+
+    const proc = await ctx.processes.get(actor, processId);
+    expect(proc.ok && proc.data.progress.validTypes).toHaveLength(0);
+    expect(proc.ok && proc.data.progress.percent).toBe(0);
+  });
 });

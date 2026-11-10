@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { MAX_UPLOAD_BYTES } from "@/shared/lib/upload-rules";
 import { idSchema } from "@/shared/lib/service-support";
-import { DOCUMENT_TYPE_CODES } from "@/modules/processes/domain/document-types";
+import { ALL_DOCUMENT_TYPE_CODES, DOCUMENT_TYPE_CODES } from "@/modules/processes/domain/document-types";
 import type { DocumentLinkStatus, ProcessAttachment, RetentionState, UploadStatus } from "@/modules/processes/domain/progress";
 
 /** Anexo persistido (metadados; o binário vive no Storage privado, R15). */
@@ -23,7 +23,7 @@ export interface Attachment extends ProcessAttachment {
 
 export const uploadDocumentSchema = z.object({
   processId: idSchema,
-  typeCode: z.enum(DOCUMENT_TYPE_CODES as [string, ...string[]]),
+  typeCode: z.enum(ALL_DOCUMENT_TYPE_CODES as unknown as [string, ...string[]]),
   fileName: z.string().trim().min(1).max(255),
 });
 

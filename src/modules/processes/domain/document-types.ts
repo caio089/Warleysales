@@ -27,3 +27,9 @@ export const REQUIRED_DOCUMENT_COUNT = DOCUMENT_TYPES.length;
 export const DOCUMENT_TYPE_CODES: readonly DocumentTypeCode[] = DOCUMENT_TYPES.map((t) => t.code);
 export const ADDITIONAL_DOCUMENT_TYPE_CODES: readonly AdditionalDocumentTypeCode[] =
   ADDITIONAL_DOCUMENT_TYPES.map((t) => t.code);
+
+export const ALL_DOCUMENT_TYPES = [...DOCUMENT_TYPES, ...ADDITIONAL_DOCUMENT_TYPES] as const;
+export const ALL_DOCUMENT_TYPE_CODES: readonly AllDocumentTypeCode[] = [
+  ...DOCUMENT_TYPE_CODES,
+  ...ADDITIONAL_DOCUMENT_TYPE_CODES,
+];

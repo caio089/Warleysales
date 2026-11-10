@@ -12,8 +12,11 @@ import {
   ArrowRight,
   CheckCircle2,
   Circle,
+  Download,
+  FileText,
   FolderArchive,
   Loader2,
+  Paperclip,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -24,7 +27,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { DOCUMENT_TYPES } from "@/modules/processes/domain/document-types";
+import {
+  DOCUMENT_TYPE_CODES,
+  DOCUMENT_TYPES,
+} from "@/modules/processes/domain/document-types";
 import type { AdministrativeProcess } from "@/modules/processes/schemas";
 import type { Attachment } from "@/modules/documents/schemas";
 import {
@@ -35,6 +41,7 @@ import {
 } from "@/modules/documents/actions";
 import { sha256Hex, uploadToSignedUrl } from "@/shared/lib/browser-upload";
 import { formatBytes } from "@/shared/lib/format";
+import { formatDateTimeFortaleza } from "@/shared/lib/time";
 import { fail, type Result } from "@/shared/lib/result";
 import { FileUpload } from "@/shared/ui/file-upload";
 import { ProgressBar } from "@/shared/ui/progress-bar";
@@ -246,6 +253,13 @@ function ProcessAttachmentSheetInner({
   const percent = data
     ? Math.round((validCount / DOCUMENT_TYPES.length) * 100)
     : 0;
+  const additionalDocs = data
+    ? data.documents.filter(
+        (doc) =>
+          !DOCUMENT_TYPE_CODES.includes(doc.typeCode as any) &&
+          doc.linkStatus === "active",
+      )
+    : [];
 
   return (
     <Sheet
@@ -458,6 +472,80 @@ function ProcessAttachmentSheetInner({
                     </article>
                   );
                 })}
+              </div>
+
+              <div className="space-y-3 border-t border-border/70 pt-5">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Paperclip className="size-4 text-primary" />
+                      <h3 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                        Artefatos Adicionais & Complementares
+                      </h3>
+                    </div>
+                    <span className="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
+                      Documentos adicionais anexados: {additionalDocs.length}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Anexe documentos complementares, laudos ou minutas. Não afetam a régua dos 7 documentos obrigatórios.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-dashed border-border/80 bg-card/40 p-3.5 space-y-2">
+                  <FileUpload
+                    label="Anexar artefato complementar"
+                    onUpload={async (file, report) => {
+                      return handleUpload("OUTRO", file, report);
+                    }}
+                  />
+                </div>
+
+                {additionalDocs.length > 0 ? (
+                  <div className="space-y-2">
+                    <ul className="space-y-2 text-xs">
+                      {additionalDocs.map((file) => (
+                        <li
+                          key={file.id}
+                          className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card/60 p-2.5 transition-colors hover:bg-card"
+                        >
+                          <div className="min-w-0 flex-1 space-y-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <FileText className="size-3.5 shrink-0 text-muted-foreground" />
+                              <button
+                                type="button"
+                                onClick={() => void handleDownload(file.id)}
+                                className="truncate text-left font-medium text-primary underline-offset-4 hover:underline"
+                                title={`Baixar ${file.fileName}`}
+                              >
+                                {file.fileName}
+                              </button>
+                            </div>
+                            <div className="flex items-center gap-2 text-[0.7rem] text-muted-foreground">
+                              <span>{formatBytes(file.size)}</span>
+                              <span>•</span>
+                              <span>Enviado em {formatDateTimeFortaleza(file.createdAt)}</span>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="xs"
+                            onClick={() => void handleDownload(file.id)}
+                            className="shrink-0 h-7 text-xs text-primary"
+                          >
+                            <Download className="mr-1 size-3.5" />
+                            Baixar
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">
+                    Nenhum artefato adicional anexado até o momento.
+                  </p>
+                )}
               </div>
             </div>
           </>

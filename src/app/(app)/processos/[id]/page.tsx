@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { ArrowLeft } from "lucide-react";
 import { loadScreen } from "@/server/screen";
 import { ok } from "@/shared/lib/result";
-import { DOCUMENT_TYPES } from "@/modules/processes/domain/document-types";
+import { DOCUMENT_TYPE_CODES, DOCUMENT_TYPES } from "@/modules/processes/domain/document-types";
 import { can } from "@/shared/lib/authz/policy";
 import { processNextStep } from "@/shared/ui/flow-copy";
 import { NextStepCallout } from "@/shared/ui/flow-guide";
@@ -14,7 +14,7 @@ import { ProgressBar } from "@/shared/ui/progress-bar";
 import { Screen } from "@/shared/ui/screen";
 import { StatusBadge } from "@/shared/ui/status-badge";
 import { COMPLETION_STATUS, PROCESS_STATUS, presentationOf } from "@/shared/ui/status-presentation";
-import { DocumentCard } from "./document-card";
+import { AdditionalDocumentsCard, DocumentCard } from "./document-card";
 import { FormalizationCard } from "./formalization-card";
 import { ProcessActions } from "./process-actions";
 
@@ -65,6 +65,9 @@ async function ProcessContent({ params }: { params: Promise<{ id: string }> }) {
         const status = presentationOf(PROCESS_STATUS, view.process.status);
         const completion = presentationOf(COMPLETION_STATUS, view.completion);
         const typesCount = view.process.snapshot ? DOCUMENT_TYPES.length : view.progress.validTypes.length;
+        const additionalDocs = documents.filter(
+          (d) => !DOCUMENT_TYPE_CODES.includes(d.typeCode as any) && d.linkStatus === "active",
+        );
         const next = processNextStep({
           completion: view.completion,
           typesDone: typesCount,
@@ -148,6 +151,28 @@ async function ProcessContent({ params }: { params: Promise<{ id: string }> }) {
                   />
                 ))}
               </div>
+            </section>
+            <section aria-label="Artefatos adicionais" className="mt-8 space-y-3">
+              <div>
+                <h2 className="font-heading text-lg font-medium tracking-tight text-primary">
+                  Artefatos Adicionais & Complementares
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Documentos complementares, minutas, laudos e pareceres que não alteram a régua dos 7 obrigatórios da Lei 14.133.
+                </p>
+              </div>
+              <AdditionalDocumentsCard
+                processId={view.process.id}
+                docs={additionalDocs.map((d) => ({
+                  id: d.id,
+                  name: d.fileName,
+                  size: d.size,
+                  createdAt: d.createdAt,
+                }))}
+                canUpload={canManage}
+                canUnlink={canUnlink}
+                canManualDelete={isSpecialDeleter}
+              />
             </section>
           </>
         );
