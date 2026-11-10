@@ -96,16 +96,18 @@ export class SupabaseProcessRepository implements ProcessRepository {
   }
 
   async nextSequence(councilId: string, year: number): Promise<number> {
-    const { data, error } = await this.db
-      .from("administrative_processes")
-      .select("sequence")
-      .eq("council_id", councilId)
-      .eq("year", year)
-      .order("sequence", { ascending: false })
-      .limit(1)
-      .maybeSingle<{ sequence: number }>();
-    if (error || !data) return 1;
-    return Number(data.sequence) + 1;
+    const row = unwrap(
+      "processes.nextSequence",
+      await this.db
+        .from("administrative_processes")
+        .select("sequence")
+        .eq("council_id", councilId)
+        .eq("year", year)
+        .order("sequence", { ascending: false })
+        .limit(1)
+        .maybeSingle<{ sequence: number }>(),
+    );
+    return row ? Number(row.sequence) + 1 : 1;
   }
 }
 
