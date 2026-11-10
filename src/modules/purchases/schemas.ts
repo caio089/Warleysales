@@ -51,4 +51,8 @@ export const receiveSchema = z.object({
   /** Chave gerada pelo cliente por recebimento: reenvio não duplica entrada de estoque. */
   receiptKey: z.string().trim().min(8).max(100),
   lines: z.array(z.object({ itemId: idSchema, received: positiveQuantitySchema })),
+  closeIncomplete: z.boolean().optional(),
+  incompleteJustification: z.string().trim().optional(),
 });
+export const receiveItemsSchema = receiveSchema;
+export type ReceiveInput = z.infer<typeof receiveSchema>;

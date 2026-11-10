@@ -66,7 +66,22 @@ export async function receiveFormAction(_previous: ActionState, formData: FormDa
   const itemIds = formData.getAll("itemId").map(String);
   const quantities = formData.getAll("received").map((q) => Number(String(q).replace(",", ".")));
   const lines = itemIds.map((itemId, i) => ({ itemId, received: quantities[i] })).filter((l) => l.received > 0);
-  const result = await runAction(({ services, actor }) => services.purchases.receive(actor, { requestId, receiptKey: String(formData.get("receiptKey")), lines }), "Recebimento registrado.");
+  const closeIncomplete = formData.get("closeIncomplete") === "true" || formData.get("closeIncomplete") === "on";
+  const rawJustification = formData.get("incompleteJustification");
+  const incompleteJustification = rawJustification && String(rawJustification).trim() !== ""
+    ? String(rawJustification).trim()
+    : undefined;
+  const result = await runAction(
+    ({ services, actor }) =>
+      services.purchases.receive(actor, {
+        requestId,
+        receiptKey: String(formData.get("receiptKey")),
+        lines,
+        closeIncomplete,
+        incompleteJustification,
+      }),
+    "Recebimento registrado.",
+  );
   if (result.status === "success") {
     revalidatePath(`/solicitacoes/${requestId}`);
     revalidatePath("/estoque");

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { changeProcessStatusFormAction, registerClosingReportFormAction } from "@/modules/processes/actions";
 import { PROCESS_TRANSITIONS, type ProcessStatus } from "@/modules/processes/domain/process-status";
 import { ActionForm } from "@/shared/ui/forms/action-form";
@@ -17,6 +19,7 @@ interface ProcessActionsProps {
 
 /** Situação administrativa (R4) e relatório de encerramento (R6), independentes do percentual. */
 export function ProcessActions({ processId, status, canChangeStatus, canRegisterClosing, closingReportRegistered, documentalComplete }: ProcessActionsProps) {
+  const [closingJustification, setClosingJustification] = useState("");
   const next = PROCESS_TRANSITIONS[status] ?? [];
   const statusOptions = next.map((value) => ({ value, label: PROCESS_STATUS[value]?.label ?? value }));
 
@@ -49,13 +52,53 @@ export function ProcessActions({ processId, status, canChangeStatus, canRegister
             <p className="text-sm text-muted-foreground">Registrado. A limpeza pode ocorrer após 30 dias, sem bloqueio e com autorização.</p>
           ) : (
             <>
-              <p className="mb-4 text-sm text-muted-foreground">
-                {documentalComplete
-                  ? "Obrigatório para a limpeza documental (R6). Sem este registro o job só examina e pula."
-                  : "Pode ser registrado agora; a limpeza só avalia processos com documentação 100%."}
-              </p>
+              {documentalComplete ? (
+                <p className="mb-4 text-sm text-muted-foreground">
+                  Obrigatório para a limpeza documental (R6). Sem este registro o job só examina e pula.
+                </p>
+              ) : (
+                <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3.5 text-sm text-amber-800 dark:text-amber-300">
+                  <div className="flex items-center gap-2 font-medium">
+                    <AlertTriangle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <span>Atenção: este processo não atingiu 100% dos documentos obrigatórios</span>
+                  </div>
+                  <p className="mt-1 text-xs text-amber-700/90 dark:text-amber-300/80">
+                    Para registrar o encerramento com documentação incompleta, é obrigatório fornecer uma justificativa circunstanciada (mínimo de 20 caracteres).
+                  </p>
+                </div>
+              )}
               <ActionForm action={registerClosingReportFormAction} submitLabel="Registrar relatório" hiddenFields={{ processId }}>
-                {() => null}
+                {(errors) => (
+                  <>
+                    {!documentalComplete ? (
+                      <div className="mb-4 space-y-1.5">
+                        <label htmlFor="closingJustification" className="text-sm font-medium text-foreground">
+                          Justificativa formal circunstanciada <span className="text-destructive">*</span>
+                        </label>
+                        <textarea
+                          id="closingJustification"
+                          name="closingJustification"
+                          required
+                          minLength={20}
+                          value={closingJustification}
+                          onChange={(e) => setClosingJustification(e.target.value)}
+                          rows={3}
+                          placeholder="Informe a justificativa formal para o encerramento do processo com documentação incompleta..."
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Mínimo 20 caracteres</span>
+                          <span className={closingJustification.length < 20 ? "font-medium text-amber-600 dark:text-amber-400" : "font-medium text-emerald-600 dark:text-emerald-400"}>
+                            {closingJustification.length} / 20 caracteres
+                          </span>
+                        </div>
+                        {errors.closingJustification ? (
+                          <p className="text-xs text-destructive">{errors.closingJustification.join(", ")}</p>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </>
+                )}
               </ActionForm>
             </>
           )}

@@ -16,12 +16,13 @@ const MATERIAL = "33333333-3333-4333-8333-333333333333";
 
 function setup() {
   const runtime = makeRuntime();
-  const audit = new AuditService(new InMemoryAuditRepository(runtime.now));
+  const auditRepo = new InMemoryAuditRepository(runtime.now);
+  const audit = new AuditService(auditRepo);
   const atas = new AtaService(new InMemoryAtaRepository(), audit, runtime);
   const invRepo = new InMemoryInventoryRepository(runtime.now);
   const inventory = new InventoryService(invRepo, audit, runtime);
   const processes = new ProcessService(new InMemoryProcessRepository(), new InMemoryDocumentRepository(), audit, runtime);
-  return { runtime, atas, inventory, processes, service: new PurchaseRequestService(new InMemoryPurchaseRequestRepository(), atas, inventory, processes, audit, runtime) };
+  return { runtime, auditRepo, atas, inventory, processes, service: new PurchaseRequestService(new InMemoryPurchaseRequestRepository(), atas, inventory, processes, audit, runtime) };
 }
 let ctx: ReturnType<typeof setup>;
 const manager = () => managerOf(COUNCIL_A);
@@ -183,5 +184,46 @@ describe("PurchaseRequestService", () => {
     const item = levels.data.find((l) => l.materialId === MATERIAL);
     expect(item?.blocked).toBe(10);
     expect(item?.available).toBe(0); // Disponível ainda é 0
+  });
+  it("recebimento parcial com closeIncomplete sem justificativa falha com VALIDATION", async () => {
+    const id = await submitted([{ quantity: 10 }]);
+    await ctx.service.approve(manager(), { requestId: id });
+    const req = await ctx.service.get(manager(), id);
+    const itemId = req.ok ? req.data.items[0]!.id : "";
+
+    const rSemJustificativa = await ctx.service.receive(operatorOf(COUNCIL_A), {
+      requestId: id,
+      receiptKey: "recebimento-inc-1",
+      lines: [{ itemId, received: 5 }],
+      closeIncomplete: true,
+    });
+    expect(rSemJustificativa.ok).toBe(false);
+    expect(!rSemJustificativa.ok && rSemJustificativa.code).toBe("VALIDATION");
+
+    const rJustificativaCurta = await ctx.service.receive(operatorOf(COUNCIL_A), {
+      requestId: id,
+      receiptKey: "recebimento-inc-2",
+      lines: [{ itemId, received: 5 }],
+      closeIncomplete: true,
+      incompleteJustification: "Pouco texto",
+    });
+    expect(rJustificativaCurta.ok).toBe(false);
+    expect(!rJustificativaCurta.ok && rJustificativaCurta.code).toBe("VALIDATION");
+
+    const rComJustificativa = await ctx.service.receive(operatorOf(COUNCIL_A), {
+      requestId: id,
+      receiptKey: "recebimento-inc-3",
+      lines: [{ itemId, received: 5 }],
+      closeIncomplete: true,
+      incompleteJustification: "Fornecedor encerrou as atividades e saldo restante não será entregue.",
+    });
+    expect(rComJustificativa.ok).toBe(true);
+    expect(rComJustificativa.ok && rComJustificativa.data.status).toBe("atendida");
+
+    const auditEvents = ctx.auditRepo.all();
+    const auditInc = auditEvents.find((e) => e.action === "purchase.receive_incomplete");
+    expect(auditInc).toBeDefined();
+    expect(auditInc?.entityId).toBe(id);
+    expect(auditInc?.details?.justification).toBe("Fornecedor encerrou as atividades e saldo restante não será entregue.");
   });
 });

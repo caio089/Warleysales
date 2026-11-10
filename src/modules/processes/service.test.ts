@@ -103,6 +103,42 @@ describe("ProcessService", () => {
     const r = await ctx.processes.changeStatus(managerOf(COUNCIL_A), { processId: p.id, status: "arquivado" });
     expect(!r.ok && r.code).toBe("INVALID_STATE");
   });
+  it("encerramento com documentação incompleta exige justificativa (mínimo 20 caracteres)", async () => {
+    const p = await newProcess(ctx);
+    const semJustificativa = await ctx.processes.registerClosingReport(centralAdmin(), {
+      processId: p.id,
+    });
+    expect(semJustificativa.ok).toBe(false);
+    expect(!semJustificativa.ok && semJustificativa.code).toBe("VALIDATION");
+    expect(!semJustificativa.ok && semJustificativa.message).toBe("Justificativa obrigatória para processos com documentação incompleta");
+
+    const justificativaCurta = await ctx.processes.registerClosingReport(centralAdmin(), {
+      processId: p.id,
+      closingJustification: "Muito curta",
+    });
+    expect(justificativaCurta.ok).toBe(false);
+    expect(!justificativaCurta.ok && justificativaCurta.code).toBe("VALIDATION");
+
+    const justificativaValida = await ctx.processes.registerClosingReport(centralAdmin(), {
+      processId: p.id,
+      closingJustification: "Processo encerrado por dispensa devidamente fundamentada pela diretoria.",
+    });
+    expect(justificativaValida.ok).toBe(true);
+    expect(justificativaValida.ok && justificativaValida.data.closingReportRegistered).toBe(true);
+
+    const auditEvents = ctx.auditRepo.all();
+    const incompleteAudit = auditEvents.find((e) => e.action === "process.close_incomplete");
+    expect(incompleteAudit).toBeDefined();
+    expect(incompleteAudit?.entityId).toBe(p.id);
+    expect(incompleteAudit?.details?.justification).toBe("Processo encerrado por dispensa devidamente fundamentada pela diretoria.");
+  });
+  it("encerramento com 100% de documentação não exige justificativa e audita process.closing_report", async () => {
+    const p = await newProcess(ctx);
+    await attachAll(ctx, p.id);
+    const r = await ctx.processes.registerClosingReport(centralAdmin(), p.id);
+    expect(r.ok).toBe(true);
+    expect(ctx.auditRepo.all().some((e) => e.action === "process.closing_report" && e.entityId === p.id)).toBe(true);
+  });
 });
 
 describe("DocumentService", () => {

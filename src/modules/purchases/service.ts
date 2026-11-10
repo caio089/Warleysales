@@ -166,6 +166,21 @@ export class PurchaseRequestService {
     const outcome = applyReceipt(request.items.map((i) => ({ itemId: i.id, expected: i.quantity, receivedBefore: i.receivedTotal })), parsed.data.lines);
     if (!outcome.ok) return outcome;
 
+    const isClosingIncomplete = parsed.data.closeIncomplete === true && !outcome.data.fullyReceived;
+    if (isClosingIncomplete) {
+      const justification = parsed.data.incompleteJustification?.trim();
+      if (!justification) {
+        return fail("VALIDATION", "Justificativa obrigatória para encerramento de entrega com saldo pendente.", {
+          incompleteJustification: ["Justificativa obrigatória para encerramento de entrega com saldo pendente."],
+        });
+      }
+      if (justification.length < 15) {
+        return fail("VALIDATION", "A justificativa deve ter no mínimo 15 caracteres.", {
+          incompleteJustification: ["A justificativa deve ter no mínimo 15 caracteres."],
+        });
+      }
+    }
+
     // Entrada no ledger por linha, cada uma com chave idempotente própria.
     for (const line of parsed.data.lines) {
       const item = request.items.find((i) => i.id === line.itemId)!;
@@ -176,6 +191,7 @@ export class PurchaseRequestService {
       if (!entry.ok) return entry;
     }
 
+    const targetStatus = isClosingIncomplete ? "atendida" : outcome.data.requestStatus;
     let current = request;
     if (current.status === "aprovada") current = await this.transition(current, "em_atendimento", actor);
     const updated: PurchaseRequest = {
@@ -183,9 +199,27 @@ export class PurchaseRequestService {
       items: current.items.map((i) => ({ ...i, receivedTotal: outcome.data.items.find((r) => r.itemId === i.id)!.receivedTotal })),
       receiptKeys: [...current.receiptKeys, parsed.data.receiptKey],
     };
-    const finalStatus = changeRequestStatus(updated.status, outcome.data.requestStatus);
+    const finalStatus = changeRequestStatus(updated.status, targetStatus);
     if (!finalStatus.ok) return finalStatus;
-    return ok(await this.transition(updated, outcome.data.requestStatus, actor));
+
+    const result = await this.transition(updated, targetStatus, actor, isClosingIncomplete ? parsed.data.incompleteJustification?.trim() : undefined);
+
+    if (isClosingIncomplete) {
+      await this.audit.record({
+        actorId: actor.userId,
+        action: "purchase.receive_incomplete",
+        entity: "purchase_request",
+        entityId: request.id,
+        councilId: request.councilId,
+        result: "success",
+        details: {
+          justification: parsed.data.incompleteJustification?.trim(),
+          receiptKey: parsed.data.receiptKey,
+        },
+      });
+    }
+
+    return ok(result);
   }
 
   async list(actor: Actor): Promise<Result<PurchaseRequest[]>> {

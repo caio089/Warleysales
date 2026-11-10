@@ -16,6 +16,7 @@ export interface AdministrativeProcess {
   /** R7: preenchido apenas após limpeza autorizada. */
   snapshot: DocumentalSnapshot | null;
   closingReportRegistered: boolean;
+  closingJustification?: string | null;
   createdBy: string;
   createdAt: Date;
 }
@@ -31,3 +32,9 @@ export const changeProcessStatusSchema = z.object({
   processId: idSchema,
   status: z.enum(["em_andamento", "aguardando_providencia", "concluido", "cancelado", "arquivado"]),
 });
+
+export const registerClosingSchema = z.object({
+  processId: idSchema,
+  closingJustification: z.string().trim().optional(),
+});
+export type RegisterClosingInput = z.infer<typeof registerClosingSchema>;

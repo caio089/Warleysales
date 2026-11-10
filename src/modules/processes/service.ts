@@ -9,7 +9,7 @@ import { calculateProgress, type DocumentalProgress } from "./domain/progress";
 import { changeProcessStatus } from "./domain/process-status";
 import { formatProcessNumber, parseProcessNumber } from "./domain/process-number";
 import type { ProcessRepository } from "./repository";
-import { changeProcessStatusSchema, createProcessSchema, type AdministrativeProcess } from "./schemas";
+import { changeProcessStatusSchema, createProcessSchema, registerClosingSchema, type AdministrativeProcess } from "./schemas";
 
 /** Visão de leitura: processo + progresso derivado (nunca editável, R3). */
 export interface ProcessView {
@@ -103,14 +103,68 @@ export class ProcessService {
   }
 
   /** Registra o relatório de encerramento, pré-requisito da limpeza (R6). */
-  async registerClosingReport(actor: Actor, processId: string): Promise<Result<AdministrativeProcess>> {
+  async registerClosingReport(actor: Actor, input: unknown): Promise<Result<AdministrativeProcess>> {
+    const raw = typeof input === "string" ? { processId: input } : input;
+    const parsed = parseInput(registerClosingSchema, raw);
+    if (!parsed.ok) return parsed;
+    const { processId, closingJustification } = parsed.data;
+
     const process = await this.processes.findById(processId);
     if (!process) return fail("NOT_FOUND", "Processo não encontrado.");
     const allowed = await guard(this.audit, actor, "retention.manage", process.councilId, "administrative_process", processId);
     if (!allowed.ok) return allowed;
+
+    const attachments = await this.documents.listByProcess(processId);
+    const progress = calculateProgress(attachments);
+
+    if (!progress.isComplete) {
+      const justification = closingJustification?.trim();
+      if (!justification) {
+        return fail("VALIDATION", "Justificativa obrigatória para processos com documentação incompleta", {
+          closingJustification: ["Justificativa obrigatória para processos com documentação incompleta"],
+        });
+      }
+      if (justification.length < 20) {
+        return fail("VALIDATION", "A justificativa deve ter no mínimo 20 caracteres.", {
+          closingJustification: ["A justificativa deve ter no mínimo 20 caracteres."],
+        });
+      }
+
+      const updated = await this.processes.update(processId, {
+        closingReportRegistered: true,
+        closingJustification: justification,
+      });
+      await this.audit.record({
+        actorId: actor.userId,
+        action: "process.close_incomplete",
+        entity: "administrative_process",
+        entityId: processId,
+        councilId: process.councilId,
+        result: "success",
+        details: {
+          justification,
+          missingTypes: progress.missingTypes,
+          percent: progress.percent,
+        },
+      });
+      return ok(updated!);
+    }
+
     const updated = await this.processes.update(processId, { closingReportRegistered: true });
-    await this.audit.record({ actorId: actor.userId, action: "process.closing_report", entity: "administrative_process", entityId: processId, councilId: process.councilId, result: "success", details: {} });
+    await this.audit.record({
+      actorId: actor.userId,
+      action: "process.closing_report",
+      entity: "administrative_process",
+      entityId: processId,
+      councilId: process.councilId,
+      result: "success",
+      details: {},
+    });
     return ok(updated!);
+  }
+
+  registerClosing(actor: Actor, input: unknown) {
+    return this.registerClosingReport(actor, input);
   }
 
   private async toView(process: AdministrativeProcess): Promise<ProcessView> {

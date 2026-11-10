@@ -31,8 +31,12 @@ export async function changeProcessStatusFormAction(_previous: ActionState, form
 /** Relatório de encerramento: pré-requisito da limpeza documental (R6). */
 export async function registerClosingReportFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
   const processId = String(formData.get("processId"));
+  const rawJustification = formData.get("closingJustification");
+  const closingJustification = rawJustification && String(rawJustification).trim() !== ""
+    ? String(rawJustification).trim()
+    : undefined;
   const result = await runAction(
-    ({ services, actor }) => services.processes.registerClosingReport(actor, processId),
+    ({ services, actor }) => services.processes.registerClosingReport(actor, { processId, closingJustification }),
     "Relatório de encerramento registrado.",
   );
   if (result.status === "success") {
@@ -42,3 +46,5 @@ export async function registerClosingReportFormAction(_previous: ActionState, fo
   }
   return result.status === "success" ? { status: "success", message: result.message } : result;
 }
+
+export const registerClosingFormAction = registerClosingReportFormAction;
