@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  type DragEvent,
   type ReactNode,
   Suspense,
   useCallback,
@@ -162,6 +161,7 @@ function ProcessAttachmentSheetInner({
 
   useEffect(() => {
     if (activeProcessId) {
+      setData(null);
       void loadData(activeProcessId);
     } else {
       setData(null);
