@@ -1,6 +1,7 @@
 import type { AuditRecorder } from "@/modules/audit/service";
 import { guard } from "@/shared/lib/authz/guard";
 import { canInAnyCouncil, can, readableCouncilIds, type Actor } from "@/shared/lib/authz/policy";
+import { addQuantity, percentage } from "@/shared/lib/decimal";
 import { fail, ok, type Result } from "@/shared/lib/result";
 import { parseInput, type RuntimeDeps } from "@/shared/lib/service-support";
 import { classifyStockLevel, reconciliationDifference, type StockLevel } from "./domain/levels";
@@ -17,6 +18,31 @@ export interface StockLevelView {
   available: number;
   minimum: number;
   level: StockLevel;
+}
+
+export interface StockSummary {
+  totalBlocked: number;
+  totalReady: number;
+  totalReserved: number;
+  totalPhysical: number;
+  percentReady: number;
+}
+
+export function calculateStockSummary(levels: readonly StockLevelView[]): StockSummary {
+  const totalBlocked = levels.reduce((acc, l) => addQuantity(acc, l.blocked), 0);
+  const totalPhysical = levels.reduce((acc, l) => addQuantity(acc, l.physical), 0);
+  const totalReserved = levels.reduce((acc, l) => addQuantity(acc, l.reserved), 0);
+  const totalReady = levels.reduce((acc, l) => addQuantity(acc, l.available), 0);
+  const totalPipeline = addQuantity(totalPhysical, totalBlocked);
+  const percentReady = percentage(totalReady, totalPipeline);
+
+  return {
+    totalBlocked,
+    totalReady,
+    totalReserved,
+    totalPhysical,
+    percentReady,
+  };
 }
 
 export interface ReconciliationIssue extends StockKey {
@@ -220,6 +246,16 @@ export class InventoryService {
       const available = availableOf(r.balance);
       return { councilId: r.councilId, materialId: r.materialId, physical: r.balance.physical, reserved: r.balance.reserved, blocked: r.balance.blocked ?? 0, available, minimum: r.minimum, level: classifyStockLevel(available, r.minimum) };
     }));
+  }
+
+  /**
+   * Resumo consolidado de estoque (bloqueado em formalização, pronto para uso, reservado, físico e % liberado).
+   * Restrito aos conselhos legíveis para o ator (R14).
+   */
+  async stockSummary(actor: Actor, councilId?: string): Promise<Result<StockSummary>> {
+    const levelsResult = await this.listLevels(actor, councilId);
+    if (!levelsResult.ok) return levelsResult;
+    return ok(calculateStockSummary(levelsResult.data));
   }
 
   async listMovements(actor: Actor, councilId: string) {

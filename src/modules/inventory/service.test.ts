@@ -3,7 +3,7 @@ import { InMemoryAuditRepository } from "@/modules/audit/repository.memory";
 import { AuditService } from "@/modules/audit/service";
 import { COUNCIL_A, COUNCIL_B, centralAdmin, makeRuntime, managerOf, operatorOf, viewerOf } from "@/shared/testing/fixtures";
 import { InMemoryInventoryRepository } from "./repository.memory";
-import { InventoryService } from "./service";
+import { calculateStockSummary, InventoryService } from "./service";
 
 function setup() {
   const runtime = makeRuntime();
@@ -104,5 +104,105 @@ describe("InventoryService", () => {
     expect(item?.blocked).toBe(5);
     expect(item?.physical).toBe(15);
     expect(item?.available).toBe(15);
+  });
+
+  describe("stockSummary e calculateStockSummary (Task 6 / Onda 1)", () => {
+    it("retorna zeros quando não há estoque cadastrado", async () => {
+      const summary = await ctx.service.stockSummary(operatorOf(COUNCIL_A), COUNCIL_A);
+      expect(summary.ok).toBe(true);
+      if (!summary.ok) return;
+      expect(summary.data).toEqual({
+        totalBlocked: 0,
+        totalReady: 0,
+        totalReserved: 0,
+        totalPhysical: 0,
+        percentReady: 0,
+      });
+    });
+
+    it("agrega blocked, ready, reserved, physical e percentReady dinamicamente", async () => {
+      // 1. Provisiona 20 unidades bloqueadas
+      await ctx.service.provisionBlocked(operatorOf(COUNCIL_A), COUNCIL_A, [{ materialId, quantity: 20 }]);
+      let summary = await ctx.service.stockSummary(operatorOf(COUNCIL_A), COUNCIL_A);
+      expect(summary.ok).toBe(true);
+      if (!summary.ok) return;
+      expect(summary.data).toEqual({
+        totalBlocked: 20,
+        totalReady: 0,
+        totalReserved: 0,
+        totalPhysical: 0,
+        percentReady: 0,
+      });
+
+      // 2. Homologa e libera 15 unidades para pronto para uso
+      await ctx.service.releaseBlockedStock(COUNCIL_A, [{ materialId, quantity: 15 }]);
+      summary = await ctx.service.stockSummary(operatorOf(COUNCIL_A), COUNCIL_A);
+      expect(summary.ok).toBe(true);
+      if (!summary.ok) return;
+      expect(summary.data).toEqual({
+        totalBlocked: 5,
+        totalReady: 15,
+        totalReserved: 0,
+        totalPhysical: 15,
+        percentReady: 75, // 15 / 20 = 75%
+      });
+
+      // 3. Reserva 5 unidades do disponível
+      await ctx.service.reserveInternal({ councilId: COUNCIL_A, materialId }, 5);
+      summary = await ctx.service.stockSummary(operatorOf(COUNCIL_A), COUNCIL_A);
+      expect(summary.ok).toBe(true);
+      if (!summary.ok) return;
+      expect(summary.data).toEqual({
+        totalBlocked: 5,
+        totalReady: 10,
+        totalReserved: 5,
+        totalPhysical: 15,
+        percentReady: 50, // 10 / 20 = 50%
+      });
+    });
+
+    it("rejeita consulta para conselho ao qual o ator não tem acesso", async () => {
+      const forbidden = await ctx.service.stockSummary(viewerOf(COUNCIL_B), COUNCIL_A);
+      expect(forbidden.ok).toBe(false);
+      if (!forbidden.ok) {
+        expect(forbidden.code).toBe("FORBIDDEN");
+      }
+    });
+
+    it("calculateStockSummary agrega múltiplos materiais com precisão decimal", () => {
+      const summary = calculateStockSummary([
+        {
+          councilId: "c1",
+          materialId: "m1",
+          physical: 100,
+          reserved: 20,
+          blocked: 50,
+          available: 80,
+          minimum: 10,
+          level: "normal",
+        },
+        {
+          councilId: "c1",
+          materialId: "m2",
+          physical: 50,
+          reserved: 0,
+          blocked: 50,
+          available: 50,
+          minimum: 10,
+          level: "normal",
+        },
+      ]);
+
+      // Total physical: 150, reserved: 20, ready (available): 130, blocked: 100
+      // Total pipeline: 150 + 100 = 250
+      // percentReady: 130 / 250 * 100 = 52%
+      expect(summary).toEqual({
+        totalBlocked: 100,
+        totalReady: 130,
+        totalReserved: 20,
+        totalPhysical: 150,
+        percentReady: 52,
+      });
+    });
   });
 });

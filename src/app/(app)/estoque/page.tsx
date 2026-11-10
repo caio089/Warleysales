@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { AlertTriangle, CheckCircle2, History, Package, PackagePlus, PackageX } from "lucide-react";
+import { AlertTriangle, CheckCircle2, History, Lock, Package, PackagePlus, Percent } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { canInAnyCouncil } from "@/shared/lib/authz/policy";
+import { formatNumber, formatPercent } from "@/shared/lib/format";
 import { ok } from "@/shared/lib/result";
 import { KpiCard } from "@/shared/ui/kpi-card";
 import { LoadingState } from "@/shared/ui/feedback-states";
@@ -19,12 +20,18 @@ export const metadata: Metadata = { title: "Gestão de Estoque" };
 
 async function Content() {
   const result = await loadScreen(async (ctx) => {
-    const [levels, lookups] = await Promise.all([ctx.services.inventory.listLevels(ctx.actor), loadLookups(ctx)]);
+    const [levels, lookups, summary] = await Promise.all([
+      ctx.services.inventory.listLevels(ctx.actor),
+      loadLookups(ctx),
+      ctx.services.inventory.stockSummary(ctx.actor),
+    ]);
     if (!levels.ok) return levels;
     if (!lookups.ok) return lookups;
+    if (!summary.ok) return summary;
     return ok({
       levels: levels.data,
       lookups: lookups.data,
+      summary: summary.data,
       canMove: canInAnyCouncil(ctx.actor, "stock.move"),
       canAdjust: canInAnyCouncil(ctx.actor, "stock.adjust"),
     });
@@ -32,50 +39,37 @@ async function Content() {
 
   return (
     <Screen result={result}>
-      {({ levels, lookups, canMove, canAdjust }) => {
+      {({ levels, lookups, summary, canMove, canAdjust }) => {
         const councils = lookups.councils.map((c) => ({ value: c.id, label: c.label }));
         const materials = lookups.materials.map((m) => ({ value: m.id, label: m.label }));
-
-        const totalPhysical = levels.reduce((acc, l) => acc + Number(l.physical), 0);
-        const totalReserved = levels.reduce((acc, l) => acc + Number(l.reserved), 0);
-        const totalAvailable = levels.reduce((acc, l) => acc + Number(l.available), 0);
-        const criticalItems = levels.filter((l) => l.level !== "normal");
 
         return (
           <div className="space-y-8">
             {/* KPIs de Estoque */}
-            <section aria-label="Métricas de Estoque" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <section aria-label="Métricas de Estoque" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <KpiCard
-                href="/estoque/materiais"
-                icon={<Package className="size-4" aria-hidden />}
-                label="Catálogo de Produtos"
-                value={materials.length}
-                hint="Materiais cadastrados"
+                icon={<Lock className="size-4" aria-hidden />}
+                label="Bloqueado em Formalização"
+                value={`${formatNumber(summary.totalBlocked)} un`}
+                hint="Aguardando homologação de compra"
+              />
+              <KpiCard
+                icon={<CheckCircle2 className="size-4" aria-hidden />}
+                label="Pronto para Uso (Liberado)"
+                value={`${formatNumber(summary.totalReady)} un`}
+                hint="Saldo físico disponível para uso imediato"
               />
               <KpiCard
                 icon={<Package className="size-4" aria-hidden />}
-                label="Saldo Disponível Total"
-                value={`${totalAvailable} un`}
-                hint="Pronto para uso/entrega"
+                label="Reservado / Em Trânsito"
+                value={`${formatNumber(summary.totalReserved)} un`}
+                hint="Alocado para transferências ou entregas"
               />
               <KpiCard
-                icon={<Package className="size-4" aria-hidden />}
-                label="Saldo Físico Total"
-                value={`${totalPhysical} un`}
-                hint="Total em armazém"
-              />
-              <KpiCard
-                icon={<Package className="size-4" aria-hidden />}
-                label="Saldo Reservado"
-                value={`${totalReserved} un`}
-                hint="Em trânsito / alocado"
-              />
-              <KpiCard
-                icon={<PackageX className="size-4" aria-hidden />}
-                label="Itens Críticos"
-                value={criticalItems.length}
-                accent={criticalItems.length > 0}
-                hint={criticalItems.length > 0 ? "Abaixo do mínimo" : "Estoque regular"}
+                icon={<Percent className="size-4" aria-hidden />}
+                label="% Saldo Liberado"
+                value={formatPercent(summary.percentReady)}
+                hint="Percentual do estoque total liberado"
               />
             </section>
 
@@ -83,9 +77,9 @@ async function Content() {
             <section aria-label="Tabela de Saldos" className="space-y-3">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <SectionLabel>Saldos de Estoque por Empresa</SectionLabel>
+                  <SectionLabel>Saldos de Estoque por Órgão/Conselho</SectionLabel>
                   <p className="text-xs text-muted-foreground">
-                    O saldo disponível é o físico deduzido do reservado. Níveis calculados conforme o mínimo de segurança.
+                    Segmentação entre estoque bloqueado em formalização, pronto para uso e reservado conforme o mínimo de segurança.
                   </p>
                 </div>
               </div>
@@ -94,26 +88,28 @@ async function Content() {
                 caption="Saldos de estoque"
                 rows={levels.map((l) => ({
                   id: `${l.councilId}:${l.materialId}`,
-                  council: lookups.councilLabel[l.councilId] ?? "—",
                   material: lookups.materialLabel[l.materialId] ?? "—",
-                  available: l.available,
-                  physical: l.physical,
+                  council: lookups.councilLabel[l.councilId] ?? "—",
+                  blocked: l.blocked,
+                  ready: l.available,
                   reserved: l.reserved,
+                  total: l.physical + l.blocked,
                   minimum: l.minimum,
                   level: l.level,
                 }))}
                 columns={[
-                  { key: "council", header: "Empresa Destinatária" },
-                  { key: "material", header: "Produto" },
-                  { key: "available", header: "Disponível", kind: "number" },
-                  { key: "physical", header: "Físico", kind: "number" },
+                  { key: "material", header: "Material" },
+                  { key: "council", header: "Órgão/Conselho" },
+                  { key: "blocked", header: "Bloqueado", kind: "number" },
+                  { key: "ready", header: "Pronto para Uso", kind: "number" },
                   { key: "reserved", header: "Reservado", kind: "number" },
+                  { key: "total", header: "Total", kind: "number" },
                   { key: "minimum", header: "Mínimo", kind: "number" },
-                  { key: "level", header: "Situação", kind: "status", dictionary: "stock" },
+                  { key: "level", header: "Nível", kind: "status", dictionary: "stock" },
                 ]}
                 filterKeys={[
-                  { key: "council", label: "Empresa" },
-                  { key: "level", label: "Situação", dictionary: "stock" },
+                  { key: "council", label: "Órgão/Conselho" },
+                  { key: "level", label: "Nível", dictionary: "stock" },
                 ]}
                 emptyTitle="Nenhum saldo registrado"
                 emptyDescription="Lance a primeira entrada de material abaixo para alimentar o estoque."
@@ -186,7 +182,7 @@ export default function StockPage() {
       <PageHeader
         eyebrow="Operação & Armazenagem"
         title="Gestão de Estoque"
-        description="Controle rigoroso de saldos disponíveis, estoque reservado e quantidades físicas por empresa, alimentado por ledger imutável."
+        description="Controle de estoque bloqueado em formalização, saldo pronto para uso e reservas por órgão conveniado, alimentado por ledger imutável."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Link href="/estoque/materiais" className={buttonVariants({ variant: "outline" })}>
