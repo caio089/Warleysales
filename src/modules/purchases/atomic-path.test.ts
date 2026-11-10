@@ -3,8 +3,11 @@ import { InMemoryAtaRepository } from "@/modules/atas/repository.memory";
 import { AtaService } from "@/modules/atas/service";
 import { InMemoryAuditRepository } from "@/modules/audit/repository.memory";
 import { AuditService } from "@/modules/audit/service";
+import { InMemoryDocumentRepository } from "@/modules/documents/repository.memory";
 import { InMemoryInventoryRepository } from "@/modules/inventory/repository.memory";
 import { InventoryService } from "@/modules/inventory/service";
+import { InMemoryProcessRepository } from "@/modules/processes/repository.memory";
+import { ProcessService } from "@/modules/processes/service";
 import { fail, ok } from "@/shared/lib/result";
 import { COUNCIL_A, makeRuntime, managerOf, operatorOf } from "@/shared/testing/fixtures";
 import type { PurchaseRequestRepository } from "./repository";
@@ -19,9 +22,10 @@ function setup() {
   const audit = new AuditService(new InMemoryAuditRepository(runtime.now));
   const atas = new AtaService(new InMemoryAtaRepository(), audit, runtime);
   const inventory = new InventoryService(new InMemoryInventoryRepository(runtime.now), audit, runtime);
+  const processes = new ProcessService(new InMemoryProcessRepository(), new InMemoryDocumentRepository(), audit, runtime);
   const repository: PurchaseRequestRepository = new InMemoryPurchaseRequestRepository();
   const commitSpy = vi.spyOn(atas, "commitInternal");
-  return { runtime, atas, repository, commitSpy, service: new PurchaseRequestService(repository, atas, inventory, audit, runtime) };
+  return { runtime, atas, repository, commitSpy, service: new PurchaseRequestService(repository, atas, inventory, processes, audit, runtime) };
 }
 
 async function requestInReview(ctx: ReturnType<typeof setup>) {

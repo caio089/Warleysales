@@ -85,7 +85,7 @@ export function createServices(repos: Repositories, runtime: RuntimeDeps): Servi
     transfers: new TransferService(repos.transfers, inventory, audit, runtime),
     atas,
     contracts,
-    purchases: new PurchaseRequestService(repos.purchases, atas, inventory, audit, runtime),
+    purchases: new PurchaseRequestService(repos.purchases, atas, inventory, processes, audit, runtime),
     suppliers: new SupplierService(repos.suppliers, audit, runtime),
     meetings: new MeetingService(repos.meetings, audit, runtime),
     notifications: new NotificationService(repos.notifications, alertSource, audit, runtime),

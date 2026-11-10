@@ -1,6 +1,7 @@
 import type { AtaService } from "@/modules/atas/service";
 import type { AuditRecorder } from "@/modules/audit/service";
 import type { InventoryService } from "@/modules/inventory/service";
+import type { ProcessService } from "@/modules/processes/service";
 import { guard } from "@/shared/lib/authz/guard";
 import { can, readableCouncilIds, type Actor, type PermissionAction } from "@/shared/lib/authz/policy";
 import { fail, ok, type Result } from "@/shared/lib/result";
@@ -15,6 +16,7 @@ export class PurchaseRequestService {
     private readonly repository: PurchaseRequestRepository,
     private readonly atas: AtaService,
     private readonly inventory: InventoryService,
+    private readonly processes: ProcessService,
     private readonly audit: AuditRecorder,
     private readonly runtime: RuntimeDeps,
   ) {}
@@ -27,8 +29,22 @@ export class PurchaseRequestService {
     if (!allowed.ok) return allowed;
 
     const now = this.runtime.now();
+    let processId: string | null = null;
+    if (d.createProcess) {
+      const currentYear = new Date(now).getFullYear();
+      const processNumber = await this.processes.getNextNumber(d.councilId, currentYear);
+      const createdProc = await this.processes.create(actor, {
+        councilId: d.councilId,
+        number: processNumber,
+        title: d.title,
+      });
+      if (!createdProc.ok) return createdProc;
+      processId = createdProc.data.id;
+    }
+
     const saved = await this.repository.insert({
       id: this.runtime.newId(), councilId: d.councilId, title: d.title, status: "rascunho",
+      processId,
       items: d.items.map((i) => ({ id: this.runtime.newId(), materialId: i.materialId, quantity: i.quantity, ataItemId: i.ataItemId ?? null, receivedTotal: 0 })),
       events: [{ from: null, to: "rascunho", actorId: actor.userId, at: now }],
       receiptKeys: [], createdBy: actor.userId, createdAt: now,

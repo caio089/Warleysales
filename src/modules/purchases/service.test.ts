@@ -3,8 +3,11 @@ import { InMemoryAtaRepository } from "@/modules/atas/repository.memory";
 import { AtaService } from "@/modules/atas/service";
 import { InMemoryAuditRepository } from "@/modules/audit/repository.memory";
 import { AuditService } from "@/modules/audit/service";
+import { InMemoryDocumentRepository } from "@/modules/documents/repository.memory";
 import { InMemoryInventoryRepository } from "@/modules/inventory/repository.memory";
 import { InventoryService } from "@/modules/inventory/service";
+import { InMemoryProcessRepository } from "@/modules/processes/repository.memory";
+import { ProcessService } from "@/modules/processes/service";
 import { COUNCIL_A, COUNCIL_B, makeRuntime, managerOf, operatorOf, viewerOf } from "@/shared/testing/fixtures";
 import { InMemoryPurchaseRequestRepository } from "./repository.memory";
 import { PurchaseRequestService } from "./service";
@@ -17,7 +20,8 @@ function setup() {
   const atas = new AtaService(new InMemoryAtaRepository(), audit, runtime);
   const invRepo = new InMemoryInventoryRepository(runtime.now);
   const inventory = new InventoryService(invRepo, audit, runtime);
-  return { runtime, atas, inventory, service: new PurchaseRequestService(new InMemoryPurchaseRequestRepository(), atas, inventory, audit, runtime) };
+  const processes = new ProcessService(new InMemoryProcessRepository(), new InMemoryDocumentRepository(), audit, runtime);
+  return { runtime, atas, inventory, processes, service: new PurchaseRequestService(new InMemoryPurchaseRequestRepository(), atas, inventory, processes, audit, runtime) };
 }
 let ctx: ReturnType<typeof setup>;
 const manager = () => managerOf(COUNCIL_A);
@@ -143,5 +147,23 @@ describe("PurchaseRequestService", () => {
     expect(fetched.ok).toBe(true);
     if (!fetched.ok) return;
     expect(fetched.data.processId).toBeNull();
+  });
+  it("cria processo administrativo correspondente quando createProcess é verdadeiro", async () => {
+    const r = await ctx.service.create(operatorOf(COUNCIL_A), {
+      councilId: COUNCIL_A,
+      title: "Aquisição de computadores",
+      createProcess: true,
+      items: [{ materialId: MATERIAL, quantity: 2 }],
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.processId).toBeDefined();
+    expect(typeof r.data.processId).toBe("string");
+
+    const proc = await ctx.processes.get(operatorOf(COUNCIL_A), r.data.processId!);
+    expect(proc.ok).toBe(true);
+    if (!proc.ok) return;
+    expect(proc.data.process.number).toBe("001/2026");
+    expect(proc.data.process.title).toBe("Aquisição de computadores");
   });
 });

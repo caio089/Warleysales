@@ -36,6 +36,7 @@ export interface PurchaseRequest {
 export const createRequestSchema = z.object({
   councilId: idSchema,
   title: z.string().trim().min(3).max(200),
+  createProcess: z.boolean().optional(),
   items: z.array(z.object({ materialId: idSchema, quantity: positiveQuantitySchema, ataItemId: idSchema.nullable().optional() })).min(1, "Informe ao menos um item."),
 });
 
