@@ -46,6 +46,14 @@ export type SubmitFormalizationInput = z.infer<typeof submitFormalizationSchema>
 export const homologateFormalizationSchema = z.object({
   processId: idSchema,
   note: z.string().trim().max(1000).optional(),
+  items: z
+    .array(
+      z.object({
+        materialId: idSchema,
+        quantity: z.number().positive("A quantidade deve ser maior que zero"),
+      }),
+    )
+    .optional(),
 });
 
 export type HomologateFormalizationInput = z.infer<typeof homologateFormalizationSchema>;

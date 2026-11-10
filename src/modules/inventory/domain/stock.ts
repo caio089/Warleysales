@@ -101,6 +101,24 @@ export function provisionBlocked(balance: StockBalance, quantity: number): Resul
   });
 }
 
+/**
+ * Converte saldo bloqueado em saldo físico (Pronto para Uso) após homologação.
+ * Debita `blocked` e credita `physical`.
+ */
+export function releaseBlocked(balance: StockBalance, quantity: number): Result<StockBalance> {
+  const q = validateQuantity(quantity);
+  if (!q.ok) return q;
+  const currentBlocked = balance.blocked ?? 0;
+  if (q.data > currentBlocked) {
+    return fail("INSUFFICIENT_BALANCE", "Saldo bloqueado menor que a quantidade a liberar.");
+  }
+  return ok({
+    physical: addQuantity(balance.physical, q.data),
+    reserved: balance.reserved,
+    blocked: subtractQuantity(currentBlocked, q.data),
+  });
+}
+
 /** Reconstrói o saldo físico a partir do ledger (usado na reconciliação, H2). */
 export function physicalFromLedger(movements: readonly StockMovement[]): number {
   return movements.reduce((sum, m) => addQuantity(sum, signedQuantity(m)), 0);

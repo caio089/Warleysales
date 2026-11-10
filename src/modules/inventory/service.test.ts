@@ -81,14 +81,28 @@ describe("InventoryService", () => {
 
     const levels = await ctx.service.listLevels(operatorOf(COUNCIL_A), COUNCIL_A);
     expect(levels.ok).toBe(true);
-    const item = levels.data?.find((l) => l.materialId === materialId);
+    if (!levels.ok) return;
+    const item = levels.data.find((l) => l.materialId === materialId);
     expect(item?.blocked).toBe(15);
     expect(item?.physical).toBe(0);
     expect(item?.available).toBe(0);
 
     // Tentativa por conselho alheio deve ser rejeitada
     const foreign = await ctx.service.provisionBlocked(operatorOf(COUNCIL_B), COUNCIL_A, [{ materialId, quantity: 5 }]);
-    expect(foreign.ok).toBe(false);
-    expect(foreign.code).toBe("FORBIDDEN");
+    expect(!foreign.ok && foreign.code).toBe("FORBIDDEN");
+  });
+
+  it("releaseBlockedStock converte saldo bloqueado em físico pronto para uso", async () => {
+    await ctx.service.provisionBlocked(operatorOf(COUNCIL_A), COUNCIL_A, [{ materialId, quantity: 20 }]);
+    const released = await ctx.service.releaseBlockedStock(COUNCIL_A, [{ materialId, quantity: 15 }]);
+    expect(released.ok).toBe(true);
+
+    const levels = await ctx.service.listLevels(operatorOf(COUNCIL_A), COUNCIL_A);
+    expect(levels.ok).toBe(true);
+    if (!levels.ok) return;
+    const item = levels.data.find((l) => l.materialId === materialId);
+    expect(item?.blocked).toBe(5);
+    expect(item?.physical).toBe(15);
+    expect(item?.available).toBe(15);
   });
 });

@@ -6,6 +6,8 @@ import { ContractService } from "@/modules/contracts/service";
 import type { ContractRepository } from "@/modules/contracts/repository";
 import { DocumentService } from "@/modules/documents/service";
 import type { DocumentRepository, StoragePort } from "@/modules/documents/repository";
+import { FormalizationService } from "@/modules/formalizations/service";
+import type { FormalizationRepository } from "@/modules/formalizations/repository";
 import { CouncilService, MembershipService } from "@/modules/identity/service";
 import type { CouncilRepository, MembershipRepository } from "@/modules/identity/repository";
 import { InventoryService } from "@/modules/inventory/service";
@@ -45,6 +47,7 @@ export interface Repositories {
   suppliers: SupplierRepository;
   meetings: MeetingRepository;
   notifications: NotificationRepository;
+  formalizations: FormalizationRepository;
 }
 
 export interface Services {
@@ -53,6 +56,7 @@ export interface Services {
   memberships: MembershipService;
   processes: ProcessService;
   documents: DocumentService;
+  formalizations: FormalizationService;
   retention: RetentionService;
   inventory: InventoryService;
   transfers: TransferService;
@@ -72,6 +76,14 @@ export function createServices(repos: Repositories, runtime: RuntimeDeps): Servi
   const atas = new AtaService(repos.atas, audit, runtime);
   const contracts = new ContractService(repos.contracts, audit, runtime);
   const processes = new ProcessService(repos.processes, repos.documents, audit, runtime);
+  const formalizations = new FormalizationService(
+    repos.formalizations,
+    processes,
+    inventory,
+    audit,
+    runtime,
+    repos.purchases,
+  );
   const alertSource = new RepositoryAlertSource(repos.atas, repos.contracts, repos.memberships);
 
   return {
@@ -80,6 +92,7 @@ export function createServices(repos: Repositories, runtime: RuntimeDeps): Servi
     memberships: new MembershipService(repos.memberships, repos.councils, audit),
     processes,
     documents: new DocumentService(repos.documents, repos.processes, repos.storage, audit, runtime),
+    formalizations,
     retention: new RetentionService(repos.retention, repos.processes, repos.documents, repos.storage, audit, runtime),
     inventory,
     transfers: new TransferService(repos.transfers, inventory, audit, runtime),

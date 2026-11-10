@@ -2,6 +2,7 @@ import { InMemoryAtaRepository } from "@/modules/atas/repository.memory";
 import { InMemoryAuditRepository } from "@/modules/audit/repository.memory";
 import { InMemoryContractRepository } from "@/modules/contracts/repository.memory";
 import { InMemoryDocumentRepository, InMemoryStorage } from "@/modules/documents/repository.memory";
+import { InMemoryFormalizationRepository } from "@/modules/formalizations/repository.memory";
 import { InMemoryCouncilRepository, InMemoryMembershipRepository } from "@/modules/identity/repository.memory";
 import { InMemoryInventoryRepository } from "@/modules/inventory/repository.memory";
 import { InMemoryMeetingRepository } from "@/modules/meetings/repository.memory";
@@ -34,5 +35,6 @@ export function createMemoryRepositories(clock: () => Date = () => new Date()): 
     suppliers: new InMemorySupplierRepository(),
     meetings: new InMemoryMeetingRepository(),
     notifications: new InMemoryNotificationRepository(),
+    formalizations: new InMemoryFormalizationRepository(),
   };
 }

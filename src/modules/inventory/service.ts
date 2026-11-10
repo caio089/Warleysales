@@ -4,7 +4,7 @@ import { canInAnyCouncil, can, readableCouncilIds, type Actor } from "@/shared/l
 import { fail, ok, type Result } from "@/shared/lib/result";
 import { parseInput, type RuntimeDeps } from "@/shared/lib/service-support";
 import { classifyStockLevel, reconciliationDifference, type StockLevel } from "./domain/levels";
-import { applyMovement, availableOf, physicalFromLedger, provisionBlocked, releaseReservation, reserve, type MovementType } from "./domain/stock";
+import { applyMovement, availableOf, physicalFromLedger, provisionBlocked, releaseBlocked, releaseReservation, reserve, type MovementType } from "./domain/stock";
 import type { InventoryRepository, StockKey } from "./repository";
 import { createMaterialSchema, registerMovementSchema, setMinimumSchema, type Material } from "./schemas";
 
@@ -129,6 +129,51 @@ export class InventoryService {
       const result = await this.repository.transact({ councilId, materialId: item.materialId }, (state) => {
         const next = provisionBlocked(state.balance, item.quantity);
         return next.ok ? ok({ balance: next.data, value: undefined }) : next;
+      });
+      if (!result.ok) return result;
+    }
+
+    return ok(undefined);
+  }
+
+  /**
+   * Converte saldo bloqueado em saldo físico (Pronto para Uso) após homologação de Warley.
+   * Debita `blocked` e credita `physical` para cada item informado.
+   */
+  async releaseBlockedStock(
+    councilId: string,
+    items: { materialId: string; quantity: number }[],
+    idempotencyKeyPrefix?: string,
+  ): Promise<Result<void>> {
+    for (const item of items) {
+      if (!item.materialId || typeof item.materialId !== "string") {
+        return fail("VALIDATION", "Material inválido.");
+      }
+      if (!Number.isFinite(item.quantity) || item.quantity <= 0) {
+        return fail("VALIDATION", "A quantidade deve ser maior que zero.");
+      }
+    }
+
+    for (const item of items) {
+      const result = await this.repository.transact({ councilId, materialId: item.materialId }, (state) => {
+        const next = releaseBlocked(state.balance, item.quantity);
+        if (!next.ok) return next;
+        return ok({
+          balance: next.data,
+          value: undefined,
+          movement: {
+            councilId,
+            materialId: item.materialId,
+            type: "entry",
+            quantity: item.quantity,
+            idempotencyKey: idempotencyKeyPrefix
+              ? `release:${idempotencyKeyPrefix}:${item.materialId}`
+              : `release:${councilId}:${item.materialId}:${this.runtime.now().getTime()}`,
+            reason: "Homologação de formalização (liberação de saldo)",
+            reference: null,
+            actorId: null,
+          },
+        });
       });
       if (!result.ok) return result;
     }

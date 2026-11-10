@@ -3,6 +3,7 @@ import type { Repositories } from "../container";
 import { SupabaseAtaRepository } from "./adapters/atas";
 import { SupabaseAuditRepository } from "./adapters/audit";
 import { SupabaseContractRepository } from "./adapters/contracts";
+import { SupabaseFormalizationRepository } from "./adapters/formalizations";
 import { SupabaseCouncilRepository, SupabaseMembershipRepository } from "./adapters/identity";
 import { SupabaseInventoryRepository } from "./adapters/inventory";
 import { SupabaseMeetingRepository } from "./adapters/meetings";
@@ -33,5 +34,6 @@ export function createSupabaseRepositories(): Repositories {
     suppliers: new SupabaseSupplierRepository(db),
     meetings: new SupabaseMeetingRepository(db),
     notifications: new SupabaseNotificationRepository(db),
+    formalizations: new SupabaseFormalizationRepository(db),
   };
 }

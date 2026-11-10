@@ -26,6 +26,9 @@ export type PermissionAction =
   | "report.view"
   | "audit.view"
   | "retention.manage"
+  | "formalization.submit"
+  | "formalization.homologate"
+  | "formalization.reject"
   | "data.delete_manual";
 
 export interface Membership {
@@ -69,6 +72,9 @@ const ROLES_BY_ACTION: Record<Exclude<PermissionAction, "data.delete_manual">, R
   "report.view": ["council_manager", "viewer"],
   "audit.view": MANAGER,
   "retention.manage": null,
+  "formalization.submit": MANAGER_OPERATOR,
+  "formalization.homologate": null,
+  "formalization.reject": null,
 };
 
 /**

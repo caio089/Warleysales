@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyMovement, availableOf, physicalFromLedger, provisionBlocked, releaseReservation, reserve, type StockMovement } from "./stock";
+import { applyMovement, availableOf, physicalFromLedger, provisionBlocked, releaseBlocked, releaseReservation, reserve, type StockMovement } from "./stock";
 import { classifyStockLevel, reconciliationDifference } from "./levels";
 
 const mv = (type: StockMovement["type"], quantity: number, key = `${type}-${quantity}`): StockMovement => ({ type, quantity, idempotencyKey: key });
@@ -92,5 +92,20 @@ describe("estoque bloqueado (Onda 1)", () => {
   it("rejeita quantidade inválida ao provisionar bloqueado", () => {
     expect(provisionBlocked({ physical: 0, reserved: 0, blocked: 0 }, 0).ok).toBe(false);
     expect(provisionBlocked({ physical: 0, reserved: 0, blocked: 0 }, -5).ok).toBe(false);
+  });
+
+  it("converte saldo bloqueado em físico ao liberar", () => {
+    const r = releaseBlocked({ physical: 5, reserved: 2, blocked: 10 }, 8);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.blocked).toBe(2);
+    expect(r.data.physical).toBe(13);
+    expect(r.data.reserved).toBe(2);
+    expect(availableOf(r.data)).toBe(11); // 13 - 2
+  });
+
+  it("rejeita liberar quantidade maior que o saldo bloqueado", () => {
+    const r = releaseBlocked({ physical: 5, reserved: 2, blocked: 5 }, 6);
+    expect(r.ok).toBe(false);
   });
 });

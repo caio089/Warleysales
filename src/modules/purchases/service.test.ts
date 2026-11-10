@@ -178,7 +178,9 @@ describe("PurchaseRequestService", () => {
     expect(r.data.estimatedValue).toBe(5000);
 
     const levels = await ctx.inventory.listLevels(operatorOf(COUNCIL_A), COUNCIL_A);
-    const item = levels.data?.find((l) => l.materialId === MATERIAL);
+    expect(levels.ok).toBe(true);
+    if (!levels.ok) return;
+    const item = levels.data.find((l) => l.materialId === MATERIAL);
     expect(item?.blocked).toBe(10);
     expect(item?.available).toBe(0); // Disponível ainda é 0
   });
