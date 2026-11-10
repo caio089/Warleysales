@@ -123,19 +123,21 @@ async function Content({
     const supplierNameMap = Object.fromEntries(suppliers.map((s) => [s.id, s.name]));
     const processNumberMap = Object.fromEntries(processes.data.map((p) => [p.process.id, p.process.number]));
 
-    const savingsHistory: SavingsHistoryItem[] = homologatedRes.data.map((f) => ({
-      id: f.id,
-      processId: f.processId,
-      processNumber: processNumberMap[f.processId] ?? f.processId.slice(0, 8),
-      supplierName: supplierNameMap[f.supplierId] ?? "Fornecedor",
-      instrumentType: f.instrumentType,
-      instrumentNumber: f.instrumentNumber,
-      estimatedValue: f.estimatedValue,
-      contractedValue: f.contractedValue,
-      savingsValue: f.savingsValue,
-      savingsPercent: f.savingsPercent,
-      homologatedAt: f.homologatedAt,
-    }));
+    const savingsHistory: SavingsHistoryItem[] = homologatedRes.data
+      .map((f) => ({
+        id: f.id,
+        processId: f.processId,
+        processNumber: processNumberMap[f.processId] ?? f.processId.slice(0, 8),
+        supplierName: supplierNameMap[f.supplierId] ?? "Fornecedor",
+        instrumentType: f.instrumentType,
+        instrumentNumber: f.instrumentNumber,
+        estimatedValue: f.estimatedValue,
+        contractedValue: f.contractedValue,
+        savingsValue: f.savingsValue,
+        savingsPercent: f.savingsPercent,
+        homologatedAt: f.homologatedAt,
+      }))
+      .sort((a, b) => new Date(b.homologatedAt ?? 0).getTime() - new Date(a.homologatedAt ?? 0).getTime());
 
     const councilRequests = requests.data
       .filter((r) => r.councilId === councilId)

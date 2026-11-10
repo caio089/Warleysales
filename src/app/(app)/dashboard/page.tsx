@@ -100,6 +100,7 @@ async function DashboardContent({
       id: f.id,
       processId: f.processId,
       processNumber: processMap[f.processId]?.number ?? f.processId.slice(0, 8),
+      processTitle: processMap[f.processId]?.title ?? "",
       councilId: f.councilId,
       councilName: lookups.data.councilLabel[f.councilId] ?? f.councilId,
       supplierId: f.supplierId,

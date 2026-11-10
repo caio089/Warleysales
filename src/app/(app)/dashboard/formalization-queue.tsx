@@ -2,18 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, ExternalLink, Scale, ShieldCheck, TrendingDown } from "lucide-react";
+import { ArrowRight, CheckCircle2, ExternalLink, ShieldCheck } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { homologateFormalizationAction } from "@/modules/formalizations/actions";
 import { formatCurrency, formatPercent } from "@/shared/lib/format";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { toast } from "@/shared/ui/toast-store";
-import { cn } from "@/lib/utils";
 
 export interface PendingFormalizationItem {
   id: string;
   processId: string;
   processNumber: string;
+  processTitle?: string;
   councilId: string;
   councilName: string;
   supplierId: string;
@@ -118,10 +118,17 @@ export function FormalizationQueue({ items }: FormalizationQueueProps) {
                   <td className="py-3.5 pr-4">
                     <Link
                       href={`/processos/${item.processId}`}
-                      className="group font-medium text-primary hover:text-highlight inline-flex items-center gap-1"
+                      className="group font-medium text-primary hover:text-highlight inline-flex flex-col"
                     >
-                      <span>{item.processNumber}</span>
-                      <ExternalLink className="size-3 opacity-0 transition-opacity group-hover:opacity-100" />
+                      <span className="inline-flex items-center gap-1 font-semibold">
+                        {item.processNumber}
+                        <ExternalLink className="size-3 opacity-0 transition-opacity group-hover:opacity-100" />
+                      </span>
+                      {item.processTitle ? (
+                        <span className="text-xs text-muted-foreground truncate max-w-[220px]" title={item.processTitle}>
+                          {item.processTitle}
+                        </span>
+                      ) : null}
                     </Link>
                   </td>
                   <td className="py-3.5 pr-4 text-muted-foreground max-w-[200px] truncate" title={item.supplierName}>
