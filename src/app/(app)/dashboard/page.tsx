@@ -11,6 +11,7 @@ import {
   ScrollText,
   ShoppingCart,
   Timer,
+  TrendingDown,
   Truck,
   Warehouse,
 } from "lucide-react";
@@ -19,7 +20,7 @@ import { parseDashboardQuery } from "@/modules/reports/dashboard-query";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { canInAnyCouncil } from "@/shared/lib/authz/policy";
-import { formatPercent } from "@/shared/lib/format";
+import { formatCurrency, formatPercent } from "@/shared/lib/format";
 import { ok } from "@/shared/lib/result";
 import { KpiCard } from "@/shared/ui/kpi-card";
 import { LoadingState } from "@/shared/ui/feedback-states";
@@ -27,6 +28,7 @@ import { PageHeader, SectionLabel } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { BriefingCard, BriefingFallback } from "./briefing-card";
 import { DashboardFilters } from "./filters";
+import { FormalizationQueue, type PendingFormalizationItem } from "./formalization-queue";
 import {
   AlertsPanel,
   AttentionPanel,
@@ -57,13 +59,28 @@ async function DashboardContent({
   });
 
   const result = await loadScreen(async (ctx) => {
-    const [dash, alerts, lookups, requests, meetings, stockLevels] = await Promise.all([
+    const [
+      dash,
+      alerts,
+      lookups,
+      requests,
+      meetings,
+      stockLevels,
+      pendingFormalizations,
+      savingsSummary,
+      suppliersRes,
+      processesRes,
+    ] = await Promise.all([
       ctx.services.reports.dashboard(ctx.actor, { councilId }),
       ctx.services.notifications.listMine(ctx.actor),
       loadLookups(ctx),
       ctx.services.purchases.list(ctx.actor),
       ctx.services.meetings.list(ctx.actor),
       ctx.services.inventory.listLevels(ctx.actor, councilId),
+      ctx.actor.isCentralAdmin ? ctx.services.formalizations.listPending(ctx.actor) : Promise.resolve(ok([])),
+      ctx.services.formalizations.getSavingsSummary(ctx.actor, councilId),
+      ctx.services.suppliers.list(ctx.actor),
+      ctx.services.processes.list(ctx.actor),
     ]);
     if (!dash.ok) return dash;
     if (!alerts.ok) return alerts;
@@ -71,6 +88,30 @@ async function DashboardContent({
     if (!requests.ok) return requests;
     if (!meetings.ok) return meetings;
     if (!stockLevels.ok) return stockLevels;
+    if (!pendingFormalizations.ok) return pendingFormalizations;
+    if (!savingsSummary.ok) return savingsSummary;
+
+    const suppliers = suppliersRes.ok ? suppliersRes.data : [];
+    const processes = processesRes.ok ? processesRes.data : [];
+    const supplierMap = Object.fromEntries(suppliers.map((s) => [s.id, s.name]));
+    const processMap = Object.fromEntries(processes.map((p) => [p.process.id, p.process]));
+
+    const pendingQueue: PendingFormalizationItem[] = pendingFormalizations.data.map((f) => ({
+      id: f.id,
+      processId: f.processId,
+      processNumber: processMap[f.processId]?.number ?? f.processId.slice(0, 8),
+      councilId: f.councilId,
+      councilName: lookups.data.councilLabel[f.councilId] ?? f.councilId,
+      supplierId: f.supplierId,
+      supplierName: supplierMap[f.supplierId] ?? "Fornecedor",
+      instrumentType: f.instrumentType,
+      instrumentNumber: f.instrumentNumber,
+      estimatedValue: f.estimatedValue,
+      contractedValue: f.contractedValue,
+      savingsValue: f.savingsValue,
+      savingsPercent: f.savingsPercent,
+      createdAt: f.createdAt,
+    }));
 
     return ok({
       dash: dash.data,
@@ -79,6 +120,9 @@ async function DashboardContent({
       requests: requests.data,
       meetings: meetings.data,
       stockLevels: stockLevels.data,
+      pendingQueue,
+      savingsSummary: savingsSummary.data,
+      isWarley: ctx.actor.isCentralAdmin,
       canCreateProcess: canInAnyCouncil(ctx.actor, "process.create"),
       canDecideRequest: canInAnyCouncil(ctx.actor, "request.decide"),
     });
@@ -89,7 +133,18 @@ async function DashboardContent({
 
   return (
     <Screen result={result}>
-      {({ dash, alerts, lookups, requests, meetings, stockLevels, canCreateProcess }) => {
+      {({
+        dash,
+        alerts,
+        lookups,
+        requests,
+        meetings,
+        stockLevels,
+        pendingQueue,
+        savingsSummary,
+        isWarley,
+        canCreateProcess,
+      }) => {
         const councilLabel = councilId ? (lookups.councilLabel[councilId] ?? null) : null;
 
         // Filtro de escopo por empresa
@@ -191,6 +246,11 @@ async function DashboardContent({
           <div className="space-y-8">
             <DashboardFilters councils={lookups.councils} councilId={councilId} focus={focus} />
 
+            {/* Fila de Veredito de Warley (Homologações de Contratações) */}
+            {isWarley ? (
+              <FormalizationQueue items={pendingQueue} />
+            ) : null}
+
             {/* Ilha de Inteligência Artificial — Briefing Operacional em tempo real */}
             <Suspense fallback={<BriefingFallback />}>
               <BriefingCard facts={facts} />
@@ -199,13 +259,19 @@ async function DashboardContent({
             {/* Grid Estratégico de Indicadores-Chave (KPIs) */}
             <section aria-label="Indicadores Prioritários" className="space-y-3">
               <SectionLabel>Indicadores Estratégicos da Operação</SectionLabel>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                 <KpiCard
                   href="/conselhos"
                   icon={<Building2 className="size-4" aria-hidden />}
                   label="Empresas Parceiras"
                   value={lookups.councils.length}
                   hint="Ativas na plataforma"
+                />
+                <KpiCard
+                  icon={<TrendingDown className="size-4" aria-hidden />}
+                  label="Economia Gerada"
+                  value={formatCurrency(savingsSummary.totalSavings)}
+                  hint={`${formatPercent(savingsSummary.averageSavingsPercent)} redução média`}
                 />
                 <KpiCard
                   href="/solicitacoes"

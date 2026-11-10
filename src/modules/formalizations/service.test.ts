@@ -304,5 +304,17 @@ describe("FormalizationService", () => {
     expect(summary.data.totalSavings).toBe(7000);
     // (7000 / 30000) * 100 = 23.33%
     expect(summary.data.averageSavingsPercent).toBe(23.33);
+
+    // listHomologated deve retornar os 2 itens para o conselho A e vazio para conselho B
+    const listA = await ctx.formalizations.listHomologated(viewerOf(COUNCIL_A), COUNCIL_A);
+    expect(listA.ok).toBe(true);
+    if (!listA.ok) return;
+    expect(listA.data.length).toBe(2);
+    expect(listA.data.every((i) => i.status === "homologado")).toBe(true);
+
+    const listB = await ctx.formalizations.listHomologated(viewerOf(COUNCIL_B), COUNCIL_B);
+    expect(listB.ok).toBe(true);
+    if (!listB.ok) return;
+    expect(listB.data.length).toBe(0);
   });
 });

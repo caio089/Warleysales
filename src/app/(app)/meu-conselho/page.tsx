@@ -11,19 +11,23 @@ import {
   Package,
   PackageCheck,
   Plus,
+  ScrollText,
   ShoppingCart,
+  TrendingDown,
   Truck,
 } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { NewMeetingForm } from "@/app/(app)/reunioes/meeting-forms";
 import type { Meeting } from "@/modules/meetings/schemas";
 import type { ProcessView } from "@/modules/processes/service";
 import type { PurchaseRequest } from "@/modules/purchases/schemas";
 import type { StockLevelView } from "@/modules/inventory/service";
 import type { DashboardSnapshot } from "@/modules/reports/service";
+import type { SavingsSummary } from "@/modules/formalizations/service";
 import { loadLookups, type Lookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { can } from "@/shared/lib/authz/policy";
+import { formatCurrency, formatPercent } from "@/shared/lib/format";
 import { ok, type Result } from "@/shared/lib/result";
 import { KpiCard } from "@/shared/ui/kpi-card";
 import { LoadingState } from "@/shared/ui/feedback-states";
@@ -36,6 +40,7 @@ import { presentationOf, REQUEST_STATUS } from "@/shared/ui/status-presentation"
 import { ActionHub, buildCouncilActions } from "./action-hub";
 import { CouncilPicker } from "./council-picker";
 import { MeetingsOverview, ProcessesOverview, RequestsOverview } from "./overview-lists";
+import { SavingsHistoryDialog, type SavingsHistoryItem } from "./savings-history-dialog";
 
 export const metadata: Metadata = { title: "Portal da Empresa" };
 
@@ -57,6 +62,8 @@ type PanelData =
       meetings: Meeting[];
       meetingsOpen: number;
       stockLevels: StockLevelView[];
+      savingsSummary: SavingsSummary;
+      savingsHistory: SavingsHistoryItem[];
       canCreateRequest: boolean;
       canCreateProcess: boolean;
       canManageMeeting: boolean;
@@ -94,18 +101,41 @@ async function Content({
       return ok({ empty: true, lookups: lookups.data });
     }
 
-    const [dash, requests, meetings, stockRes, processes] = await Promise.all([
+    const [dash, requests, meetings, stockRes, processes, savingsRes, homologatedRes, suppliersRes] = await Promise.all([
       ctx.services.reports.dashboard(ctx.actor, { councilId }),
       ctx.services.purchases.list(ctx.actor),
       ctx.services.meetings.list(ctx.actor),
       ctx.services.inventory.listLevels(ctx.actor, councilId),
       ctx.services.processes.list(ctx.actor),
+      ctx.services.formalizations.getSavingsSummary(ctx.actor, councilId),
+      ctx.services.formalizations.listHomologated(ctx.actor, councilId),
+      ctx.services.suppliers.list(ctx.actor),
     ]);
     if (!dash.ok) return dash;
     if (!requests.ok) return requests;
     if (!meetings.ok) return meetings;
     if (!stockRes.ok) return stockRes;
     if (!processes.ok) return processes;
+    if (!savingsRes.ok) return savingsRes;
+    if (!homologatedRes.ok) return homologatedRes;
+
+    const suppliers = suppliersRes.ok ? suppliersRes.data : [];
+    const supplierNameMap = Object.fromEntries(suppliers.map((s) => [s.id, s.name]));
+    const processNumberMap = Object.fromEntries(processes.data.map((p) => [p.process.id, p.process.number]));
+
+    const savingsHistory: SavingsHistoryItem[] = homologatedRes.data.map((f) => ({
+      id: f.id,
+      processId: f.processId,
+      processNumber: processNumberMap[f.processId] ?? f.processId.slice(0, 8),
+      supplierName: supplierNameMap[f.supplierId] ?? "Fornecedor",
+      instrumentType: f.instrumentType,
+      instrumentNumber: f.instrumentNumber,
+      estimatedValue: f.estimatedValue,
+      contractedValue: f.contractedValue,
+      savingsValue: f.savingsValue,
+      savingsPercent: f.savingsPercent,
+      homologatedAt: f.homologatedAt,
+    }));
 
     const councilRequests = requests.data
       .filter((r) => r.councilId === councilId)
@@ -165,6 +195,8 @@ async function Content({
       meetings: councilMeetings.slice(0, 6),
       meetingsOpen: councilMeetings.filter((m) => m.status === "agendada").length,
       stockLevels: stockRes.data,
+      savingsSummary: savingsRes.data,
+      savingsHistory,
       canCreateRequest: can(ctx.actor, "request.create", councilId),
       canCreateProcess: can(ctx.actor, "process.create", councilId),
       canManageMeeting: can(ctx.actor, "meeting.manage", councilId),
@@ -203,6 +235,8 @@ async function Content({
           meetings,
           meetingsOpen,
           stockLevels,
+          savingsSummary,
+          savingsHistory,
           canCreateRequest,
           canCreateProcess,
           canManageMeeting,
@@ -241,6 +275,68 @@ async function Content({
               <SectionLabel>O que você pode fazer</SectionLabel>
               <ActionHub items={actions} />
             </div>
+
+            {/* Destaque Institucional: Economia Gerada no Conselho */}
+            <section
+              aria-label="Economia Gerada"
+              className="surface-card relative overflow-hidden rounded-2xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/8 via-card to-card p-6 shadow-xs"
+            >
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div className="space-y-1.5 max-w-xl">
+                  <div className="flex items-center gap-2">
+                    <span className="grid size-9 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                      <TrendingDown className="size-5" aria-hidden />
+                    </span>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                      Eficiência Orçamentária Institucional
+                    </span>
+                  </div>
+                  <h2 className="font-heading text-xl font-semibold tracking-tight text-primary">
+                    Economia Gerada nas Contratações
+                  </h2>
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    Resultado financeiro acumulado obtido através das negociações e contratações homologadas por Warley para a empresa.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-6 sm:gap-8">
+                  <div>
+                    <p className="text-[0.68rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Total Economizado
+                    </p>
+                    <p className="font-heading text-2xl sm:text-3xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                      {formatCurrency(savingsSummary.totalSavings)}
+                    </p>
+                  </div>
+
+                  <div className="border-l border-border/80 pl-6 sm:pl-8">
+                    <p className="text-[0.68rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Desconto Médio
+                    </p>
+                    <p className="font-heading text-2xl sm:text-3xl font-semibold tabular-nums text-primary">
+                      {formatPercent(savingsSummary.averageSavingsPercent)}
+                    </p>
+                  </div>
+
+                  <div className="lg:border-l lg:border-border/80 lg:pl-8">
+                    <SavingsHistoryDialog
+                      councilName={label}
+                      summary={savingsSummary}
+                      items={savingsHistory}
+                      trigger={
+                        <Button
+                          variant="outline"
+                          className="gap-2 border-emerald-500/30 font-medium text-primary hover:bg-emerald-500/10 hover:text-emerald-700 dark:hover:text-emerald-300"
+                        >
+                          <ScrollText className="size-4 text-emerald-600 dark:text-emerald-400" />
+                          Ver Histórico de Economia e Contratações
+                        </Button>
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
 
             {/* Resumo Operacional da Empresa */}
             <div className="space-y-3">

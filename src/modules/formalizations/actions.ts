@@ -92,6 +92,7 @@ export async function homologateFormalizationAction(
     revalidatePath("/processos");
     revalidatePath("/estoque");
     revalidatePath("/dashboard");
+    revalidatePath("/meu-conselho");
   }
 
   return result.status === "success"

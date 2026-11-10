@@ -316,4 +316,21 @@ export class FormalizationService {
       count: list.length,
     });
   }
+
+  /**
+   * Lista formalizações homologadas (histórico de contratações e economia) respeitando permissões.
+   */
+  async listHomologated(actor: Actor, councilId?: string): Promise<Result<ProcessFormalization[]>> {
+    if (councilId && !can(actor, "council.read", councilId)) {
+      return fail("FORBIDDEN", "Sem acesso a este conselho.");
+    }
+
+    const scope = councilId ? [councilId] : readableCouncilIds(actor);
+    if (scope !== "all" && scope.length === 0) {
+      return ok([]);
+    }
+
+    const list = await this.repository.listByCouncils(scope, { status: "homologado" });
+    return ok(list);
+  }
 }
