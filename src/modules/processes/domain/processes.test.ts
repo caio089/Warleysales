@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DOCUMENT_TYPE_CODES, type DocumentTypeCode } from "./document-types";
+import { DOCUMENT_TYPE_CODES } from "./document-types";
 import { calculateProgress, type ProcessAttachment } from "./progress";
 import { buildSnapshot, effectiveProgressPercent, reevaluateCompletion } from "./completion";
 import { evaluateCleanupEligibility } from "./cleanup-eligibility";

@@ -66,7 +66,7 @@ async function ProcessContent({ params }: { params: Promise<{ id: string }> }) {
         const completion = presentationOf(COMPLETION_STATUS, view.completion);
         const typesCount = view.process.snapshot ? DOCUMENT_TYPES.length : view.progress.validTypes.length;
         const additionalDocs = documents.filter(
-          (d) => !DOCUMENT_TYPE_CODES.includes(d.typeCode as any) && d.linkStatus === "active",
+          (d) => !(DOCUMENT_TYPE_CODES as readonly string[]).includes(d.typeCode) && d.linkStatus === "active",
         );
         const next = processNextStep({
           completion: view.completion,

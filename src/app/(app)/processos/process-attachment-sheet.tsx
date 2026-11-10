@@ -256,7 +256,7 @@ function ProcessAttachmentSheetInner({
   const additionalDocs = data
     ? data.documents.filter(
         (doc) =>
-          !DOCUMENT_TYPE_CODES.includes(doc.typeCode as any) &&
+          !(DOCUMENT_TYPE_CODES as readonly string[]).includes(doc.typeCode) &&
           doc.linkStatus === "active",
       )
     : [];
