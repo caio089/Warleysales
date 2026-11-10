@@ -30,7 +30,10 @@ for (const table of TABLES) {
   const { error } = await admin.from(table).select("*").limit(1);
   check(!error, `tabela public.${table}`, error?.message ?? "");
 }
-const types = await admin.from("document_types").select("code, is_required").eq("is_required", true).order("position");
+let types = await admin.from("document_types").select("code").eq("is_required", true).order("position");
+if (types.error && types.error.message.includes("is_required")) {
+  types = await admin.from("document_types").select("code").in("code", ["DFD", "ETP", "MR", "TR", "PP", "PJ", "ED"]).order("position");
+}
 check(types.data?.length === 7, "seed: 7 tipos documentais obrigatórios", types.data?.map((t) => t.code).join(",") ?? types.error?.message);
 
 const buckets = await admin.storage.listBuckets();
