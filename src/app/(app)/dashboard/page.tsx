@@ -21,13 +21,12 @@ import { DashboardFilters } from "./filters";
 import { FormalizationQueue, type PendingFormalizationItem } from "./formalization-queue";
 import { OrderQueue, type PendingOrderItem } from "./order-queue";
 import {
+  AgendaAndDeadlinesPanel,
   AlertsPanel,
   DeadlinesPanel,
-  DeliveriesSummaryPanel,
   RecentRequestsPanel,
   ReplenishmentPanel,
   StatusDistribution,
-  UpcomingMeetingsPanel,
 } from "./panels";
 
 export const metadata: Metadata = { title: "Central Operacional" };
@@ -252,8 +251,13 @@ async function DashboardContent({
         const s = dash.summary;
 
         return (
-          <div className="space-y-8">
-            <DashboardFilters councils={lookups.councils} councilId={councilId} focus={focus} />
+          <div className="space-y-6">
+            <DashboardFilters
+              councils={lookups.councils}
+              councilId={councilId}
+              focus={focus}
+              attentionCount={replenishmentItems.length}
+            />
 
             {/* Fila de Veredito de Warley (Homologações de Contratações) */}
             {isWarley ? (
@@ -273,7 +277,7 @@ async function DashboardContent({
             {/* Grid Estratégico de Indicadores-Chave (4 KPIs Mestres) */}
             <section aria-label="Indicadores Prioritários" className="space-y-3">
               <SectionLabel>Indicadores Estratégicos da Operação</SectionLabel>
-              <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <KpiCard
                   href="/solicitacoes"
                   icon={<ShoppingCart className="size-4" aria-hidden />}
@@ -296,7 +300,7 @@ async function DashboardContent({
                   label="Estoque Crítico"
                   value={replenishmentItems.length}
                   accent={replenishmentItems.length > 0}
-                  hint={replenishmentItems.length > 0 ? "Exige reposição" : "Estável"}
+                  hint={replenishmentItems.length > 0 ? "Exige reposição urgente" : "Estável"}
                 />
                 <KpiCard
                   icon={<TrendingDown className="size-4" aria-hidden />}
@@ -307,24 +311,58 @@ async function DashboardContent({
               </div>
             </section>
 
-            {/* Grade Principal da Operação (2 Colunas Balanceadas) */}
-            <div className="grid gap-6 lg:grid-cols-2 items-start">
-              <div className="space-y-6">
-                <RecentRequestsPanel items={recentRequests} />
-                <ReplenishmentPanel items={replenishmentItems} />
-                <DeliveriesSummaryPanel delivered={deliveredUnits} pending={pendingDeliveryUnits} />
-              </div>
-              <div className="space-y-6">
-                <UpcomingMeetingsPanel items={upcomingMeetings.slice(0, 4)} />
-                <AlertsPanel items={alertItems} unread={alerts.unread} />
-                {showPrazos && dash.deadlines.length > 0 ? (
-                  <DeadlinesPanel items={dash.deadlines} />
-                ) : null}
-                {showDocs ? (
+            {/* Bento Grid Simétrico (12 Colunas: 7 col + 5 col) */}
+            {focus === "todos" ? (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                {/* LINHA 1 - ESQUERDA (7 COL): SOLICITAÇÕES OPERACIONAIS */}
+                <div className="lg:col-span-7 h-full flex flex-col justify-between">
+                  <RecentRequestsPanel items={recentRequests} />
+                </div>
+
+                {/* LINHA 1 - DIREITA (5 COL): ALERTAS & AVISOS */}
+                <div className="lg:col-span-5 h-full flex flex-col justify-between">
+                  <AlertsPanel items={alertItems} unread={alerts.unread} />
+                </div>
+
+                {/* LINHA 2 - ESQUERDA (7 COL): ÓRGÃOS COM NECESSIDADE DE REPOSIÇÃO */}
+                <div className="lg:col-span-7 h-full flex flex-col justify-between">
+                  <ReplenishmentPanel items={replenishmentItems} />
+                </div>
+
+                {/* LINHA 2 - DIREITA (5 COL): AGENDA + SITUAÇÃO DOS PROCESSOS EMPILHADOS */}
+                <div className="lg:col-span-5 flex flex-col justify-between gap-5">
+                  <AgendaAndDeadlinesPanel meetings={upcomingMeetings} deadlines={dash.deadlines} />
                   <StatusDistribution rows={dash.processStatuses} total={s.processes.total} />
-                ) : null}
+                </div>
               </div>
-            </div>
+            ) : focus === "atencao" ? (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                <div className="lg:col-span-7 h-full flex flex-col justify-between">
+                  <ReplenishmentPanel items={replenishmentItems} />
+                </div>
+                <div className="lg:col-span-5 h-full flex flex-col justify-between">
+                  <AlertsPanel items={alertItems} unread={alerts.unread} />
+                </div>
+              </div>
+            ) : focus === "documentos" ? (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                <div className="lg:col-span-7 h-full flex flex-col justify-between">
+                  <StatusDistribution rows={dash.processStatuses} total={s.processes.total} />
+                </div>
+                <div className="lg:col-span-5 flex flex-col justify-between gap-5">
+                  <AgendaAndDeadlinesPanel meetings={upcomingMeetings} deadlines={dash.deadlines} />
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                <div className="lg:col-span-7 h-full flex flex-col justify-between">
+                  <DeadlinesPanel items={dash.deadlines} />
+                </div>
+                <div className="lg:col-span-5 flex flex-col justify-between gap-5">
+                  <AgendaAndDeadlinesPanel meetings={upcomingMeetings} deadlines={dash.deadlines} />
+                </div>
+              </div>
+            )}
           </div>
         );
       }}

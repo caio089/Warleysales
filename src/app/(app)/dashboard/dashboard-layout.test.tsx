@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
+  AgendaAndDeadlinesPanel,
   UpcomingMeetingsPanel,
   AlertsPanel,
   DeliveriesSummaryPanel,
@@ -50,7 +51,7 @@ describe("Dashboard Panels", () => {
     );
     expect(html).toContain("Alertas &amp; Avisos");
     expect(html).toContain("Ata vencendo");
-    expect(html).toContain("1 não lido(s)");
+    expect(html).toContain("1 não lido");
   });
 
   it("DeliveriesSummaryPanel renderiza entregas e taxa de conclusão", () => {
@@ -87,7 +88,7 @@ describe("Dashboard Panels", () => {
   it("RecentRequestsPanel renderiza solicitações operacionais", () => {
     const emptyHtml = renderToStaticMarkup(<RecentRequestsPanel items={[]} />);
     expect(emptyHtml).toContain("Solicitações Operacionais");
-    expect(emptyHtml).toContain("Nenhuma solicitação registrada");
+    expect(emptyHtml).toContain("Nenhuma solicitação operacional registrada");
 
     const filledHtml = renderToStaticMarkup(
       <RecentRequestsPanel
@@ -105,5 +106,18 @@ describe("Dashboard Panels", () => {
     );
     expect(filledHtml).toContain("Aquisição de cadeiras");
     expect(filledHtml).toContain("CRM");
+  });
+
+  it("AgendaAndDeadlinesPanel renderiza reunião e prazo unificados", () => {
+    const html = renderToStaticMarkup(
+      <AgendaAndDeadlinesPanel
+        meetings={[{ id: "m1", title: "Pauta Ordinária", company: "CRQ", scheduledAt: new Date().toISOString() }]}
+        deadlines={[{ id: "d1", kind: "contract", label: "CT-042/2026", days: 12, href: "/contratos/d1" }]}
+      />
+    );
+    expect(html).toContain("Agenda &amp; Prazos (60 dias)");
+    expect(html).toContain("Pauta Ordinária");
+    expect(html).toContain("CT-042/2026");
+    expect(html).toContain("Vence em 12d");
   });
 });

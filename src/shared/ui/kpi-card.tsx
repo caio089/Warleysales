@@ -16,43 +16,34 @@ interface KpiCardProps {
 export function KpiCard({ label, value, hint, icon, href, accent = false }: KpiCardProps) {
   const inner = (
     <>
-      <span
-        aria-hidden
-        className={cn(
-          "absolute top-4 left-0 h-6 w-1 rounded-r-full transition-colors",
-          accent ? "bg-amber-500 dark:bg-amber-400" : "bg-primary/20 group-hover:bg-primary/40",
-        )}
-      />
-      <div className="relative flex items-center justify-between gap-2 pl-2">
-        <p className="text-xs font-medium text-muted-foreground truncate">{label}</p>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 truncate">{label}</span>
         {icon ? (
-          <span
+          <div
             className={cn(
-              "grid size-8 shrink-0 place-items-center rounded-lg transition-transform duration-200 group-hover:scale-105",
+              "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105",
               accent
-                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                : "bg-secondary/80 text-muted-foreground group-hover:text-primary",
+                ? "bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400"
+                : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
             )}
           >
             {icon}
-          </span>
+          </div>
         ) : null}
       </div>
-      <p
-        className={cn(
-          "relative mt-2 pl-2 font-heading text-2xl sm:text-3xl font-semibold tabular-nums tracking-tight",
-          accent ? "text-amber-600 dark:text-amber-400" : "text-primary",
-        )}
-      >
-        {value ?? "—"}
-      </p>
-      {hint ? <div className="relative mt-1 pl-2 text-xs text-muted-foreground/80 line-clamp-1">{hint}</div> : null}
+      <div className="flex items-baseline justify-between mt-1">
+        <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 tabular-nums">
+          {value ?? "—"}
+        </span>
+        {hint ? <span className="text-[11px] font-medium text-slate-400 truncate">{hint}</span> : null}
+      </div>
     </>
   );
 
   const className = cn(
-    "kpi-card surface-card card-hover group relative overflow-hidden p-4 sm:p-5 rounded-2xl border transition-all",
-    href && "block focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none hover:border-border/80",
+    "bg-white dark:bg-card rounded-2xl p-4 border border-slate-200/80 dark:border-border/80 border-l-4 shadow-xs flex flex-col justify-between h-28 transition-all group",
+    accent ? "border-l-amber-500" : "border-l-emerald-500",
+    href && "hover:border-slate-300 dark:hover:border-border hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F2942]/20",
   );
 
   if (href) {

@@ -3,9 +3,11 @@ import {
   AlertTriangle,
   ArrowUpRight,
   Bell,
+  Calendar,
   CalendarClock,
   CalendarDays,
   CheckCircle2,
+  ChevronRight,
   ClipboardList,
   Inbox,
   ShoppingCart,
@@ -28,46 +30,16 @@ export interface DashboardAlertItem {
   href: string;
 }
 
-function PanelEmpty({ icon: Icon, children }: { icon: LucideIcon; children: string }) {
-  return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/80 bg-secondary/40 px-4 py-6 text-center">
-      <span className="grid size-11 place-items-center rounded-2xl bg-card text-muted-foreground shadow-xs">
-        <Icon className="size-5" aria-hidden />
-      </span>
-      <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">{children}</p>
-    </div>
-  );
-}
-
-function PanelHeader({
-  icon: Icon,
-  title,
-  meta,
-  href,
-}: {
-  icon: LucideIcon;
-  title: string;
-  meta?: string;
-  href?: string;
-}) {
-  return (
-    <header className="mb-4 flex items-center justify-between gap-3">
-      <div className="flex items-center gap-2.5">
-        <span className="grid size-9 place-items-center rounded-xl bg-secondary text-primary">
-          <Icon className="size-4" aria-hidden />
-        </span>
-        <div>
-          <h2 className="font-heading text-base font-semibold tracking-tight text-primary">{title}</h2>
-          {meta ? <p className="text-xs text-muted-foreground">{meta}</p> : null}
-        </div>
-      </div>
-      {href ? (
-        <Link href={href} className="text-xs font-semibold text-primary underline-offset-4 hover:text-highlight hover:underline">
-          Ver todos
-        </Link>
-      ) : null}
-    </header>
-  );
+function parseMaterialLabel(raw: string): { sku: string; name: string } {
+  if (raw.includes(" — ")) {
+    const [part1, ...rest] = raw.split(" — ");
+    return { sku: part1.trim(), name: rest.join(" — ").trim() };
+  }
+  if (raw.includes(" - ")) {
+    const [part1, ...rest] = raw.split(" - ");
+    return { sku: part1.trim(), name: rest.join(" - ").trim() };
+  }
+  return { sku: "", name: raw };
 }
 
 /** Painel de órgãos que necessitam de reposição / atenção de estoque */
@@ -77,39 +49,64 @@ export function ReplenishmentPanel({
   items: { companyId: string; company: string; material: string; available: number; minimum: number; level: string }[];
 }) {
   return (
-    <section className="surface-card card-hover flex flex-col p-5" aria-label="Necessidade de reposição">
-      <PanelHeader icon={AlertTriangle} title="Órgãos com Necessidade de Reposição" meta={`${items.length} item(ns)`} href="/estoque" />
-      {items.length === 0 ? (
-        <PanelEmpty icon={CheckCircle2}>Todos os órgãos estão com níveis de estoque regulares acima do mínimo.</PanelEmpty>
-      ) : (
-        <ul className="space-y-2">
-          {items.map((item, idx) => (
-            <li key={`${item.companyId}-${item.material}-${idx}`}>
-              <Link
-                href={`/estoque`}
-                className="group flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card p-3 transition-all hover:-translate-y-0.5 hover:border-highlight/35 hover:shadow-xs"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate text-xs font-semibold text-muted-foreground uppercase">{item.company}</span>
-                    <span className={cn("size-2 rounded-full", item.level === "sem_disponibilidade" || item.level === "critico" ? "bg-destructive animate-pulse" : "bg-highlight")} />
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between h-full" aria-label="Necessidade de reposição">
+      <div>
+        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center text-red-600">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Órgãos com Necessidade de Reposição</h2>
+              <p className="text-xs text-slate-500">{items.length} itens abaixo do estoque mínimo</p>
+            </div>
+          </div>
+          <Link href="/estoque" className="text-xs font-semibold text-[#0F2942] hover:underline flex items-center gap-1">
+            Ver todos <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {items.length === 0 ? (
+          <div className="p-8 text-center text-xs text-slate-500 flex flex-col items-center gap-2">
+            <CheckCircle2 className="size-6 text-emerald-500" />
+            <p>Todos os órgãos estão com níveis de estoque regulares acima do mínimo.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100 px-5">
+            {items.map((item, idx) => {
+              const parsed = parseMaterialLabel(item.material);
+              return (
+                <div key={`${item.companyId}-${item.material}-${idx}`} className="py-3.5 flex items-center justify-between gap-4 hover:bg-slate-50/60 -mx-5 px-5 transition-colors">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-red-50 text-red-700">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                        {item.company}
+                      </span>
+                      <span className="text-sm font-semibold text-slate-800">{parsed.name}</span>
+                      {parsed.sku ? (
+                        <span className="font-mono text-[11px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
+                          {parsed.sku}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
-                  <p className="mt-0.5 truncate text-sm font-medium text-primary">{item.material}</p>
+
+                  <div className="text-right shrink-0">
+                    <span className="text-xs font-bold text-red-600 block">
+                      {item.available} disp. <span className="text-slate-400 font-normal">(mín. {item.minimum})</span>
+                    </span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Repor Urgente
+                    </span>
+                  </div>
                 </div>
-                <div className="shrink-0 text-right">
-                  <span className="block text-xs font-semibold tabular-nums text-destructive">
-                    {item.available} disp. (mín. {item.minimum})
-                  </span>
-                  <span className="text-[0.65rem] tracking-wide text-muted-foreground uppercase">
-                    Repor urgente
-                  </span>
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -120,41 +117,334 @@ export function RecentRequestsPanel({
   items: { id: string; title: string; company: string; status: string; createdAt: string; itemsCount: number }[];
 }) {
   return (
-    <section className="surface-card card-hover flex flex-col p-5" aria-label="Solicitações operacionais">
-      <PanelHeader icon={ShoppingCart} title="Solicitações Operacionais" meta={`${items.length} recente(s)`} href="/solicitacoes" />
-      {items.length === 0 ? (
-        <PanelEmpty icon={Inbox}>Nenhuma solicitação registrada no momento.</PanelEmpty>
-      ) : (
-        <ul className="space-y-2">
-          {items.map((req) => {
-            const statusPres = presentationOf(REQUEST_STATUS, req.status);
-            return (
-              <li key={req.id}>
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between h-full" aria-label="Solicitações operacionais">
+      <div>
+        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700">
+              <ShoppingCart className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Solicitações Operacionais</h2>
+              <p className="text-xs text-slate-500">{items.length} recentes registradas</p>
+            </div>
+          </div>
+          <Link href="/solicitacoes" className="text-xs font-semibold text-[#0F2942] hover:underline flex items-center gap-1">
+            Ver todos <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {items.length === 0 ? (
+          <div className="p-8 text-center text-xs text-slate-500 flex flex-col items-center gap-2">
+            <Inbox className="size-6 text-slate-400" />
+            <p>Nenhuma solicitação operacional registrada no momento.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100 px-5">
+            {items.map((sol) => {
+              const statusPres = presentationOf(REQUEST_STATUS, sol.status);
+              return (
                 <Link
-                  href={`/solicitacoes/${req.id}`}
-                  className="group flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card p-3 transition-all hover:-translate-y-0.5 hover:border-highlight/35 hover:shadow-xs"
+                  key={sol.id}
+                  href={`/solicitacoes/${sol.id}`}
+                  className="py-3.5 flex items-center justify-between gap-4 hover:bg-slate-50/60 -mx-5 px-5 transition-colors block"
                 >
-                  <div className="min-w-0 flex-1">
-                    <span className="truncate text-xs font-semibold text-muted-foreground uppercase">{req.company}</span>
-                    <p className="mt-0.5 truncate text-sm font-medium text-primary">{req.title}</p>
-                    <time className="mt-1 block text-[0.7rem] text-muted-foreground">
-                      {formatDateTimeFortaleza(req.createdAt)} · {req.itemsCount} item(ns)
-                    </time>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                        {sol.company}
+                      </span>
+                      <p className="text-sm font-semibold text-slate-800 truncate">{sol.title}</p>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {formatDateTimeFortaleza(sol.createdAt)} · {sol.itemsCount} item(ns)
+                    </p>
                   </div>
-                  <div className="shrink-0">
+                  <span className="shrink-0">
                     <StatusBadge label={statusPres.label} tone={statusPres.tone} />
-                  </div>
+                  </span>
                 </Link>
-              </li>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Painel de alertas com divisórias contínuas */
+export function AlertsPanel({ items, unread }: { items: DashboardAlertItem[]; unread: number }) {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between h-full" aria-label="Alertas recentes">
+      <div>
+        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
+              <Bell className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Alertas & Avisos</h2>
+              <p className="text-xs text-slate-500">{unread} não lidos</p>
+            </div>
+          </div>
+          <Link href="/alertas" className="text-xs font-semibold text-[#0F2942] hover:underline flex items-center gap-1">
+            Ver todos <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {items.length === 0 ? (
+          <div className="p-8 text-center text-xs text-slate-500 flex flex-col items-center gap-2">
+            <Inbox className="size-6 text-slate-400" />
+            <p>Nenhum alerta gerado. Prazos e avisos importantes aparecem aqui.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100 px-5 max-h-[380px] overflow-y-auto">
+            {items.map((alerta) => (
+              <Link
+                key={alerta.id}
+                href={alerta.href}
+                className="py-3.5 flex items-start justify-between gap-3 hover:bg-slate-50/60 -mx-5 px-5 transition-colors block"
+              >
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <span
+                    className={cn(
+                      "w-2 h-2 rounded-full mt-1.5 shrink-0",
+                      alerta.unread ? "bg-amber-500" : "bg-slate-300",
+                    )}
+                  />
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-800 truncate">{alerta.title}</p>
+                    <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{alerta.body}</p>
+                    <span className="text-[11px] text-slate-400 mt-1 block">
+                      {formatDateTimeFortaleza(alerta.at)}
+                    </span>
+                  </div>
+                </div>
+                <ArrowUpRight className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Card Combinado: Próximas Reuniões + Prazos (60 dias) */
+export function AgendaAndDeadlinesPanel({
+  meetings,
+  deadlines,
+}: {
+  meetings: { id: string; title: string; company: string; scheduledAt: string }[];
+  deadlines: DashboardDeadline[];
+}) {
+  const meeting = meetings[0];
+  const deadline = deadlines[0];
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5" aria-label="Agenda e prazos">
+      <div className="flex items-center justify-between mb-3.5">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700">
+            <Calendar className="w-4 h-4" />
+          </div>
+          <h2 className="text-sm font-bold text-slate-900">Agenda & Prazos (60 dias)</h2>
+        </div>
+        <Link href="/reunioes" className="text-xs font-semibold text-[#0F2942] hover:underline">
+          Ver todos
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Sub-bloco Reunião */}
+        {meeting ? (
+          <Link
+            href="/reunioes"
+            className="p-3 rounded-xl bg-slate-50 border border-slate-200/60 block hover:bg-slate-100/60 transition-colors"
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
+                Reunião · {meeting.company}
+              </span>
+              <span className="text-[11px] font-semibold text-amber-600">
+                {formatDateTimeFortaleza(meeting.scheduledAt)}
+              </span>
+            </div>
+            <p className="text-xs font-semibold text-slate-800 mt-1 truncate">
+              {meeting.title}
+            </p>
+          </Link>
+        ) : (
+          <div className="p-3 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center text-xs text-slate-400 flex items-center justify-center">
+            Nenhuma reunião agendada
+          </div>
+        )}
+
+        {/* Sub-bloco Contrato / Ata */}
+        {deadline ? (
+          <Link
+            href={deadline.href}
+            className="p-3 rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col justify-between hover:bg-slate-100/60 transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                {deadline.kind === "contract" ? "Contrato" : "Ata"}
+              </span>
+              <span
+                className={cn(
+                  "text-[11px] font-bold px-2 py-0.5 rounded-full",
+                  deadline.days <= 15 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700",
+                )}
+              >
+                Vence em {deadline.days}d
+              </span>
+            </div>
+            <p className="text-sm font-bold text-slate-900 mt-1 font-mono truncate">{deadline.label}</p>
+          </Link>
+        ) : (
+          <div className="p-3 rounded-xl bg-slate-50 border border-dashed border-slate-200 text-center text-xs text-slate-400 flex items-center justify-center">
+            Nenhum prazo próximo
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Card: Situação dos Processos */
+export function StatusDistribution({
+  rows,
+  total,
+}: {
+  rows: { status: string; count: number }[];
+  total: number;
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex-1 flex flex-col justify-between" aria-label="Processos por situação">
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700">
+          <CheckCircle2 className="w-4 h-4" />
+        </div>
+        <h2 className="text-sm font-bold text-slate-900">Situação dos Processos</h2>
+      </div>
+
+      {total === 0 ? (
+        <div className="p-4 text-center text-xs text-slate-400">
+          Nenhum processo neste recorte.
+        </div>
+      ) : (
+        <div className="space-y-3 my-auto">
+          {rows.map((row) => {
+            const pct = total === 0 ? 0 : Math.round((row.count / total) * 100);
+            const presentation = presentationOf(PROCESS_STATUS, row.status);
+            const cor =
+              row.status === "concluido"
+                ? "bg-emerald-500"
+                : row.status === "em_andamento"
+                  ? "bg-[#0F2942]"
+                  : "bg-amber-500";
+
+            return (
+              <div key={row.status} className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="font-medium text-slate-600">{presentation.label}</span>
+                  <span className="font-bold text-slate-900">{row.count}</span>
+                </div>
+                <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${cor}`} style={{ width: `${pct}%` }} />
+                </div>
+              </div>
             );
           })}
-        </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Mantido para foco em Prazos específico */
+export function DeadlinesPanel({ items }: { items: DashboardDeadline[] }) {
+  return (
+    <section className="bg-white rounded-2xl border border-slate-200/80 shadow-xs flex h-full flex-col p-5" aria-label="Prazos próximos">
+      <div className="flex items-center gap-2.5 mb-4">
+        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700">
+          <CalendarClock className="w-4 h-4" />
+        </div>
+        <h2 className="text-sm font-bold text-slate-900">Prazos (60 dias)</h2>
+      </div>
+      {items.length === 0 ? (
+        <div className="p-8 text-center text-xs text-slate-400">Nenhum contrato ou ata vence nos próximos 60 dias neste recorte.</div>
+      ) : (
+        <div className="divide-y divide-slate-100">
+          {items.map((item) => (
+            <Link
+              key={`${item.kind}-${item.id}`}
+              href={item.href}
+              className="py-3 flex items-center justify-between gap-3 hover:bg-slate-50 transition-colors block"
+            >
+              <span>
+                <span className="block text-[0.7rem] font-semibold tracking-wider text-slate-400 uppercase">
+                  {item.kind === "contract" ? "Contrato" : "Ata"}
+                </span>
+                <span className="text-sm font-medium text-slate-800">{item.label}</span>
+              </span>
+              <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold tabular-nums", item.days <= 15 ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700")}>
+                {item.days} d
+              </span>
+            </Link>
+          ))}
+        </div>
       )}
     </section>
   );
 }
 
-/** Painel de entregas e conferência de materiais */
+/** Mantido para compatibilidade */
+export function UpcomingMeetingsPanel({
+  items,
+}: {
+  items: { id: string; title: string; company: string; scheduledAt: string }[];
+}) {
+  return (
+    <section className="bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col p-5" aria-label="Próximas reuniões">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700">
+            <CalendarDays className="w-4 h-4" />
+          </div>
+          <h2 className="text-sm font-bold text-slate-900">Próximas Reuniões</h2>
+        </div>
+        <Link href="/reunioes" className="text-xs font-semibold text-[#0F2942] hover:underline">
+          Ver todos
+        </Link>
+      </div>
+      {items.length === 0 ? (
+        <div className="p-6 text-center text-xs text-slate-400">Nenhuma reunião agendada para os próximos dias.</div>
+      ) : (
+        <div className="divide-y divide-slate-100">
+          {items.map((m) => (
+            <Link
+              key={m.id}
+              href="/reunioes"
+              className="py-3 flex items-start gap-3 hover:bg-slate-50 transition-colors block"
+            >
+              <div className="min-w-0 flex-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-700">{m.company}</span>
+                <p className="truncate text-sm font-medium text-slate-800 mt-1">{m.title}</p>
+                <time className="mt-0.5 block text-xs text-amber-600 font-medium">
+                  {formatDateTimeFortaleza(m.scheduledAt)}
+                </time>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** Mantido para compatibilidade */
 export function DeliveriesSummaryPanel({
   delivered,
   pending,
@@ -166,153 +456,32 @@ export function DeliveriesSummaryPanel({
   const progressPct = total > 0 ? Math.round((delivered / total) * 100) : 100;
 
   return (
-    <section className="surface-card card-hover flex flex-col p-5" aria-label="Resumo de entregas">
-      <PanelHeader icon={Truck} title="Entregas & Atendimento" href="/solicitacoes" />
+    <section className="bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col p-5" aria-label="Resumo de entregas">
+      <div className="flex items-center gap-2.5 mb-4">
+        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700">
+          <Truck className="w-4 h-4" />
+        </div>
+        <h2 className="text-sm font-bold text-slate-900">Entregas & Atendimento</h2>
+      </div>
       <div className="flex flex-1 flex-col justify-between gap-4">
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-success-foreground/15 bg-success/30 p-3">
-            <span className="text-[0.68rem] font-semibold tracking-wider text-success-foreground uppercase">Realizadas</span>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-success-foreground">{delivered} un</p>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+            <span className="text-[0.68rem] font-semibold tracking-wider text-emerald-800 uppercase">Realizadas</span>
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-emerald-700">{delivered} un</p>
           </div>
-          <div className="rounded-xl border border-highlight/20 bg-highlight/10 p-3">
-            <span className="text-[0.68rem] font-semibold tracking-wider text-highlight uppercase">Pendentes</span>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-highlight">{pending} un</p>
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+            <span className="text-[0.68rem] font-semibold tracking-wider text-amber-800 uppercase">Pendentes</span>
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-amber-700">{pending} un</p>
           </div>
         </div>
         <div>
-          <div className="mb-1.5 flex items-center justify-between text-xs text-muted-foreground">
+          <div className="mb-1.5 flex items-center justify-between text-xs text-slate-500">
             <span>Taxa de conclusão de entregas</span>
-            <span className="font-semibold tabular-nums">{progressPct}%</span>
+            <span className="font-semibold tabular-nums text-slate-700">{progressPct}%</span>
           </div>
           <ProgressBar value={progressPct} label="Taxa de entregas" showValue={false} />
         </div>
       </div>
-    </section>
-  );
-}
-
-/** Painel de próximas reuniões */
-export function UpcomingMeetingsPanel({
-  items,
-}: {
-  items: { id: string; title: string; company: string; scheduledAt: string }[];
-}) {
-  return (
-    <section className="surface-card card-hover flex flex-col p-5" aria-label="Próximas reuniões">
-      <PanelHeader icon={CalendarDays} title="Próximas Reuniões" meta={`${items.length} agendada(s)`} href="/reunioes" />
-      {items.length === 0 ? (
-        <PanelEmpty icon={CalendarClock}>Nenhuma reunião agendada para os próximos dias.</PanelEmpty>
-      ) : (
-        <ul className="space-y-2">
-          {items.map((m) => (
-            <li key={m.id}>
-              <Link
-                href="/reunioes"
-                className="group flex items-start gap-3 rounded-xl border border-border/70 bg-card p-3 transition-all hover:-translate-y-0.5 hover:border-highlight/35 hover:shadow-xs"
-              >
-                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-secondary text-primary">
-                  <CalendarDays className="size-4" aria-hidden />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <span className="truncate text-xs font-semibold text-muted-foreground uppercase">{m.company}</span>
-                  <p className="truncate text-sm font-medium text-primary">{m.title}</p>
-                  <time className="mt-0.5 block text-[0.72rem] text-highlight font-medium">
-                    {formatDateTimeFortaleza(m.scheduledAt)}
-                  </time>
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-export function AlertsPanel({ items, unread }: { items: DashboardAlertItem[]; unread: number }) {
-  return (
-    <section className="surface-card card-hover flex flex-col p-5" aria-label="Alertas recentes">
-      <PanelHeader icon={Bell} title="Alertas & Avisos" meta={`${unread} não lido(s)`} href="/alertas" />
-      {items.length === 0 ? (
-        <PanelEmpty icon={Inbox}>Nenhum alerta gerado. Prazos e avisos importantes aparecem aqui.</PanelEmpty>
-      ) : (
-        <ul className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
-          {items.map((item) => (
-            <li key={item.id}>
-              <Link
-                href={item.href}
-                className="group flex items-start gap-3 rounded-xl border border-transparent bg-secondary/60 px-3 py-2.5 transition-all hover:-translate-y-0.5 hover:border-highlight/30 hover:bg-card hover:shadow-xs"
-              >
-                <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", item.unread ? "bg-highlight" : "bg-muted-foreground/40")} aria-hidden />
-                <span className="min-w-0">
-                  <span className={cn("block truncate text-sm", item.unread ? "font-semibold text-primary" : "text-foreground")}>{item.title}</span>
-                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">{item.body}</span>
-                  <time className="mt-1 block text-[0.7rem] text-muted-foreground" dateTime={item.at}>
-                    {formatDateTimeFortaleza(item.at)}
-                  </time>
-                </span>
-                <ArrowUpRight className="mt-1 ml-auto size-4 shrink-0 text-muted-foreground opacity-0 transition group-hover:opacity-100" aria-hidden />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-export function DeadlinesPanel({ items }: { items: DashboardDeadline[] }) {
-  return (
-    <section className="surface-card card-hover flex h-full flex-col p-5" aria-label="Prazos próximos">
-      <PanelHeader icon={CalendarClock} title="Prazos (60 dias)" />
-      {items.length === 0 ? (
-        <PanelEmpty icon={CalendarClock}>Nenhum contrato ou ata vence nos próximos 60 dias neste recorte.</PanelEmpty>
-      ) : (
-        <ul className="space-y-2">
-          {items.map((item) => (
-            <li key={`${item.kind}-${item.id}`}>
-              <Link href={item.href} className="group flex items-center justify-between gap-3 rounded-xl border border-border/70 px-3 py-3 transition-all hover:-translate-y-0.5 hover:border-highlight/35 hover:shadow-xs">
-                <span>
-                  <span className="block text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
-                    {item.kind === "contract" ? "Contrato" : "Ata"}
-                  </span>
-                  <span className="text-sm font-medium text-primary">{item.label}</span>
-                </span>
-                <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold tabular-nums", item.days <= 7 ? "bg-highlight/15 text-highlight" : "bg-secondary text-primary")}>
-                  {item.days} d
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
-export function StatusDistribution({ rows, total }: { rows: { status: string; count: number }[]; total: number }) {
-  return (
-    <section className="surface-card card-hover p-5" aria-label="Processos por situação">
-      <PanelHeader icon={ClipboardList} title="Situação dos processos" />
-      {total === 0 ? (
-        <PanelEmpty icon={Inbox}>Nenhum processo neste recorte — a média documental permanece sem valor.</PanelEmpty>
-      ) : (
-        <ul className="space-y-3">
-          {rows.map((row) => {
-            const pct = total === 0 ? 0 : Math.round((row.count / total) * 100);
-            const presentation = presentationOf(PROCESS_STATUS, row.status);
-            return (
-              <li key={row.status}>
-                <div className="mb-1 flex items-center justify-between text-sm">
-                  <span>{presentation.label}</span>
-                  <span className="tabular-nums text-muted-foreground">{row.count}</span>
-                </div>
-                <ProgressBar value={pct} label={presentation.label} showValue={false} />
-              </li>
-            );
-          })}
-        </ul>
-      )}
     </section>
   );
 }
