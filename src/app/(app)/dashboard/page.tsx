@@ -1,19 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import {
-  Building2,
-  CalendarDays,
-  ClipboardList,
-  FileCheck2,
-  FileWarning,
-  Package,
   PackageX,
-  ScrollText,
   ShoppingCart,
-  Timer,
   TrendingDown,
   Truck,
-  Warehouse,
 } from "lucide-react";
 import { buildBriefingFacts } from "@/modules/insights/briefing";
 import { parseDashboardQuery } from "@/modules/reports/dashboard-query";
@@ -32,12 +23,10 @@ import { FormalizationQueue, type PendingFormalizationItem } from "./formalizati
 import { OrderQueue, type PendingOrderItem } from "./order-queue";
 import {
   AlertsPanel,
-  AttentionPanel,
   DeadlinesPanel,
   DeliveriesSummaryPanel,
   RecentRequestsPanel,
   ReplenishmentPanel,
-  ShortcutGrid,
   StatusDistribution,
   UpcomingMeetingsPanel,
 } from "./panels";
@@ -255,7 +244,7 @@ async function DashboardContent({
           alertTitles: alerts.items.filter((n) => !n.readAt).map((n) => n.title),
         });
 
-        const alertItems = alerts.items.slice(0, 5).map((n) => ({
+        const alertItems = alerts.items.slice(0, 4).map((n) => ({
           id: n.id,
           title: n.title,
           body: n.body,
@@ -285,23 +274,10 @@ async function DashboardContent({
               <BriefingCard facts={facts} />
             </Suspense>
 
-            {/* Grid Estratégico de Indicadores-Chave (KPIs) */}
+            {/* Grid Estratégico de Indicadores-Chave (4 KPIs Mestres) */}
             <section aria-label="Indicadores Prioritários" className="space-y-3">
               <SectionLabel>Indicadores Estratégicos da Operação</SectionLabel>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                <KpiCard
-                  href="/conselhos"
-                  icon={<Building2 className="size-4" aria-hidden />}
-                  label="Órgãos Parceiros"
-                  value={lookups.councils.length}
-                  hint="Ativos na plataforma"
-                />
-                <KpiCard
-                  icon={<TrendingDown className="size-4" aria-hidden />}
-                  label="Economia Gerada"
-                  value={formatCurrency(savingsSummary.totalSavings)}
-                  hint={`${formatPercent(savingsSummary.averageSavingsPercent)} redução média`}
-                />
+              <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
                 <KpiCard
                   href="/solicitacoes"
                   icon={<ShoppingCart className="size-4" aria-hidden />}
@@ -327,53 +303,31 @@ async function DashboardContent({
                   hint={replenishmentItems.length > 0 ? "Exige reposição" : "Estável"}
                 />
                 <KpiCard
-                  href="/reunioes"
-                  icon={<CalendarDays className="size-4" aria-hidden />}
-                  label="Próximas Reuniões"
-                  value={upcomingMeetings.length}
-                  hint="Agendadas"
+                  icon={<TrendingDown className="size-4" aria-hidden />}
+                  label="Economia Gerada"
+                  value={formatCurrency(savingsSummary.totalSavings)}
+                  hint={`${formatPercent(savingsSummary.averageSavingsPercent)} redução média`}
                 />
               </div>
             </section>
 
-            {/* Painéis Centrais da Operação: Reposição vs Solicitações */}
-            <div className="grid gap-6 lg:grid-cols-2">
-              <ReplenishmentPanel items={replenishmentItems} />
-              <RecentRequestsPanel items={recentRequests} />
-            </div>
-
-            {/* Painéis de Acompanhamento: Entregas, Reuniões e Alertas */}
-            <div className="grid gap-6 lg:grid-cols-3">
-              <DeliveriesSummaryPanel delivered={deliveredUnits} pending={pendingDeliveryUnits} />
-              <UpcomingMeetingsPanel items={upcomingMeetings.slice(0, 4)} />
-              <AlertsPanel items={alertItems} unread={alerts.unread} />
-            </div>
-
-            {/* Processos e Documentação (quando aplicável ou selecionado no filtro) */}
-            {showDocs ? (
-              <section aria-label="Processos e Documentação" className="space-y-3">
-                <SectionLabel>Documentação e Governança</SectionLabel>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <KpiCard href="/processos" icon={<ClipboardList className="size-4" aria-hidden />} label="Processos Totais" value={s.processes.total} />
-                  <KpiCard href="/processos" icon={<FileCheck2 className="size-4" aria-hidden />} label="Docs Completos" value={s.processes.completed} />
-                  <KpiCard href="/processos" icon={<FileWarning className="size-4" aria-hidden />} label="Docs Pendentes" value={s.processes.pending} accent={s.processes.pending > 0} />
-                  <KpiCard icon={<ClipboardList className="size-4" aria-hidden />} label="Progresso Médio" value={s.processes.averageProgress === null ? null : formatPercent(s.processes.averageProgress)} />
-                </div>
-              </section>
-            ) : null}
-
-            {/* Prazos de Atas e Contratos */}
-            {showPrazos && dash.deadlines.length > 0 ? (
-              <div className="grid gap-6 lg:grid-cols-2">
-                <DeadlinesPanel items={dash.deadlines} />
-                <StatusDistribution rows={dash.processStatuses} total={s.processes.total} />
+            {/* Grade Principal da Operação (2 Colunas Balanceadas) */}
+            <div className="grid gap-6 lg:grid-cols-2 items-start">
+              <div className="space-y-6">
+                <RecentRequestsPanel items={recentRequests} />
+                <ReplenishmentPanel items={replenishmentItems} />
+                <DeliveriesSummaryPanel delivered={deliveredUnits} pending={pendingDeliveryUnits} />
               </div>
-            ) : null}
-
-            {/* Atalhos Rápidos da Central de Controle */}
-            <div className="space-y-3">
-              <SectionLabel>Ações Rápidas</SectionLabel>
-              <ShortcutGrid />
+              <div className="space-y-6">
+                <UpcomingMeetingsPanel items={upcomingMeetings.slice(0, 4)} />
+                <AlertsPanel items={alertItems} unread={alerts.unread} />
+                {showPrazos && dash.deadlines.length > 0 ? (
+                  <DeadlinesPanel items={dash.deadlines} />
+                ) : null}
+                {showDocs ? (
+                  <StatusDistribution rows={dash.processStatuses} total={s.processes.total} />
+                ) : null}
+              </div>
             </div>
           </div>
         );

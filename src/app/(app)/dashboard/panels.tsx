@@ -42,7 +42,7 @@ const SEVERITY_DOT: Record<DashboardAttention["severity"], string> = {
 
 function PanelEmpty({ icon: Icon, children }: { icon: LucideIcon; children: string }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/80 bg-secondary/40 px-4 py-8 text-center">
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/80 bg-secondary/40 px-4 py-6 text-center">
       <span className="grid size-11 place-items-center rounded-2xl bg-card text-muted-foreground shadow-xs">
         <Icon className="size-5" aria-hidden />
       </span>
@@ -89,12 +89,12 @@ export function ReplenishmentPanel({
   items: { companyId: string; company: string; material: string; available: number; minimum: number; level: string }[];
 }) {
   return (
-    <section className="surface-card card-hover flex h-full flex-col p-5" aria-label="Necessidade de reposição">
+    <section className="surface-card card-hover flex flex-col p-5" aria-label="Necessidade de reposição">
       <PanelHeader icon={AlertTriangle} title="Órgãos com Necessidade de Reposição" meta={`${items.length} item(ns)`} href="/estoque" />
       {items.length === 0 ? (
         <PanelEmpty icon={CheckCircle2}>Todos os órgãos estão com níveis de estoque regulares acima do mínimo.</PanelEmpty>
       ) : (
-        <ul className="space-y-2.5">
+        <ul className="space-y-2">
           {items.map((item, idx) => (
             <li key={`${item.companyId}-${item.material}-${idx}`}>
               <Link
@@ -108,7 +108,7 @@ export function ReplenishmentPanel({
                   </div>
                   <p className="mt-0.5 truncate text-sm font-medium text-primary">{item.material}</p>
                 </div>
-                <div className="text-right">
+                <div className="shrink-0 text-right">
                   <span className="block text-xs font-semibold tabular-nums text-destructive">
                     {item.available} disp. (mín. {item.minimum})
                   </span>
@@ -132,12 +132,12 @@ export function RecentRequestsPanel({
   items: { id: string; title: string; company: string; status: string; createdAt: string; itemsCount: number }[];
 }) {
   return (
-    <section className="surface-card card-hover flex h-full flex-col p-5" aria-label="Solicitações operacionais">
+    <section className="surface-card card-hover flex flex-col p-5" aria-label="Solicitações operacionais">
       <PanelHeader icon={ShoppingCart} title="Solicitações Operacionais" meta={`${items.length} recente(s)`} href="/solicitacoes" />
       {items.length === 0 ? (
         <PanelEmpty icon={Inbox}>Nenhuma solicitação registrada no momento.</PanelEmpty>
       ) : (
-        <ul className="space-y-2.5">
+        <ul className="space-y-2">
           {items.map((req) => {
             const statusPres = presentationOf(REQUEST_STATUS, req.status);
             return (
@@ -178,7 +178,7 @@ export function DeliveriesSummaryPanel({
   const progressPct = total > 0 ? Math.round((delivered / total) * 100) : 100;
 
   return (
-    <section className="surface-card card-hover flex h-full flex-col p-5" aria-label="Resumo de entregas">
+    <section className="surface-card card-hover flex flex-col p-5" aria-label="Resumo de entregas">
       <PanelHeader icon={Truck} title="Entregas & Atendimento" href="/solicitacoes" />
       <div className="flex flex-1 flex-col justify-between gap-4">
         <div className="grid grid-cols-2 gap-3">
@@ -210,12 +210,12 @@ export function UpcomingMeetingsPanel({
   items: { id: string; title: string; company: string; scheduledAt: string }[];
 }) {
   return (
-    <section className="surface-card card-hover flex h-full flex-col p-5" aria-label="Próximas reuniões">
+    <section className="surface-card card-hover flex flex-col p-5" aria-label="Próximas reuniões">
       <PanelHeader icon={CalendarDays} title="Próximas Reuniões" meta={`${items.length} agendada(s)`} href="/reunioes" />
       {items.length === 0 ? (
         <PanelEmpty icon={CalendarClock}>Nenhuma reunião agendada para os próximos dias.</PanelEmpty>
       ) : (
-        <ul className="space-y-2.5">
+        <ul className="space-y-2">
           {items.map((m) => (
             <li key={m.id}>
               <Link
@@ -243,12 +243,12 @@ export function UpcomingMeetingsPanel({
 
 export function AlertsPanel({ items, unread }: { items: DashboardAlertItem[]; unread: number }) {
   return (
-    <section className="surface-card card-hover flex h-full flex-col p-5" aria-label="Alertas recentes">
+    <section className="surface-card card-hover flex flex-col p-5" aria-label="Alertas recentes">
       <PanelHeader icon={Bell} title="Alertas & Avisos" meta={`${unread} não lido(s)`} href="/alertas" />
       {items.length === 0 ? (
         <PanelEmpty icon={Inbox}>Nenhum alerta gerado. Prazos e avisos importantes aparecem aqui.</PanelEmpty>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
           {items.map((item) => (
             <li key={item.id}>
               <Link
