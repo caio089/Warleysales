@@ -16,6 +16,10 @@ export interface ProcessFormalization {
   contractedValue: number;
   savingsValue: number;
   savingsPercent: number;
+  /** Data em que o pregão foi realizado (AAAA-MM-DD). */
+  auctionDate?: string | null;
+  /** Quantidade contratada, usada para corrigir o saldo bloqueado antes da liberação. */
+  contractedQuantity?: number | null;
   status: FormalizationStatus;
   homologatedBy: string | null;
   homologatedAt: Date | null;
@@ -30,13 +34,21 @@ export const formalizationStatuses = ["aguardando_homologacao", "homologado", "r
 export const instrumentTypeSchema = z.enum(instrumentTypes);
 export const formalizationStatusSchema = z.enum(formalizationStatuses);
 
+const contractedItemSchema = z.object({
+  materialId: idSchema,
+  quantity: z.number().positive("A quantidade deve ser maior que zero"),
+});
+
 export const submitFormalizationSchema = z.object({
   processId: idSchema,
   requestId: idSchema.nullable().optional(),
   councilId: idSchema,
   supplierId: idSchema,
-  instrumentType: instrumentTypeSchema,
-  instrumentNumber: z.string().trim().min(1, "Número do instrumento é obrigatório").max(100),
+  instrumentType: instrumentTypeSchema.optional(),
+  instrumentNumber: z.string().trim().min(1).max(100).optional(),
+  auctionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data do pregão.").optional(),
+  contractedQuantity: z.number().positive("A quantidade deve ser maior que zero").optional(),
+  items: z.array(contractedItemSchema).optional(),
   estimatedValue: z.number().min(0, "Valor estimado deve ser não-negativo"),
   contractedValue: z.number().min(0, "Valor contratado deve ser não-negativo"),
 });

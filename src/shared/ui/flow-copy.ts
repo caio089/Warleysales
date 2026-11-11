@@ -112,7 +112,16 @@ export function processNextStep(input: {
   typesTotal: number;
   canUpload: boolean;
   status: string;
+  awaitingContract?: boolean;
 }): NextStepProps {
+  if (input.completion === "completa" && input.awaitingContract) {
+    return {
+      title: "Registrar a contratação",
+      description:
+        "Os documentos já estão na pasta. Informe o fornecedor, a data do pregão, o valor de referência, a quantidade e o valor comprado. A economia é gravada e o estoque bloqueado passa a disponível.",
+      tone: "action",
+    };
+  }
   if (input.completion === "pendente") {
     const faltam = input.typesTotal - input.typesDone;
     return {

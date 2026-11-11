@@ -53,11 +53,12 @@ export function SelectField({
   placeholder = "Selecione…",
   defaultValue = "",
   optional = false,
-}: BaseFieldProps & { options: { value: string; label: string }[]; placeholder?: string; defaultValue?: string; optional?: boolean }) {
+  onChange,
+}: BaseFieldProps & { options: { value: string; label: string }[]; placeholder?: string; defaultValue?: string; optional?: boolean; onChange?: (value: string) => void }) {
   return (
     <FormField label={label} errors={errors} hint={hint} required={required}>
       {(p) => (
-        <SelectControl {...p} name={name} required={required} defaultValue={defaultValue}>
+        <SelectControl {...p} name={name} required={required} defaultValue={defaultValue} onChange={(event) => onChange?.(event.target.value)}>
           <option value="" disabled={!optional}>{placeholder}</option>
           {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </SelectControl>

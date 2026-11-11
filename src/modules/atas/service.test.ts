@@ -80,6 +80,23 @@ describe("AtaService — vigência (R10) e permissões", () => {
     const ata = await activeAta();
     expect((await ctx.service.get(managerOf(COUNCIL_B), ata.id)).ok).toBe(false);
   });
+  it("vincula processo do mesmo órgão e recusa o de outro", async () => {
+    const same = "11111111-1111-4111-8111-111111111111";
+    const other = "22222222-2222-4222-8222-222222222222";
+    const runtime = makeRuntime("2026-11-02T12:00:00Z");
+    const service = new AtaService(new InMemoryAtaRepository(), new AuditService(new InMemoryAuditRepository(runtime.now)), runtime, {
+      async findById(id: string) {
+        if (id === same) return { id, councilId: COUNCIL_A } as never;
+        if (id === other) return { id, councilId: COUNCIL_B } as never;
+        return null;
+      },
+    } as never);
+    const created = await service.create(manager(), { councilId: COUNCIL_A, number: "09/2026", startDate: "2026-11-01", items: [{ description: "Papel", registeredQuantity: 1, unitPrice: 1 }] });
+    if (!created.ok) throw new Error(created.message);
+    expect((await service.linkProcess(manager(), { ataId: created.data.id, processId: other })).ok).toBe(false);
+    const linked = await service.linkProcess(manager(), { ataId: created.data.id, processId: same });
+    expect(linked.ok && linked.data.processId).toBe(same);
+  });
   it("validação Zod de data e itens", async () => {
     const r = await ctx.service.create(manager(), { councilId: COUNCIL_A, number: "1", startDate: "01/11/2026", items: [] });
     expect(!r.ok && r.code).toBe("VALIDATION");

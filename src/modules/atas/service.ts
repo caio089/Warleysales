@@ -1,4 +1,5 @@
 import type { AuditRecorder } from "@/modules/audit/service";
+import type { ProcessRepository } from "@/modules/processes/repository";
 import { guard } from "@/shared/lib/authz/guard";
 import { can, readableCouncilIds, type Actor } from "@/shared/lib/authz/policy";
 import { fail, ok, type Result } from "@/shared/lib/result";
@@ -7,7 +8,7 @@ import { toFortalezaDate } from "@/shared/lib/time";
 import { computeAtaBalance, validateAllocations, validateCommitment, type AtaBalance, type CouncilAllocation } from "./domain/balance";
 import { ataValidityStatus, computeInitialEndDate, currentEndDate, requestExtension, type AtaValidityStatus } from "./domain/validity";
 import type { AtaRepository } from "./repository";
-import { ataIdSchema, createAtaSchema, setAllocationsSchema, type PriceRegistrationAta } from "./schemas";
+import { ataIdSchema, createAtaSchema, linkAtaProcessSchema, setAllocationsSchema, type PriceRegistrationAta } from "./schemas";
 
 export interface AtaItemView {
   itemId: string;
@@ -29,7 +30,17 @@ export class AtaService {
     private readonly repository: AtaRepository,
     private readonly audit: AuditRecorder,
     private readonly runtime: RuntimeDeps,
+    private readonly processes?: ProcessRepository,
   ) {}
+
+  private async sameCouncilProcess(councilId: string, processId: string | null | undefined): Promise<Result<string | null>> {
+    if (!processId) return ok(null);
+    if (!this.processes) return fail("UNAVAILABLE", "Não foi possível conferir o processo.");
+    const process = await this.processes.findById(processId);
+    if (!process) return fail("NOT_FOUND", "Processo não encontrado.");
+    if (process.councilId !== councilId) return fail("VALIDATION", "O processo precisa ser do mesmo órgão da ata.");
+    return ok(process.id);
+  }
 
   async create(actor: Actor, input: unknown): Promise<Result<PriceRegistrationAta>> {
     const parsed = parseInput(createAtaSchema, input);
@@ -37,6 +48,8 @@ export class AtaService {
     const d = parsed.data;
     const allowed = await guard(this.audit, actor, "ata.manage", d.councilId, "price_registration_ata");
     if (!allowed.ok) return allowed;
+    const processId = await this.sameCouncilProcess(d.councilId, d.processId);
+    if (!processId.ok) return processId;
 
     // Nasce como rascunho: rascunho não consome saldo e não aceita comprometimento (R9).
     const saved = await this.repository.insert({
@@ -44,6 +57,7 @@ export class AtaService {
       councilId: d.councilId,
       number: d.number,
       supplierId: d.supplierId ?? null,
+      processId: processId.data,
       startDate: d.startDate,
       status: "rascunho",
       items: d.items.map((i) => ({ id: this.runtime.newId(), description: i.description, materialId: i.materialId ?? null, registeredQuantity: i.registeredQuantity, unitPrice: i.unitPrice, allocations: [] })),
@@ -51,6 +65,29 @@ export class AtaService {
       createdAt: this.runtime.now(),
     });
     await this.audit.record({ actorId: actor.userId, action: "ata.create", entity: "price_registration_ata", entityId: saved.id, councilId: d.councilId, result: "success", details: { number: d.number } });
+    return ok(saved);
+  }
+
+  /** Vincula ou remove o processo. Contratos com o mesmo processo passam a aparecer nesta ata. */
+  async linkProcess(actor: Actor, input: unknown): Promise<Result<PriceRegistrationAta>> {
+    const parsed = parseInput(linkAtaProcessSchema, input);
+    if (!parsed.ok) return parsed;
+    const ata = await this.repository.findById(parsed.data.ataId);
+    if (!ata) return fail("NOT_FOUND", "Ata não encontrada.");
+    const allowed = await guard(this.audit, actor, "ata.manage", ata.councilId, "price_registration_ata", ata.id);
+    if (!allowed.ok) return allowed;
+    const processId = await this.sameCouncilProcess(ata.councilId, parsed.data.processId);
+    if (!processId.ok) return processId;
+    const saved = await this.repository.save({ ...ata, processId: processId.data });
+    await this.audit.record({
+      actorId: actor.userId,
+      action: "ata.update",
+      entity: "price_registration_ata",
+      entityId: ata.id,
+      councilId: ata.councilId,
+      result: "success",
+      details: { processId: processId.data },
+    });
     return ok(saved);
   }
 

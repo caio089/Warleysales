@@ -7,10 +7,16 @@ import type { ActionState } from "@/shared/ui/forms/action-state";
 
 const toNumber = (v: FormDataEntryValue | null) => Number(String(v ?? "").replace(",", "."));
 
+const optionalId = (value: FormDataEntryValue | null) => {
+  const text = String(value ?? "").trim();
+  return text || null;
+};
+
 export async function createAtaFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
   const materialId = String(formData.get("materialId") ?? "");
   const result = await runAction(({ services, actor }) => services.atas.create(actor, {
     councilId: formData.get("councilId"), number: formData.get("number"), startDate: formData.get("startDate"),
+    processId: optionalId(formData.get("processId")),
     items: [{
       description: formData.get("description"),
       materialId: materialId || null,
@@ -41,5 +47,22 @@ export async function setAllocationsFormAction(_previous: ActionState, formData:
     ataId, itemId: formData.get("itemId"), allocations,
   }), allocations.length ? "Alocação registrada." : "Alocação removida: saldo comum.");
   if (result.status === "success") revalidatePath(`/atas/${ataId}`);
+  return result.status === "success" ? { status: "success", message: result.message } : result;
+}
+
+/** Liga a ata a um processo do mesmo órgão. */
+export async function linkAtaProcessFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  const ataId = String(formData.get("ataId"));
+  const processId = optionalId(formData.get("processId"));
+  const result = await runAction(
+    ({ services, actor }) => services.atas.linkProcess(actor, { ataId, processId }),
+    processId ? "Processo vinculado à ata." : "Vínculo com o processo removido.",
+  );
+  if (result.status === "success") {
+    revalidatePath(`/atas/${ataId}`);
+    revalidatePath("/atas");
+    revalidatePath("/processos");
+    if (processId) revalidatePath(`/processos/${processId}`);
+  }
   return result.status === "success" ? { status: "success", message: result.message } : result;
 }

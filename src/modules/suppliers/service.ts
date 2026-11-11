@@ -40,6 +40,39 @@ export class SupplierService {
     return saved;
   }
 
+  /** Reusa o fornecedor pelo nome ou cadastra um novo, para a contratação do pregão. */
+  async ensureByName(actor: Actor, name: string): Promise<Result<Supplier>> {
+    const trimmed = name.trim();
+    if (trimmed.length < 2) return fail("VALIDATION", "Informe o fornecedor.");
+    if (!actor.isCentralAdmin && actor.memberships.length === 0) return fail("FORBIDDEN", "Sem acesso.");
+
+    const existing = (await this.repository.list()).find(
+      (supplier) => supplier.name.trim().toLocaleLowerCase("pt-BR") === trimmed.toLocaleLowerCase("pt-BR"),
+    );
+    if (existing) return ok(existing);
+
+    const saved = await this.repository.insert({
+      id: this.runtime.newId(),
+      name: trimmed,
+      cnpj: null,
+      email: null,
+      phone: null,
+      active: true,
+    });
+    if (saved.ok) {
+      await this.audit.record({
+        actorId: actor.userId,
+        action: "supplier.create",
+        entity: "supplier",
+        entityId: saved.data.id,
+        councilId: null,
+        result: "success",
+        details: { source: "formalization" },
+      });
+    }
+    return saved;
+  }
+
   async list(actor: Actor): Promise<Result<Supplier[]>> {
     if (!actor.isCentralAdmin && actor.memberships.length === 0) return fail("FORBIDDEN", "Sem acesso.");
     return ok(await this.repository.list());

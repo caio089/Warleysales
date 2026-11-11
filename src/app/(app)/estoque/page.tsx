@@ -40,6 +40,19 @@ async function Content() {
     ];
     const processById = new Map(processes.data.map((view) => [view.process.id, view]));
     const formalizationByProcess = new Map(formalizations.map((item) => [item.processId, item]));
+    const processByMaterial = new Map<string, string>();
+    for (const request of requests.data) {
+      if (!request.processId) continue;
+      const formalization = formalizationByProcess.get(request.processId);
+      for (const item of request.items) {
+        const key = `${request.councilId}:${item.materialId}`;
+        const current = processByMaterial.get(key);
+        const currentDone = current ? formalizationByProcess.get(current)?.status === "homologado" : false;
+        if (!current || (currentDone && formalization?.status !== "homologado")) {
+          processByMaterial.set(key, request.processId);
+        }
+      }
+    }
     const holds = requests.data
       .filter((request) => request.processId)
       .map((request) => {
@@ -70,6 +83,7 @@ async function Content() {
       lookups: lookups.data,
       summary,
       holds,
+      processByMaterial,
       canMove: canInAnyCouncil(ctx.actor, "stock.move"),
       canAdjust: canInAnyCouncil(ctx.actor, "stock.adjust"),
     });
@@ -77,7 +91,7 @@ async function Content() {
 
   return (
     <Screen result={result}>
-      {({ levels, lookups, summary, holds, canMove, canAdjust }) => {
+      {({ levels, lookups, summary, holds, processByMaterial, canMove, canAdjust }) => {
         const councils = lookups.councils.map((c) => ({ value: c.id, label: c.label }));
         const materials = lookups.materials.map((m) => ({ value: m.id, label: m.label }));
 
@@ -115,14 +129,14 @@ async function Content() {
               <div>
                 <SectionLabel>Solicitações no estoque</SectionLabel>
                 <p className="text-xs text-muted-foreground">
-                  Cada solicitação entra bloqueada. Clique no nome para ver os documentos. O saldo só fica disponível para pedido depois dos documentos, da ata ou do contrato, do fornecedor, do valor comprado e da quantidade. Nesse momento a economia é gravada e o status muda para disponível.
+                  Clique no produto para abrir a página do processo: documentos, valor inicial, atas, contratos e a liberação do estoque.
                 </p>
               </div>
               <SimpleTable
                 caption="Solicitações bloqueadas e liberadas"
                 rows={holds}
                 columns={[
-                  { key: "name", header: "Nome", kind: "link", hrefKey: "href" },
+                  { key: "name", header: "Produto", kind: "link", hrefKey: "href" },
                   { key: "council", header: "Órgão" },
                   { key: "quantity", header: "Quantidade", kind: "number" },
                   { key: "status", header: "Status", kind: "status", dictionary: "hold" },
@@ -146,9 +160,12 @@ async function Content() {
 
               <SimpleTable
                 caption="Saldos de estoque"
-                rows={levels.map((l) => ({
+                rows={levels.map((l) => {
+                  const processId = processByMaterial.get(`${l.councilId}:${l.materialId}`);
+                  return {
                   id: `${l.councilId}:${l.materialId}`,
-                  material: lookups.materialLabel[l.materialId] ?? "—",
+                  material: lookups.materialName[l.materialId] ?? lookups.materialLabel[l.materialId] ?? "—",
+                  processHref: processId ? `/processos/${processId}` : "",
                   council: lookups.councilLabel[l.councilId] ?? "—",
                   blocked: l.blocked,
                   ready: l.available,
@@ -156,9 +173,10 @@ async function Content() {
                   total: l.physical + l.blocked,
                   minimum: l.minimum,
                   level: l.level,
-                }))}
+                };
+                })}
                 columns={[
-                  { key: "material", header: "Material" },
+                  { key: "material", header: "Produto", kind: "link", hrefKey: "processHref" },
                   { key: "council", header: "Órgão/Conselho" },
                   { key: "blocked", header: "Bloqueado", kind: "number" },
                   { key: "ready", header: "Pronto para Uso", kind: "number" },

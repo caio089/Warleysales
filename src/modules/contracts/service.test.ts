@@ -47,4 +47,21 @@ describe("ContractService", () => {
     const view = await service.get(managerOf(COUNCIL_A), created.data.id);
     expect(view.ok && view.data.status).toBe("vencido");
   });
+  it("vincula processo do mesmo órgão e recusa o de outro", async () => {
+    const same = "11111111-1111-4111-8111-111111111111";
+    const other = "22222222-2222-4222-8222-222222222222";
+    const runtime = makeRuntime("2026-07-02T15:00:00Z");
+    const service = new ContractService(new InMemoryContractRepository(), new AuditService(new InMemoryAuditRepository(runtime.now)), runtime, {
+      async findById(id: string) {
+        if (id === same) return { id, councilId: COUNCIL_A } as never;
+        if (id === other) return { id, councilId: COUNCIL_B } as never;
+        return null;
+      },
+    } as never);
+    const created = await service.create(managerOf(COUNCIL_A), input);
+    if (!created.ok) throw new Error(created.message);
+    expect((await service.linkProcess(managerOf(COUNCIL_A), { contractId: created.data.id, processId: other })).ok).toBe(false);
+    const linked = await service.linkProcess(managerOf(COUNCIL_A), { contractId: created.data.id, processId: same });
+    expect(linked.ok && linked.data.processId).toBe(same);
+  });
 });

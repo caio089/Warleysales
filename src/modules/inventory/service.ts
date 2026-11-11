@@ -5,7 +5,7 @@ import { addQuantity, percentage } from "@/shared/lib/decimal";
 import { fail, ok, type Result } from "@/shared/lib/result";
 import { parseInput, type RuntimeDeps } from "@/shared/lib/service-support";
 import { classifyStockLevel, reconciliationDifference, type StockLevel } from "./domain/levels";
-import { applyMovement, availableOf, dispatchReservedStock, physicalFromLedger, provisionBlocked, releaseBlocked, releaseReservation, reserve, reserveStock, unreserveStock, type MovementType } from "./domain/stock";
+import { applyMovement, availableOf, dispatchReservedStock, physicalFromLedger, provisionBlocked, releaseBlocked, releaseReservation, reserve, reserveStock, setBlocked, unreserveStock, type MovementType } from "./domain/stock";
 import type { InventoryRepository, StockKey } from "./repository";
 import { createMaterialSchema, registerMovementSchema, setMinimumSchema, type Material } from "./schemas";
 
@@ -170,6 +170,31 @@ export class InventoryService {
     for (const item of items) {
       const result = await this.repository.transact({ councilId, materialId: item.materialId }, (state) => {
         const next = provisionBlocked(state.balance, item.quantity);
+        return next.ok ? ok({ balance: next.data, value: undefined }) : next;
+      });
+      if (!result.ok) return result;
+    }
+
+    return ok(undefined);
+  }
+
+  /**
+   * Iguala o saldo bloqueado à quantidade contratada.
+   * Aumentar soma ao bloqueado; diminuir só reduz o bloqueado. O físico não muda.
+   */
+  async alignBlocked(councilId: string, items: { materialId: string; quantity: number }[]): Promise<Result<void>> {
+    for (const item of items) {
+      if (!item.materialId || typeof item.materialId !== "string") {
+        return fail("VALIDATION", "Material inválido.");
+      }
+      if (!Number.isFinite(item.quantity) || item.quantity <= 0) {
+        return fail("VALIDATION", "A quantidade deve ser maior que zero.");
+      }
+    }
+
+    for (const item of items) {
+      const result = await this.repository.transact({ councilId, materialId: item.materialId }, (state) => {
+        const next = setBlocked(state.balance, item.quantity);
         return next.ok ? ok({ balance: next.data, value: undefined }) : next;
       });
       if (!result.ok) return result;

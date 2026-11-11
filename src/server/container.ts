@@ -77,8 +77,8 @@ export interface Services {
 export function createServices(repos: Repositories, runtime: RuntimeDeps): Services {
   const audit = new AuditService(repos.audit);
   const inventory = new InventoryService(repos.inventory, audit, runtime);
-  const atas = new AtaService(repos.atas, audit, runtime);
-  const contracts = new ContractService(repos.contracts, audit, runtime);
+  const atas = new AtaService(repos.atas, audit, runtime, repos.processes);
+  const contracts = new ContractService(repos.contracts, audit, runtime, repos.processes);
   const processes = new ProcessService(repos.processes, repos.documents, audit, runtime);
   const orders = new MaterialOrderService(repos.orders, inventory, audit, runtime);
   const formalizations = new FormalizationService(

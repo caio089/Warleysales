@@ -317,4 +317,64 @@ describe("FormalizationService", () => {
     if (!listB.ok) return;
     expect(listB.data.length).toBe(0);
   });
+
+  it("ajusta o bloqueado para a quantidade contratada e libera essa quantidade", async () => {
+    const completeProc = await createProcessWithProgress(ctx, true);
+    const mat = await ctx.inventory.createMaterial(managerOf(COUNCIL_A), {
+      code: "CAD-002",
+      name: "Cadeira",
+      unit: "un",
+    });
+    expect(mat.ok).toBe(true);
+    if (!mat.ok) return;
+    await ctx.inventory.provisionBlocked(operatorOf(COUNCIL_A), COUNCIL_A, [
+      { materialId: mat.data.id, quantity: 10 },
+    ]);
+    const requestId = "44444444-4444-4444-8444-444444444444";
+    await ctx.purchasesRepo.insert({
+      id: requestId,
+      councilId: COUNCIL_A,
+      title: "Cadeiras",
+      status: "rascunho",
+      processId: completeProc.id,
+      estimatedValue: 10000,
+      items: [{ id: "55555555-5555-4555-8555-555555555555", materialId: mat.data.id, quantity: 10, ataItemId: null, receivedTotal: 0 }],
+      events: [],
+      receiptKeys: [],
+      createdBy: operatorOf(COUNCIL_A).userId,
+      createdAt: new Date("2026-11-10T12:00:00Z"),
+    });
+
+    const submitted = await ctx.formalizations.submit(operatorOf(COUNCIL_A), {
+      processId: completeProc.id,
+      councilId: COUNCIL_A,
+      supplierId: SUPPLIER_ID,
+      auctionDate: "2026-11-10",
+      estimatedValue: 10000,
+      contractedValue: 8000,
+      requestId,
+      items: [{ materialId: mat.data.id, quantity: 7 }],
+    });
+    expect(submitted.ok).toBe(true);
+    if (!submitted.ok) return;
+    expect(submitted.data.auctionDate).toBe("2026-11-10");
+    expect(submitted.data.contractedQuantity).toBe(7);
+    expect(submitted.data.instrumentNumber).toBe("Pregão 10/11/2026");
+    expect(submitted.data.savingsValue).toBe(2000);
+
+    const during = await ctx.inventory.listLevels(operatorOf(COUNCIL_A), COUNCIL_A);
+    const blocked = during.ok ? during.data.find((item) => item.materialId === mat.data.id) : undefined;
+    expect(blocked?.blocked).toBe(7);
+    expect(blocked?.physical).toBe(0);
+    const saved = await ctx.purchasesRepo.findById(requestId);
+    expect(saved?.items[0]?.quantity).toBe(7);
+
+    const released = await ctx.formalizations.homologate(centralAdmin(), { processId: completeProc.id });
+    expect(released.ok).toBe(true);
+    const after = await ctx.inventory.listLevels(operatorOf(COUNCIL_A), COUNCIL_A);
+    const ready = after.ok ? after.data.find((item) => item.materialId === mat.data.id) : undefined;
+    expect(ready?.blocked).toBe(0);
+    expect(ready?.physical).toBe(7);
+    expect(ready?.available).toBe(7);
+  });
 });

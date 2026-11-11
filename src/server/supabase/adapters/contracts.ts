@@ -8,6 +8,7 @@ interface ContractRow {
   council_id: string;
   number: string;
   supplier_id: string | null;
+  process_id?: string | null;
   object: string;
   start_date: string;
   end_date: string;
@@ -33,6 +34,7 @@ const toContract = (row: ContractRow): Contract => ({
   councilId: row.council_id,
   number: row.number,
   supplierId: row.supplier_id,
+  processId: row.process_id ?? null,
   object: row.object,
   original: { startDate: row.start_date, endDate: row.end_date, value: toNumber(row.value) },
   amendments: [...row.contract_amendments].sort((a, b) => a.sequence - b.sequence).map((a) => ({
@@ -46,7 +48,7 @@ const toContract = (row: ContractRow): Contract => ({
 });
 
 const toPayload = (c: Contract) => ({
-  id: c.id, council_id: c.councilId, number: c.number, supplier_id: c.supplierId, object: c.object,
+  id: c.id, council_id: c.councilId, number: c.number, supplier_id: c.supplierId, process_id: c.processId ?? null, object: c.object,
   start_date: c.original.startDate, end_date: c.original.endDate, value: c.original.value, created_at: toIso(c.createdAt),
   amendments: c.amendments.map((a) => ({
     sequence: a.sequence, reason: a.reason, signed_at: a.signedAt,

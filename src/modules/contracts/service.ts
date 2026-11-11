@@ -1,4 +1,5 @@
 import type { AuditRecorder } from "@/modules/audit/service";
+import type { ProcessRepository } from "@/modules/processes/repository";
 import { guard } from "@/shared/lib/authz/guard";
 import { can, readableCouncilIds, type Actor } from "@/shared/lib/authz/policy";
 import { fail, ok, type Result } from "@/shared/lib/result";
@@ -6,7 +7,7 @@ import { parseInput, type RuntimeDeps } from "@/shared/lib/service-support";
 import { diffInDays, toFortalezaDate } from "@/shared/lib/time";
 import { addAmendment, currentTerms, elapsedPercent, remainingDays, type ContractTerms } from "./domain/terms";
 import type { ContractRepository } from "./repository";
-import { addAmendmentSchema, createContractSchema, type Contract } from "./schemas";
+import { addAmendmentSchema, createContractSchema, linkContractProcessSchema, type Contract } from "./schemas";
 
 export interface ContractView {
   contract: Contract;
@@ -21,7 +22,17 @@ export class ContractService {
     private readonly repository: ContractRepository,
     private readonly audit: AuditRecorder,
     private readonly runtime: RuntimeDeps,
+    private readonly processes?: ProcessRepository,
   ) {}
+
+  private async sameCouncilProcess(councilId: string, processId: string | null | undefined): Promise<Result<string | null>> {
+    if (!processId) return ok(null);
+    if (!this.processes) return fail("UNAVAILABLE", "Não foi possível conferir o processo.");
+    const process = await this.processes.findById(processId);
+    if (!process) return fail("NOT_FOUND", "Processo não encontrado.");
+    if (process.councilId !== councilId) return fail("VALIDATION", "O processo precisa ser do mesmo órgão do contrato.");
+    return ok(process.id);
+  }
 
   async create(actor: Actor, input: unknown): Promise<Result<Contract>> {
     const parsed = parseInput(createContractSchema, input);
@@ -30,12 +41,37 @@ export class ContractService {
     const allowed = await guard(this.audit, actor, "contract.manage", d.councilId, "contract");
     if (!allowed.ok) return allowed;
     if (diffInDays(d.startDate, d.endDate) < 0) return fail("VALIDATION", "A data final não pode ser anterior ao início.", { endDate: ["Data final anterior ao início."] });
+    const processId = await this.sameCouncilProcess(d.councilId, d.processId);
+    if (!processId.ok) return processId;
 
     const saved = await this.repository.insert({
-      id: this.runtime.newId(), councilId: d.councilId, number: d.number, supplierId: d.supplierId ?? null, object: d.object,
+      id: this.runtime.newId(), councilId: d.councilId, number: d.number, supplierId: d.supplierId ?? null, processId: processId.data, object: d.object,
       original: { startDate: d.startDate, endDate: d.endDate, value: d.value }, amendments: [], createdAt: this.runtime.now(),
     });
     await this.audit.record({ actorId: actor.userId, action: "contract.create", entity: "contract", entityId: saved.id, councilId: d.councilId, result: "success", details: { number: d.number } });
+    return ok(saved);
+  }
+
+  /** Vincula ou remove o processo. Atas com o mesmo processo passam a aparecer neste contrato. */
+  async linkProcess(actor: Actor, input: unknown): Promise<Result<Contract>> {
+    const parsed = parseInput(linkContractProcessSchema, input);
+    if (!parsed.ok) return parsed;
+    const contract = await this.repository.findById(parsed.data.contractId);
+    if (!contract) return fail("NOT_FOUND", "Contrato não encontrado.");
+    const allowed = await guard(this.audit, actor, "contract.manage", contract.councilId, "contract", contract.id);
+    if (!allowed.ok) return allowed;
+    const processId = await this.sameCouncilProcess(contract.councilId, parsed.data.processId);
+    if (!processId.ok) return processId;
+    const saved = await this.repository.save({ ...contract, processId: processId.data });
+    await this.audit.record({
+      actorId: actor.userId,
+      action: "contract.update",
+      entity: "contract",
+      entityId: contract.id,
+      councilId: contract.councilId,
+      result: "success",
+      details: { processId: processId.data },
+    });
     return ok(saved);
   }
 

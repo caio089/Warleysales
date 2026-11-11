@@ -15,6 +15,8 @@ interface FormalizationRow {
   contracted_value: number | string;
   savings_value: number | string;
   savings_percent: number | string;
+  auction_date?: string | null;
+  contracted_quantity?: number | string | null;
   status: string;
   homologated_by: string | null;
   homologated_at: string | null;
@@ -55,6 +57,8 @@ const fromRow = (row: FormalizationRow): ProcessFormalization => ({
   contractedValue: toNumber(row.contracted_value),
   savingsValue: toNumber(row.savings_value),
   savingsPercent: toNumber(row.savings_percent),
+  auctionDate: row.auction_date,
+  contractedQuantity: row.contracted_quantity == null ? null : toNumber(row.contracted_quantity),
   status: row.status as FormalizationStatus,
   homologatedBy: row.homologated_by,
   homologatedAt: row.homologated_at ? toDate(row.homologated_at) : null,

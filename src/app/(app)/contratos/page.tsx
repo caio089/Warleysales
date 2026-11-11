@@ -15,21 +15,23 @@ export const metadata: Metadata = { title: "Contratos" };
 
 async function Content() {
   const result = await loadScreen(async (ctx) => {
-    const [contracts, lookups] = await Promise.all([ctx.services.contracts.list(ctx.actor), loadLookups(ctx)]);
+    const [contracts, lookups, processes] = await Promise.all([ctx.services.contracts.list(ctx.actor), loadLookups(ctx), ctx.services.processes.list(ctx.actor)]);
     if (!contracts.ok) return contracts;
     if (!lookups.ok) return lookups;
-    return ok({ contracts: contracts.data, lookups: lookups.data, canCreate: canInAnyCouncil(ctx.actor, "contract.manage") });
+    if (!processes.ok) return processes;
+    const processLabel = Object.fromEntries(processes.data.map((view) => [view.process.id, `${view.process.number} — ${view.process.title}`]));
+    return ok({ contracts: contracts.data, lookups: lookups.data, processLabel, canCreate: canInAnyCouncil(ctx.actor, "contract.manage") });
   });
   return (
     <Screen result={result}>
-      {({ contracts, lookups, canCreate }) => (
+      {({ contracts, lookups, processLabel, canCreate }) => (
         <>
-        <PageHeader eyebrow="Contratos" title="Contratos" description="Prazos e valores com histórico de aditivos preservado. Sem regra fixa de 13+1 meses." actions={canCreate ? <Link href="/contratos/novo" className={buttonVariants()}>Novo contrato</Link> : undefined} />
+        <PageHeader eyebrow="Contratos" title="Contratos" description="Prazos e valores com histórico de aditivos preservado. O contrato ligado a um processo aparece junto da ata desse processo." actions={canCreate ? <Link href="/contratos/novo" className={buttonVariants()}>Novo contrato</Link> : undefined} />
         <SimpleTable
           caption="Contratos"
-          rows={contracts.map((c) => ({ id: c.contract.id, number: c.contract.number, council: lookups.councilLabel[c.contract.councilId] ?? "—", object: c.contract.object, endDate: c.terms.endDate, remaining: c.remainingDays, elapsed: c.elapsedPercent, href: `/contratos/${c.contract.id}` }))}
+          rows={contracts.map((c) => ({ id: c.contract.id, number: c.contract.number, council: lookups.councilLabel[c.contract.councilId] ?? "—", process: c.contract.processId ? (processLabel[c.contract.processId] ?? "Processo") : "—", object: c.contract.object, endDate: c.terms.endDate, remaining: c.remainingDays, elapsed: c.elapsedPercent, href: `/contratos/${c.contract.id}`, processHref: c.contract.processId ? `/processos/${c.contract.processId}` : "" }))}
           columns={[
-            { key: "number", header: "Número", kind: "link", hrefKey: "href" }, { key: "council", header: "Conselho" }, { key: "object", header: "Objeto" },
+            { key: "number", header: "Número", kind: "link", hrefKey: "href" }, { key: "council", header: "Conselho" }, { key: "process", header: "Processo", kind: "link", hrefKey: "processHref" }, { key: "object", header: "Objeto" },
             { key: "endDate", header: "Vigência até", kind: "date" }, { key: "remaining", header: "Dias restantes", kind: "number" }, { key: "elapsed", header: "Vigência decorrida", kind: "progress" },
           ]}
           filterKeys={[{ key: "council", label: "Conselho" }]}

@@ -21,6 +21,8 @@ export interface PriceRegistrationAta {
   councilId: string; // conselho gerenciador
   number: string;
   supplierId: string | null;
+  /** Processo administrativo do mesmo órgão. Contratos com o mesmo processo ficam ligados a esta ata. */
+  processId?: string | null;
   startDate: string;
   status: AtaStatus;
   items: AtaItem[];
@@ -32,6 +34,7 @@ export const createAtaSchema = z.object({
   councilId: idSchema,
   number: z.string().trim().min(1).max(40),
   supplierId: idSchema.nullable().optional(),
+  processId: idSchema.nullable().optional(),
   startDate: dateOnlySchema,
   items: z.array(z.object({
     description: z.string().trim().min(2).max(300),
@@ -42,6 +45,11 @@ export const createAtaSchema = z.object({
 });
 
 export const ataIdSchema = z.object({ ataId: idSchema });
+
+export const linkAtaProcessSchema = z.object({
+  ataId: idSchema,
+  processId: idSchema.nullable(),
+});
 
 export const setAllocationsSchema = z.object({
   ataId: idSchema,

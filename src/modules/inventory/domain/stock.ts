@@ -120,6 +120,18 @@ export function dispatchReservedStock(balance: StockBalance, quantity: number): 
   });
 }
 
+/** Ajusta o saldo bloqueado para a quantidade contratada, sem mexer no físico. */
+export function setBlocked(balance: StockBalance, quantity: number): Result<StockBalance> {
+  if (!Number.isFinite(quantity) || quantity < 0) {
+    return fail("VALIDATION", "A quantidade deve ser maior ou igual a zero.");
+  }
+  return ok({
+    physical: balance.physical,
+    reserved: balance.reserved,
+    blocked: roundQuantity(quantity),
+  });
+}
+
 /** Provisiona saldo bloqueado (ex.: criação de solicitação de compra). */
 export function provisionBlocked(balance: StockBalance, quantity: number): Result<StockBalance> {
   const q = validateQuantity(quantity);

@@ -18,7 +18,7 @@ import { formatDateTimeFortaleza } from "@/shared/lib/time";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { FormField, TextareaControl } from "@/shared/ui/form-field";
 import { ActionForm } from "@/shared/ui/forms/action-form";
-import { SelectField, TextField } from "@/shared/ui/forms/fields";
+import { TextField } from "@/shared/ui/forms/fields";
 import { StatusBadge } from "@/shared/ui/status-badge";
 import { toast } from "@/shared/ui/toast-store";
 
@@ -38,6 +38,7 @@ export interface FormalizationCardProps {
   isWarley: boolean;
   defaultEstimatedValue?: number | null;
   requestId?: string | null;
+  requestItems?: { materialId: string; name: string; quantity: number }[];
 }
 
 const INSTRUMENT_LABELS: Record<InstrumentType, string> = {
@@ -46,11 +47,19 @@ const INSTRUMENT_LABELS: Record<InstrumentType, string> = {
   empenho: "Nota de Empenho",
 };
 
-const INSTRUMENT_OPTIONS: { value: InstrumentType; label: string }[] = [
-  { value: "ata", label: "Ata de Registro de Preços" },
-  { value: "contrato", label: "Contrato Administrativo" },
-  { value: "empenho", label: "Nota de Empenho" },
-];
+function formatAuctionDate(value: string): string {
+  const [year, month, day] = value.split("-");
+  if (!year || !month || !day) return value;
+  return `${day}/${month}/${year}`;
+}
+
+function auctionLabel(formalization: ProcessFormalization): string | null {
+  if (formalization.auctionDate) return formatAuctionDate(formalization.auctionDate);
+  if (formalization.instrumentNumber.startsWith("Pregão ")) {
+    return formalization.instrumentNumber.slice("Pregão ".length);
+  }
+  return null;
+}
 
 function parseMoneyInput(val: string): number {
   if (!val) return 0;
@@ -71,6 +80,7 @@ export function FormalizationCard({
   isWarley,
   defaultEstimatedValue,
   requestId,
+  requestItems = [],
 }: FormalizationCardProps) {
   const [estimatedInput, setEstimatedInput] = useState<string>(
     defaultEstimatedValue != null && defaultEstimatedValue > 0
@@ -80,20 +90,13 @@ export function FormalizationCard({
   const [contractedInput, setContractedInput] = useState<string>("");
   const [showRejectForm, setShowRejectForm] = useState(false);
 
-  const supplierOptions = useMemo(
-    () =>
-      suppliers.map((s) => ({
-        value: s.id,
-        label: s.cnpj ? `${s.name} (${s.cnpj})` : s.name,
-      })),
-    [suppliers],
-  );
-
   const currentSupplier = useMemo(
     () => suppliers.find((s) => s.id === formalization?.supplierId),
     [suppliers, formalization?.supplierId],
   );
 
+  const contractedQuantity = formalization?.contractedQuantity
+    ?? (requestItems.length > 0 ? requestItems.reduce((total, item) => total + item.quantity, 0) : null);
   const supplierName = currentSupplier?.name ?? formalization?.supplierId ?? "—";
   const supplierCnpj = currentSupplier?.cnpj ? `CNPJ: ${currentSupplier.cnpj}` : null;
 
@@ -170,6 +173,12 @@ export function FormalizationCard({
               {INSTRUMENT_LABELS[formalization.instrumentType]}
             </p>
             <p className="text-xs text-muted-foreground">nº {formalization.instrumentNumber}</p>
+            {auctionLabel(formalization) ? (
+              <p className="text-xs text-muted-foreground">Pregão em {auctionLabel(formalization)}</p>
+            ) : null}
+            {contractedQuantity != null ? (
+              <p className="text-xs text-muted-foreground">Quantidade: {contractedQuantity}</p>
+            ) : null}
           </div>
           <div className="rounded-xl border border-border/70 bg-card p-4">
             <p className="text-xs text-muted-foreground">Valor Estimado vs Contratado</p>
@@ -285,6 +294,12 @@ export function FormalizationCard({
               {INSTRUMENT_LABELS[formalization.instrumentType]}
             </p>
             <p className="text-xs text-muted-foreground">nº {formalization.instrumentNumber}</p>
+            {auctionLabel(formalization) ? (
+              <p className="text-xs text-muted-foreground">Pregão em {auctionLabel(formalization)}</p>
+            ) : null}
+            {contractedQuantity != null ? (
+              <p className="text-xs text-muted-foreground">Quantidade: {contractedQuantity}</p>
+            ) : null}
           </div>
           <div className="rounded-xl border border-border/70 bg-card p-4">
             <p className="text-xs text-muted-foreground">Valores</p>
@@ -420,8 +435,7 @@ export function FormalizationCard({
             Formalização da Contratação
           </h2>
           <p className="text-sm text-muted-foreground">
-            Documentação 100% anexada. Registre o fornecedor vencedor, tipo de instrumento e valores
-            para apuração da economia.
+            Documentos prontos. Informe o fornecedor, a data do pregão, o valor de referência, a quantidade e o valor comprado. A economia é gravada e o estoque é liberado.
           </p>
         </div>
         <StatusBadge label="Apto para Formalização" tone="info" />
@@ -441,47 +455,48 @@ export function FormalizationCard({
           <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="md:col-span-2">
-                <SelectField
-                  name="supplierId"
-                  label="Fornecedor Vencedor"
+                <FormField
+                  label="Fornecedor"
                   required
-                  options={supplierOptions}
-                  placeholder={
-                    supplierOptions.length > 0
-                      ? "Selecione o fornecedor…"
-                      : "Nenhum fornecedor cadastrado"
-                  }
                   errors={fieldErrors.supplierId}
-                />
-              </div>
-
-              <div>
-                <SelectField
-                  name="instrumentType"
-                  label="Tipo de Instrumento"
-                  required
-                  options={INSTRUMENT_OPTIONS}
-                  placeholder="Selecione o tipo…"
-                  errors={fieldErrors.instrumentType}
-                />
+                  hint="Escreva o nome de quem venceu o pregão"
+                >
+                  {(p) => (
+                    <>
+                      <Input
+                        {...p}
+                        name="supplierName"
+                        required
+                        list={`fornecedores-${processId}`}
+                        placeholder="Ex.: Papelaria Central Ltda"
+                        autoComplete="off"
+                      />
+                      <datalist id={`fornecedores-${processId}`}>
+                        {suppliers.map((supplier) => (
+                          <option key={supplier.id} value={supplier.name} />
+                        ))}
+                      </datalist>
+                    </>
+                  )}
+                </FormField>
               </div>
 
               <div>
                 <TextField
-                  name="instrumentNumber"
-                  label="Número do Instrumento"
-                  placeholder="Ex.: ARP 012/2026 ou CTR 005/2026"
+                  name="auctionDate"
+                  label="Data do pregão"
+                  type="date"
                   required
-                  errors={fieldErrors.instrumentNumber}
+                  errors={fieldErrors.auctionDate}
                 />
               </div>
 
               <div>
                 <FormField
-                  label="Valor Estimado (R$)"
+                  label="Valor de referência (R$)"
                   required
                   errors={fieldErrors.estimatedValue}
-                  hint="Valor de referência do processo"
+                  hint="Valor estimado antes do pregão"
                 >
                   {(p) => (
                     <Input
@@ -499,12 +514,43 @@ export function FormalizationCard({
                 </FormField>
               </div>
 
+              <div className="md:col-span-2 space-y-3">
+                <p className="text-sm font-medium">Quantidade contratada</p>
+                {requestItems.length > 0 ? (
+                  requestItems.map((item) => (
+                    <div key={item.materialId} className="grid gap-3 md:grid-cols-[1fr_10rem] md:items-end">
+                      <p className="text-sm text-foreground">{item.name}</p>
+                      <input type="hidden" name="itemMaterialId" value={item.materialId} />
+                      <TextField
+                        name="itemQuantity"
+                        label="Quantidade"
+                        type="number"
+                        min="0.001"
+                        step="0.001"
+                        required
+                        defaultValue={String(item.quantity)}
+                      />
+                    </div>
+                  ))
+                ) : (
+                  <TextField
+                    name="itemQuantity"
+                    label="Quantidade"
+                    type="number"
+                    min="0.001"
+                    step="0.001"
+                    required
+                    hint="Quantidade correta que entra no estoque"
+                  />
+                )}
+              </div>
+
               <div>
                 <FormField
-                  label="Valor Contratado (R$)"
+                  label="Valor comprado (R$)"
                   required
                   errors={fieldErrors.contractedValue}
-                  hint="Valor final homologado na proposta vencedora"
+                  hint="Valor final da proposta vencedora"
                 >
                   {(p) => (
                     <Input

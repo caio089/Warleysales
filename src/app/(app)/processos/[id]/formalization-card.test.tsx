@@ -84,10 +84,10 @@ describe("FormalizationCard", () => {
     expect(html).toContain("Formalização da Contratação");
     expect(html).toContain("Apto para Formalização");
     expect(html).toContain("Papelaria Central Ltda");
-    expect(html).toContain("Contrato Administrativo");
-    expect(html).toContain("Número do Instrumento");
-    expect(html).toContain("Valor Estimado (R$)");
-    expect(html).toContain("Valor Contratado (R$)");
+    expect(html).toContain("Data do pregão");
+    expect(html).toContain("Valor de referência (R$)");
+    expect(html).toContain("Quantidade");
+    expect(html).toContain("Valor comprado (R$)");
     expect(html).toContain("Cálculo de Economia em Tempo Real");
     expect(html).toContain("Submeter para Homologação de Warley");
   });

@@ -71,6 +71,21 @@ export class FormalizationService {
       return fail("CONFLICT", "Já existe formalização cadastrada para este processo.");
     }
 
+    const auctionDate = data.auctionDate ?? null;
+    const instrumentNumber = data.instrumentNumber?.trim()
+      || (auctionDate ? `Pregão ${auctionDate.slice(8, 10)}/${auctionDate.slice(5, 7)}/${auctionDate.slice(0, 4)}` : "");
+    if (!instrumentNumber) {
+      return fail("VALIDATION", "Informe a data do pregão.");
+    }
+
+    const items = data.items ?? [];
+    if (items.length > 0) {
+      const applied = await this.applyContractedQuantities(data.councilId, data.requestId ?? null, data.processId, items);
+      if (!applied.ok) return applied;
+    }
+
+    const contractedQuantity = data.contractedQuantity
+      ?? (items.length > 0 ? items.reduce((total, item) => total + item.quantity, 0) : null);
     const { savingsValue, savingsPercent } = calculateSavings(data.estimatedValue, data.contractedValue);
 
     const formalization: ProcessFormalization = {
@@ -79,12 +94,14 @@ export class FormalizationService {
       requestId: data.requestId ?? null,
       councilId: data.councilId,
       supplierId: data.supplierId,
-      instrumentType: data.instrumentType,
-      instrumentNumber: data.instrumentNumber,
+      instrumentType: data.instrumentType ?? "ata",
+      instrumentNumber,
       estimatedValue: data.estimatedValue,
       contractedValue: data.contractedValue,
       savingsValue,
       savingsPercent,
+      auctionDate,
+      contractedQuantity,
       status: "aguardando_homologacao",
       homologatedBy: null,
       homologatedAt: null,
@@ -192,6 +209,32 @@ export class FormalizationService {
     });
 
     return ok(updated);
+  }
+
+  /** Corrige a quantidade bloqueada e a solicitação antes de gravar a economia. */
+  private async applyContractedQuantities(
+    councilId: string,
+    requestId: string | null,
+    processId: string,
+    items: { materialId: string; quantity: number }[],
+  ): Promise<Result<void>> {
+    const aligned = await this.inventory.alignBlocked(councilId, items);
+    if (!aligned.ok) return aligned;
+    if (!this.purchases) return ok(undefined);
+
+    const request = requestId
+      ? await this.purchases.findById(requestId)
+      : (await this.purchases.listByCouncils([councilId])).find((item) => item.processId === processId) ?? null;
+    if (!request) return ok(undefined);
+
+    await this.purchases.save({
+      ...request,
+      items: request.items.map((item) => {
+        const match = items.find((next) => next.materialId === item.materialId);
+        return match ? { ...item, quantity: match.quantity } : item;
+      }),
+    });
+    return ok(undefined);
   }
 
   /**

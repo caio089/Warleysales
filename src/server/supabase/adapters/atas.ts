@@ -10,6 +10,7 @@ interface AtaRow {
   council_id: string;
   number: string;
   supplier_id: string | null;
+  process_id?: string | null;
   start_date: string;
   status: AtaStatus;
   created_at: string;
@@ -32,6 +33,7 @@ const toAta = (row: AtaRow): PriceRegistrationAta => ({
   councilId: row.council_id,
   number: row.number,
   supplierId: row.supplier_id,
+  processId: row.process_id ?? null,
   startDate: row.start_date,
   status: row.status,
   createdAt: toDate(row.created_at),
@@ -49,7 +51,7 @@ const toAta = (row: AtaRow): PriceRegistrationAta => ({
 });
 
 const toPayload = (ata: PriceRegistrationAta) => ({
-  id: ata.id, council_id: ata.councilId, number: ata.number, supplier_id: ata.supplierId, start_date: ata.startDate,
+  id: ata.id, council_id: ata.councilId, number: ata.number, supplier_id: ata.supplierId, process_id: ata.processId ?? null, start_date: ata.startDate,
   status: ata.status, created_at: toIso(ata.createdAt),
   items: ata.items.map((i) => ({
     id: i.id, description: i.description, material_id: i.materialId, registered_quantity: i.registeredQuantity, unit_price: i.unitPrice,
