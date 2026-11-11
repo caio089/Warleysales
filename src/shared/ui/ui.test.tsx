@@ -31,6 +31,14 @@ describe("componentes compartilhados (renderização no servidor)", () => {
   it("KpiCard nunca inventa número", () => {
     expect(renderToStaticMarkup(<KpiCard label="Processos" value={null} />)).toContain("—");
   });
+  it("KpiCard renderiza com hierarquia proporcional e sem truncamento", () => {
+    const html = renderToStaticMarkup(
+      <KpiCard label="Solicitações Pendentes" value={5} hint="2 em andamento" accent />
+    );
+    expect(html).toContain("Solicitações Pendentes");
+    expect(html).toContain("5");
+    expect(html).toContain("2 em andamento");
+  });
   it("estados usam roles de acessibilidade", () => {
     expect(renderToStaticMarkup(<ErrorState />)).toContain('role="alert"');
     expect(renderToStaticMarkup(<EmptyState title="Vazio" />)).toContain('role="status"');

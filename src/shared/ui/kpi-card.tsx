@@ -9,7 +9,7 @@ interface KpiCardProps {
   hint?: ReactNode;
   icon?: ReactNode;
   href?: string;
-  /** Aplica o laranja de realce no número (prazos, estoque crítico). */
+  /** Aplica o realce no número (prazos, estoque crítico). */
   accent?: boolean;
 }
 
@@ -18,19 +18,20 @@ export function KpiCard({ label, value, hint, icon, href, accent = false }: KpiC
     <>
       <span
         aria-hidden
-        className={cn("absolute top-5 left-0 h-8 w-0.5 rounded-full", accent ? "bg-highlight" : "bg-primary/25")}
+        className={cn(
+          "absolute top-4 left-0 h-6 w-1 rounded-r-full transition-colors",
+          accent ? "bg-amber-500 dark:bg-amber-400" : "bg-primary/20 group-hover:bg-primary/40",
+        )}
       />
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/0 via-transparent to-highlight/8 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-      />
-      <div className="relative flex items-start justify-between gap-3 pl-2">
-        <p className="text-[0.7rem] font-semibold tracking-[0.14em] text-muted-foreground uppercase">{label}</p>
+      <div className="relative flex items-center justify-between gap-2 pl-2">
+        <p className="text-xs font-medium text-muted-foreground truncate">{label}</p>
         {icon ? (
           <span
             className={cn(
-              "grid size-10 shrink-0 place-items-center rounded-xl transition-transform duration-300 group-hover:scale-105",
-              accent ? "bg-highlight/12 text-highlight" : "bg-secondary text-primary",
+              "grid size-8 shrink-0 place-items-center rounded-lg transition-transform duration-200 group-hover:scale-105",
+              accent
+                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                : "bg-secondary/80 text-muted-foreground group-hover:text-primary",
             )}
           >
             {icon}
@@ -39,19 +40,19 @@ export function KpiCard({ label, value, hint, icon, href, accent = false }: KpiC
       </div>
       <p
         className={cn(
-          "relative mt-3 pl-2 font-heading text-3xl font-medium tabular-nums tracking-tight",
-          accent ? "text-highlight" : "text-primary",
+          "relative mt-2 pl-2 font-heading text-2xl sm:text-3xl font-semibold tabular-nums tracking-tight",
+          accent ? "text-amber-600 dark:text-amber-400" : "text-primary",
         )}
       >
         {value ?? "—"}
       </p>
-      {hint ? <div className="relative mt-2 pl-2 text-xs text-muted-foreground">{hint}</div> : null}
+      {hint ? <div className="relative mt-1 pl-2 text-xs text-muted-foreground/80 line-clamp-1">{hint}</div> : null}
     </>
   );
 
   const className = cn(
-    "kpi-card surface-card card-hover group relative overflow-hidden p-5",
-    href && "block focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+    "kpi-card surface-card card-hover group relative overflow-hidden p-4 sm:p-5 rounded-2xl border transition-all",
+    href && "block focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none hover:border-border/80",
   );
 
   if (href) {
