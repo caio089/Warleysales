@@ -3,22 +3,16 @@ import {
   AlertTriangle,
   ArrowUpRight,
   Bell,
-  Building2,
   CalendarClock,
   CalendarDays,
   CheckCircle2,
   ClipboardList,
-  FileStack,
   Inbox,
-  Package,
-  PackageX,
-  ScrollText,
-  ShieldCheck,
   ShoppingCart,
   Truck,
   type LucideIcon,
 } from "lucide-react";
-import type { DashboardAttention, DashboardDeadline } from "@/modules/reports/service";
+import type { DashboardDeadline } from "@/modules/reports/service";
 import { formatDateTimeFortaleza } from "@/shared/lib/time";
 import { ProgressBar } from "@/shared/ui/progress-bar";
 import { StatusBadge } from "@/shared/ui/status-badge";
@@ -33,12 +27,6 @@ export interface DashboardAlertItem {
   at: string;
   href: string;
 }
-
-const SEVERITY_DOT: Record<DashboardAttention["severity"], string> = {
-  info: "bg-primary",
-  warning: "bg-highlight",
-  danger: "bg-destructive",
-};
 
 function PanelEmpty({ icon: Icon, children }: { icon: LucideIcon; children: string }) {
   return (
@@ -273,32 +261,6 @@ export function AlertsPanel({ items, unread }: { items: DashboardAlertItem[]; un
   );
 }
 
-export function AttentionPanel({ items }: { items: DashboardAttention[] }) {
-  return (
-    <section className="surface-card card-hover flex h-full flex-col p-5" aria-label="Pontos de atenção">
-      <PanelHeader icon={ShieldCheck} title="Pontos de atenção" />
-      {items.length === 0 ? (
-        <PanelEmpty icon={CheckCircle2}>Nada crítico no recorte atual. Os números vêm dos cadastros reais.</PanelEmpty>
-      ) : (
-        <ul className="space-y-2">
-          {items.map((item) => (
-            <li key={item.id}>
-              <Link href={item.href} className="group flex items-start gap-3 rounded-xl border border-border/70 bg-card px-3 py-3 transition-all hover:-translate-y-0.5 hover:border-highlight/35 hover:shadow-xs">
-                <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", SEVERITY_DOT[item.severity])} aria-hidden />
-                <span>
-                  <span className="block text-sm font-medium text-primary">{item.title}</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">{item.detail}</span>
-                </span>
-                <ArrowUpRight className="ml-auto size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-highlight" aria-hidden />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
 export function DeadlinesPanel({ items }: { items: DashboardDeadline[] }) {
   return (
     <section className="surface-card card-hover flex h-full flex-col p-5" aria-label="Prazos próximos">
@@ -351,34 +313,6 @@ export function StatusDistribution({ rows, total }: { rows: { status: string; co
           })}
         </ul>
       )}
-    </section>
-  );
-}
-
-const SHORTCUTS = [
-  { href: "/solicitacoes/nova", label: "Nova Solicitação", detail: "Registrar pedido de material", icon: ShoppingCart },
-  { href: "/conselhos", label: "Órgãos", detail: "Ver órgãos e contatos WhatsApp", icon: Building2 },
-  { href: "/estoque", label: "Estoque & Reposição", detail: "Saldos, entradas e níveis críticos", icon: Package },
-  { href: "/reunioes", label: "Reuniões", detail: "Agendar e registrar atas", icon: CalendarDays },
-  { href: "/processos", label: "Documentos", detail: "Processos e arquivos anexados", icon: ClipboardList },
-  { href: "/alertas", label: "Alertas", detail: "Vencimentos e avisos", icon: Bell },
-] as const;
-
-export function ShortcutGrid() {
-  return (
-    <section aria-label="Atalhos Rápidos" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {SHORTCUTS.map(({ href, label, detail, icon: Icon }) => (
-        <Link key={href} href={href} className="surface-card card-hover group flex items-center gap-3 p-4">
-          <span className="grid size-11 place-items-center rounded-2xl bg-secondary text-primary transition-all group-hover:scale-105 group-hover:bg-primary group-hover:text-primary-foreground">
-            <Icon className="size-4" aria-hidden />
-          </span>
-          <span>
-            <span className="block font-medium text-primary">{label}</span>
-            <span className="block text-xs text-muted-foreground">{detail}</span>
-          </span>
-          <ArrowUpRight className="ml-auto size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-highlight" aria-hidden />
-        </Link>
-      ))}
     </section>
   );
 }

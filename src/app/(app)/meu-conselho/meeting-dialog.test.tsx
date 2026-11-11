@@ -29,4 +29,16 @@ describe("MeetingDialog", () => {
     expect(html).toContain("Custom Trigger Reunião");
     expect(html).not.toContain("Agendar Reunião");
   });
+
+  it("aplica triggerClassName no container do trigger", () => {
+    const html = renderToStaticMarkup(
+      <MeetingDialog
+        councilId="123"
+        councilLabel="CREA"
+        triggerClassName="w-full custom-class"
+        trigger={<button type="button">Trigger</button>}
+      />
+    );
+    expect(html).toContain("w-full custom-class");
+  });
 });

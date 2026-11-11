@@ -50,4 +50,22 @@ describe("ActionHub", () => {
     expect(html).toContain("type=\"button\"");
     expect(html).toContain("Agendar reunião");
   });
+
+  it("renderiza renderMeetingTrigger customizado em buildCouncilActions", () => {
+    const items = buildCouncilActions({
+      councilId: "c1",
+      canCreateRequest: true,
+      canCreateProcess: true,
+      canManageMeeting: true,
+      renderMeetingTrigger: (className, body) => (
+        <button type="button" data-custom-trigger="true" className={className}>
+          {body}
+        </button>
+      ),
+    });
+    const html = renderToStaticMarkup(<ActionHub items={items} />);
+    expect(html).toContain("data-custom-trigger=\"true\"");
+    expect(html).toContain("Agendar reunião");
+    expect(html).not.toContain("#agendar-reuniao");
+  });
 });

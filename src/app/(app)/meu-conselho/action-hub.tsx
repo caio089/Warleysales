@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -19,6 +20,8 @@ export interface ActionItem {
   primary?: boolean;
   disabled?: boolean;
   onClick?: () => void;
+  customTrigger?: ReactNode;
+  renderTrigger?: (className: string, body: ReactNode) => ReactNode;
 }
 
 /**
@@ -28,7 +31,7 @@ export interface ActionItem {
 export function ActionHub({ items }: { items: ActionItem[] }) {
   return (
     <section aria-label="Ações do conselho" className="grid gap-2.5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-      {items.map(({ href, title, detail, icon: Icon, primary, disabled, onClick }) => {
+      {items.map(({ href, title, detail, icon: Icon, primary, disabled, onClick, customTrigger, renderTrigger }) => {
         const className = cn(
           "group flex w-full items-center gap-2.5 rounded-xl border p-3 text-left transition-all",
           primary
@@ -76,6 +79,22 @@ export function ActionHub({ items }: { items: ActionItem[] }) {
           );
         }
 
+        if (renderTrigger) {
+          return (
+            <div key={title} className="contents">
+              {renderTrigger(className, body)}
+            </div>
+          );
+        }
+
+        if (customTrigger) {
+          return (
+            <div key={title} className="contents">
+              {customTrigger}
+            </div>
+          );
+        }
+
         if (onClick) {
           return (
             <button key={title} type="button" onClick={onClick} className={className}>
@@ -99,6 +118,8 @@ export function buildCouncilActions(input: {
   canCreateRequest: boolean;
   canCreateProcess: boolean;
   canManageMeeting: boolean;
+  meetingTrigger?: ReactNode;
+  renderMeetingTrigger?: (className: string, body: ReactNode) => ReactNode;
 }): ActionItem[] {
   const q = `?councilId=${input.councilId}`;
   return [
@@ -124,6 +145,8 @@ export function buildCouncilActions(input: {
       detail: "Marcar data e horário",
       icon: CalendarPlus,
       disabled: !input.canManageMeeting,
+      customTrigger: input.meetingTrigger,
+      renderTrigger: input.renderMeetingTrigger,
     },
     {
       href: `/estoque${q}`,

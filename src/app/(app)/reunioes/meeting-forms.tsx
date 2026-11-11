@@ -10,17 +10,20 @@ export function NewMeetingForm({
   councils,
   defaultCouncilId,
   lockCouncil = false,
+  onSuccess,
 }: {
   councils: Option[];
   defaultCouncilId?: string;
   /** Quando true, o órgão já está definido (painel do órgão) e não aparece no formulário. */
   lockCouncil?: boolean;
+  onSuccess?: () => void;
 }) {
   return (
     <ActionForm
       action={scheduleMeetingFormAction}
       submitLabel="Agendar reunião"
       hiddenFields={lockCouncil && defaultCouncilId ? { councilId: defaultCouncilId } : undefined}
+      onSuccess={onSuccess}
     >
       {(e) => (
         <>

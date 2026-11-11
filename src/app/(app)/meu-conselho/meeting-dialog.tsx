@@ -12,19 +12,21 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { NewMeetingForm } from "@/app/(app)/reunioes/meeting-forms";
+import { cn } from "@/lib/utils";
 
 export interface MeetingDialogProps {
   councilId: string;
   councilLabel: string;
   trigger?: ReactNode;
+  triggerClassName?: string;
 }
 
-export function MeetingDialog({ councilId, councilLabel, trigger }: MeetingDialogProps) {
+export function MeetingDialog({ councilId, councilLabel, trigger, triggerClassName }: MeetingDialogProps) {
   const [open, setOpen] = useState(false);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={<span className="inline-flex" />}>
+      <SheetTrigger render={<span className={cn("inline-flex", triggerClassName)} />}>
         {trigger ?? (
           <Button variant="outline" size="sm" className="gap-2 font-medium">
             <CalendarDays className="size-4" aria-hidden />
@@ -47,6 +49,7 @@ export function MeetingDialog({ councilId, councilLabel, trigger }: MeetingDialo
             councils={[{ value: councilId, label: councilLabel }]}
             defaultCouncilId={councilId}
             lockCouncil
+            onSuccess={() => setOpen(false)}
           />
         </div>
       </SheetContent>

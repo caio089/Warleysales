@@ -268,6 +268,18 @@ async function Content({
           canCreateRequest,
           canCreateProcess,
           canManageMeeting,
+          renderMeetingTrigger: (className, body) => (
+            <MeetingDialog
+              councilId={councilId}
+              councilLabel={label}
+              triggerClassName="w-full"
+              trigger={
+                <button type="button" className={className}>
+                  {body}
+                </button>
+              }
+            />
+          ),
         });
 
         return (

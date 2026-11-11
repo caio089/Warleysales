@@ -10,7 +10,6 @@ import { buildBriefingFacts } from "@/modules/insights/briefing";
 import { parseDashboardQuery } from "@/modules/reports/dashboard-query";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
-import { canInAnyCouncil } from "@/shared/lib/authz/policy";
 import { formatCurrency, formatPercent } from "@/shared/lib/format";
 import { ok } from "@/shared/lib/result";
 import { KpiCard } from "@/shared/ui/kpi-card";
@@ -135,8 +134,6 @@ async function DashboardContent({
       pendingOrderQueue,
       savingsSummary: savingsSummary.data,
       isWarley: ctx.actor.isCentralAdmin,
-      canCreateProcess: canInAnyCouncil(ctx.actor, "process.create"),
-      canDecideRequest: canInAnyCouncil(ctx.actor, "request.decide"),
     });
   });
 
@@ -156,7 +153,6 @@ async function DashboardContent({
         pendingOrderQueue,
         savingsSummary,
         isWarley,
-        canCreateProcess,
       }) => {
         const councilLabel = councilId ? (lookups.councilLabel[councilId] ?? null) : null;
 

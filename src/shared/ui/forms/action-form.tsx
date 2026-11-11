@@ -28,6 +28,8 @@ interface ActionFormProps {
    * para o usuário continuar vendo o que acabou de gravar.
    */
   resetOnSuccess?: boolean;
+  /** Callback opcional executado quando a Server Action retorna sucesso. */
+  onSuccess?: () => void;
 }
 
 /** Formulário que usa Server Action, mostra erros por campo e avisa por toast. */
@@ -41,6 +43,7 @@ export function ActionForm({
   pendingLabel = "Gravando…",
   idempotencyField,
   resetOnSuccess = true,
+  onSuccess,
 }: ActionFormProps) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(action, IDLE_STATE);
@@ -61,11 +64,12 @@ export function ActionForm({
       toast.success(state.message);
       if (resetOnSuccess) formRef.current?.reset();
       if (idempotencyField) renewKey();
+      onSuccess?.();
       // Garante que as listas RSC mostrem o que acabou de ser gravado no banco.
       startTransition(() => router.refresh());
     }
     if (state.status === "error") toast.error(state.message);
-  }, [state, idempotencyField, renewKey, resetOnSuccess, router, startTransition]);
+  }, [state, idempotencyField, renewKey, resetOnSuccess, router, startTransition, onSuccess]);
 
   // Envio manual: evita o reset automático do React 19, que apagaria o que o usuário digitou em caso de erro.
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
