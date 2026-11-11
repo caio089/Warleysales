@@ -2,11 +2,11 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
-  CalendarPlus,
-  ClipboardPlus,
-  FilePlus2,
+  Calendar,
+  ClipboardList,
+  FileCheck,
+  FileText,
   Package,
-  ScrollText,
   ShoppingCart,
   type LucideIcon,
 } from "lucide-react";
@@ -25,90 +25,96 @@ export interface ActionItem {
 }
 
 /**
- * Barra de atalhos rápidos do conselho — formato compacto e executivo de perfil baixo.
- * Layout horizontal em linha única em desktop (lg:grid-cols-6) e 2 linhas em tablet (sm:grid-cols-3).
+ * Seção "O que você pode fazer": Grid responsivo de 3 colunas (grid-cols-1 sm:grid-cols-2 lg:grid-cols-3)
+ * com títulos completos sem truncate, ícones destacados e descrições legíveis.
  */
 export function ActionHub({ items }: { items: ActionItem[] }) {
   return (
-    <section aria-label="Ações do conselho" className="grid gap-2.5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-      {items.map(({ href, title, detail, icon: Icon, primary, disabled, onClick, customTrigger, renderTrigger }) => {
-        const className = cn(
-          "group flex w-full items-center gap-2.5 rounded-xl border p-3 text-left transition-all",
-          primary
-            ? "border-highlight/30 bg-highlight/5 hover:border-highlight/60 hover:bg-highlight/10"
-            : "border-border/70 bg-card hover:border-highlight/35 hover:bg-accent/40",
-          disabled
-            ? "pointer-events-none opacity-50 cursor-not-allowed"
-            : "hover:-translate-y-0.5 hover:shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        );
+    <section aria-label="Ações do conselho">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+        {items.map(({ href, title, detail, icon: Icon, primary, disabled, onClick, customTrigger, renderTrigger }) => {
+          const className = cn(
+            "group text-left p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 w-full shadow-2xs",
+            primary
+              ? "bg-gradient-to-br from-orange-50/90 via-amber-50/40 to-white border-orange-200/90 hover:border-orange-300"
+              : "bg-white border-slate-200/80 hover:border-slate-300 hover:bg-slate-50/50",
+            disabled
+              ? "pointer-events-none opacity-50 cursor-not-allowed"
+              : "hover:-translate-y-0.5 hover:shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          );
 
-        const body = (
-          <>
-            <span
-              className={cn(
-                "grid size-8 shrink-0 place-items-center rounded-lg transition-colors",
-                primary
-                  ? "bg-highlight text-highlight-foreground"
-                  : "bg-secondary text-primary group-hover:bg-highlight/15 group-hover:text-highlight",
-              )}
-            >
-              <Icon className="size-4" aria-hidden />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-heading text-xs font-semibold tracking-tight text-primary transition-colors group-hover:text-highlight truncate">
-                {title}
-              </span>
-              <span className="block text-[0.68rem] text-muted-foreground truncate leading-tight mt-0.5">
-                {detail}
-              </span>
-            </span>
-            {!disabled ? (
-              <ArrowRight
-                className="size-3.5 shrink-0 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5 group-hover:text-highlight"
-                aria-hidden
-              />
-            ) : null}
-          </>
-        );
+          const body = (
+            <>
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className={cn(
+                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition",
+                    primary
+                      ? "bg-orange-500 text-white shadow-xs"
+                      : "bg-slate-100 text-slate-700 group-hover:bg-[#0F2942] group-hover:text-white",
+                  )}
+                >
+                  <Icon className="w-4 h-4" aria-hidden />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-slate-900 leading-snug">{title}</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                    {detail}
+                  </p>
+                </div>
+              </div>
 
-        if (disabled) {
+              {!disabled ? (
+                <ArrowRight
+                  className={cn(
+                    "w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5",
+                    primary ? "text-orange-500" : "text-slate-400",
+                  )}
+                  aria-hidden
+                />
+              ) : null}
+            </>
+          );
+
+          if (disabled) {
+            return (
+              <div key={title} className={className} aria-disabled="true">
+                {body}
+              </div>
+            );
+          }
+
+          if (renderTrigger) {
+            return (
+              <div key={title} className="contents">
+                {renderTrigger(className, body)}
+              </div>
+            );
+          }
+
+          if (customTrigger) {
+            return (
+              <div key={title} className="contents">
+                {customTrigger}
+              </div>
+            );
+          }
+
+          if (onClick) {
+            return (
+              <button key={title} type="button" onClick={onClick} className={className}>
+                {body}
+              </button>
+            );
+          }
+
           return (
-            <div key={title} className={className} aria-disabled="true">
+            <Link key={href} href={href} className={className}>
               {body}
-            </div>
+            </Link>
           );
-        }
-
-        if (renderTrigger) {
-          return (
-            <div key={title} className="contents">
-              {renderTrigger(className, body)}
-            </div>
-          );
-        }
-
-        if (customTrigger) {
-          return (
-            <div key={title} className="contents">
-              {customTrigger}
-            </div>
-          );
-        }
-
-        if (onClick) {
-          return (
-            <button key={title} type="button" onClick={onClick} className={className}>
-              {body}
-            </button>
-          );
-        }
-
-        return (
-          <Link key={href} href={href} className={className}>
-            {body}
-          </Link>
-        );
-      })}
+        })}
+      </div>
     </section>
   );
 }
@@ -124,26 +130,26 @@ export function buildCouncilActions(input: {
   const q = `?councilId=${input.councilId}`;
   return [
     {
-      href: "/solicitacoes/nova",
+      href: `/solicitacoes/nova${q}`,
       title: "Nova solicitação",
-      detail: "Pedir material",
+      detail: "Pedir materiais ou equipamentos",
       icon: ShoppingCart,
       primary: true,
       disabled: !input.canCreateRequest,
     },
     {
-      href: "/processos/novo",
+      href: `/processos/novo${q}`,
       title: "Novo processo",
-      detail: "Anexar documentos",
-      icon: FilePlus2,
+      detail: "Anexar documentos e demandas",
+      icon: FileText,
       primary: true,
       disabled: !input.canCreateProcess,
     },
     {
       href: `/meu-conselho${q}#agendar-reuniao`,
       title: "Agendar reunião",
-      detail: "Marcar data e horário",
-      icon: CalendarPlus,
+      detail: "Marcar alinhamento com Warley",
+      icon: Calendar,
       disabled: !input.canManageMeeting,
       customTrigger: input.meetingTrigger,
       renderTrigger: input.renderMeetingTrigger,
@@ -151,20 +157,20 @@ export function buildCouncilActions(input: {
     {
       href: `/estoque${q}`,
       title: "Ver estoque",
-      detail: "Saldos e itens",
+      detail: "Saldos disponíveis na sede",
       icon: Package,
     },
     {
       href: "/solicitacoes",
       title: "Solicitações",
-      detail: "Todas as demandas",
-      icon: ClipboardPlus,
+      detail: "Todas as demandas do órgão",
+      icon: ClipboardList,
     },
     {
       href: "/atas",
-      title: "Atas de preços",
-      detail: "Saldo e vigência",
-      icon: ScrollText,
+      title: "Atas vigentes",
+      detail: "Saldo e vigência de atas",
+      icon: FileCheck,
     },
   ];
 }

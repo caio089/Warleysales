@@ -12,7 +12,7 @@ import {
   TrendingDown,
   Truck,
 } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import type { Meeting } from "@/modules/meetings/schemas";
 import type { ProcessView } from "@/modules/processes/service";
 import type { PurchaseRequest } from "@/modules/purchases/schemas";
@@ -29,13 +29,14 @@ import { KpiCard } from "@/shared/ui/kpi-card";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader, SectionLabel } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
-import { SimpleTable } from "@/shared/ui/simple-table";
 import { ActionHub, buildCouncilActions } from "./action-hub";
 import { CouncilPicker } from "./council-picker";
-import { MaterialOrderDialog, type AvailableStockItem } from "./material-order-dialog";
+import { type AvailableStockItem } from "./material-order-dialog";
+import { MaterialOrdersSection } from "./material-orders-section";
 import { MeetingDialog } from "./meeting-dialog";
 import { MeetingsOverview, ProcessesOverview, RequestsOverview } from "./overview-lists";
 import { SavingsHistoryDialog, type SavingsHistoryItem } from "./savings-history-dialog";
+import { StockSection } from "./stock-section";
 
 export const metadata: Metadata = { title: "Portal da Empresa" };
 
@@ -241,7 +242,6 @@ async function Content({
         const {
           councilId,
           lookups,
-          dash,
           pendingRequestsCount,
           inProgressRequestsCount,
           totalReceivedUnits,
@@ -249,7 +249,6 @@ async function Content({
           requests,
           processes,
           meetings,
-          meetingsOpen,
           stockLevels,
           orders,
           availableStock,
@@ -283,73 +282,78 @@ async function Content({
         });
 
         return (
-          <div className="space-y-8">
-            <PageHeader
-              eyebrow="Painel da Empresa"
-              title={label}
-              description={`Ambiente exclusivo para acompanhamento de demandas, estoque local, entregas e reuniões com o Warley. Papel ativo: ${roleLabel}.`}
-              actions={
-                <div className="flex flex-wrap items-center gap-2">
+          <div className="space-y-6">
+            {/* 1. CABEÇALHO DO ÓRGÃO + BANNER DE ECONOMIA INTEGRADO */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+              {/* Faixa Superior: Identificação e Ações Principais */}
+              <div className="p-6 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+                <div className="space-y-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    PAINEL DA EMPRESA
+                  </span>
+                  <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+                    {label}
+                  </h1>
+                  <p className="text-xs text-slate-500 leading-relaxed max-w-2xl">
+                    Ambiente exclusivo para acompanhamento de demandas, estoque local, entregas e reuniões com o Warley.
+                  </p>
+                  <div className="pt-1.5">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700">
+                      Papel ativo: {roleLabel}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-end gap-3 shrink-0">
                   <CouncilPicker councils={lookups.councils} councilId={councilId} />
                   {canCreateRequest ? (
-                    <Link href={`/solicitacoes/nova?councilId=${councilId}`} className={buttonVariants()}>
-                      <Plus className="mr-1.5 size-4" />
+                    <Link
+                      href={`/solicitacoes/nova?councilId=${councilId}`}
+                      className="inline-flex items-center gap-2 bg-[#0F2942] hover:bg-[#1a3d5e] text-white px-4 py-2.5 rounded-xl font-medium text-xs shadow-xs transition-colors h-11"
+                    >
+                      <Plus className="size-4" />
                       Fazer Solicitação
                     </Link>
                   ) : null}
                 </div>
-              }
-            />
+              </div>
 
-            {/* Ações Rápidas do Usuário */}
-            <div className="space-y-3">
-              <SectionLabel>O que você pode fazer</SectionLabel>
-              <ActionHub items={actions} />
-            </div>
-
-            {/* Destaque Institucional: Economia Gerada no Conselho */}
-            <section
-              aria-label="Economia Gerada"
-              className="surface-card relative overflow-hidden rounded-2xl border border-emerald-500/25 bg-gradient-to-br from-emerald-500/8 via-card to-card p-4 sm:p-5 shadow-xs"
-            >
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div className="space-y-1 max-w-xl">
-                  <div className="flex items-center gap-2">
-                    <span className="grid size-8 place-items-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                      <TrendingDown className="size-4" aria-hidden />
-                    </span>
-                    <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                      Eficiência Orçamentária Institucional
-                    </span>
+              {/* Faixa Inferior: Eficiência Orçamentária Institucional */}
+              <div className="px-6 py-4 bg-gradient-to-r from-emerald-50/70 via-emerald-50/30 to-white flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <TrendingDown className="size-4.5" aria-hidden />
                   </div>
-                  <h2 className="font-heading text-lg sm:text-xl font-semibold tracking-tight text-primary">
-                    Economia Gerada nas Contratações
-                  </h2>
-                  <p className="text-xs leading-relaxed text-muted-foreground">
-                    Resultado financeiro acumulado obtido através das negociações e contratações homologadas por Warley para a empresa.
-                  </p>
+                  <div>
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800">
+                      Eficiência Orçamentária Institucional · Economia Gerada nas Contratações
+                    </h2>
+                    <p className="text-xs text-slate-500 hidden sm:block">
+                      Resultado financeiro acumulado obtido através das negociações homologadas por Warley para a empresa.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-5 sm:gap-6">
+                <div className="flex flex-wrap items-center gap-5 sm:gap-6 shrink-0">
                   <div>
-                    <p className="text-[0.68rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                       Total Economizado
-                    </p>
-                    <p className="font-heading text-xl sm:text-2xl font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                    </span>
+                    <p className="text-lg sm:text-xl font-bold tabular-nums text-emerald-700">
                       {formatCurrency(savingsSummary.totalSavings)}
                     </p>
                   </div>
 
-                  <div className="border-l border-border/80 pl-5 sm:pl-6">
-                    <p className="text-[0.68rem] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <div className="border-l border-slate-200/80 pl-5 sm:pl-6">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                       Desconto Médio
-                    </p>
-                    <p className="font-heading text-xl sm:text-2xl font-semibold tabular-nums text-primary">
+                    </span>
+                    <p className="text-lg sm:text-xl font-bold tabular-nums text-slate-900">
                       {formatPercent(savingsSummary.averageSavingsPercent)}
                     </p>
                   </div>
 
-                  <div className="lg:border-l lg:border-border/80 lg:pl-6">
+                  <div className="border-l border-slate-200/80 pl-5 sm:pl-6">
                     <SavingsHistoryDialog
                       councilName={label}
                       summary={savingsSummary}
@@ -358,9 +362,9 @@ async function Content({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="gap-2 border-emerald-500/30 font-medium text-primary hover:bg-emerald-500/10 hover:text-emerald-700 dark:hover:text-emerald-300"
+                          className="gap-2 border-emerald-300 text-emerald-800 hover:bg-emerald-100/50 text-xs font-medium rounded-xl"
                         >
-                          <ScrollText className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                          <ScrollText className="size-3.5 text-emerald-600" />
                           Histórico de Economia
                         </Button>
                       }
@@ -368,12 +372,18 @@ async function Content({
                   </div>
                 </div>
               </div>
-            </section>
+            </div>
 
-            {/* Resumo Operacional da Empresa - 4 KPIs Mestres */}
+            {/* 2. O QUE VOCÊ PODE FAZER */}
+            <div className="space-y-3">
+              <SectionLabel>O que você pode fazer</SectionLabel>
+              <ActionHub items={actions} />
+            </div>
+
+            {/* 3. VISÃO GERAL DAS DEMANDAS E ENTREGAS */}
             <div className="space-y-3">
               <SectionLabel>Visão Geral das Demandas e Entregas</SectionLabel>
-              <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 <KpiCard
                   href="/solicitacoes"
                   icon={<ShoppingCart className="size-4" aria-hidden />}
@@ -408,96 +418,20 @@ async function Content({
               </div>
             </div>
 
-            {/* Grade Principal Balanceada em 2 Colunas */}
-            <div className="grid gap-6 lg:grid-cols-2 items-start">
-              {/* Coluna 1: Materiais & Pedidos */}
-              <div className="space-y-6">
-                {/* Seção de Estoque Local da Empresa */}
-                <section aria-label="Estoque Disponível da Empresa" className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <SectionLabel>Estoque Disponível na Empresa</SectionLabel>
-                      <p className="text-xs text-muted-foreground">Materiais atualmente disponíveis para utilização na sua sede.</p>
-                    </div>
-                    <Link href={`/estoque?councilId=${councilId}`} className="text-xs font-semibold text-primary hover:underline">
-                      Ver detalhes do estoque →
-                    </Link>
-                  </div>
-
-                  <SimpleTable
-                    caption="Estoque da empresa"
-                    rows={stockLevels.map((s) => ({
-                      id: `${s.councilId}:${s.materialId}`,
-                      material: lookups.materialLabel[s.materialId] ?? "—",
-                      available: s.available,
-                      minimum: s.minimum,
-                      level: s.level,
-                    }))}
-                    columns={[
-                      { key: "material", header: "Produto / Material" },
-                      { key: "available", header: "Quantidade Disponível", kind: "number" },
-                      { key: "minimum", header: "Estoque Mínimo", kind: "number" },
-                      { key: "level", header: "Situação", kind: "status", dictionary: "stock" },
-                    ]}
-                    emptyTitle="Nenhum produto em estoque"
-                    emptyDescription="Quando as solicitações forem aprovadas e recebidas, os itens aparecerão disponíveis aqui."
-                  />
-                </section>
-
-                {/* Seção de Pedidos de Materiais da Empresa */}
-                <section id="pedidos-materiais" aria-label="Pedidos de Materiais da Empresa" className="space-y-3">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <SectionLabel>Pedidos de Materiais da Empresa</SectionLabel>
-                        {orders.length > 0 ? (
-                          <span className="rounded-full bg-secondary px-2 py-0.5 text-[0.68rem] font-semibold text-muted-foreground">
-                            {orders.length} pedido{orders.length > 1 ? "s" : ""}
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Solicitações de retirada efetuadas contra o saldo liberado em estoque, aguardando ou homologados por Warley.
-                      </p>
-                    </div>
-                    {canCreateOrder ? (
-                      <MaterialOrderDialog
-                        councilId={councilId}
-                        availableStock={availableStock}
-                      />
-                    ) : null}
-                  </div>
-
-                  <SimpleTable
-                    caption="Pedidos de Materiais da Empresa"
-                    rows={orders.map((o) => ({
-                      id: o.id,
-                      number: o.number,
-                      createdAt: o.createdAt.toISOString(),
-                      items: o.items
-                        .map((it) => `${it.quantity}x ${lookups.materialLabel[it.materialId] ?? it.materialId}`)
-                        .join(", "),
-                      notes:
-                        o.status === "rejeitado" && o.rejectionReason
-                          ? `Recusado: ${o.rejectionReason}`
-                          : o.notes || "—",
-                      status: o.status,
-                    }))}
-                    columns={[
-                      { key: "number", header: "Nº Pedido" },
-                      { key: "createdAt", header: "Data", kind: "datetime" },
-                      { key: "items", header: "Itens Solicitados" },
-                      { key: "notes", header: "Observações / Motivo" },
-                      { key: "status", header: "Situação", kind: "status", dictionary: "order" },
-                    ]}
-                    emptyTitle="Nenhum pedido de material realizado"
-                    emptyDescription="Quando você solicitar materiais do saldo liberado, eles aparecerão registrados aqui."
-                  />
-                </section>
+            {/* 4 & 5. BENTO GRID 12 COLUNAS: ESTOQUE (7 COLS) + ACOMPANHAMENTO (5 COLS) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+              {/* Coluna 7: Estoque Disponível */}
+              <div className="lg:col-span-7">
+                <StockSection
+                  councilId={councilId}
+                  stockLevels={stockLevels}
+                  materialLabelMap={lookups.materialLabel}
+                  materialNameMap={lookups.materialName}
+                />
               </div>
 
-              {/* Coluna 2: Demandas & Agenda */}
-              <div className="space-y-6">
+              {/* Coluna 5: Acompanhamento (Solicitações, Processos, Reuniões) */}
+              <div className="lg:col-span-5 flex flex-col justify-between gap-4">
                 <RequestsOverview
                   rows={requests.map((r) => ({
                     id: r.id,
@@ -528,7 +462,11 @@ async function Content({
                         councilId={councilId}
                         councilLabel={label}
                         trigger={
-                          <Button variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs font-medium">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 gap-1 px-2 text-xs font-semibold rounded-lg"
+                          >
                             <CalendarDays className="size-3.5" aria-hidden />
                             Agendar
                           </Button>
@@ -539,6 +477,15 @@ async function Content({
                 />
               </div>
             </div>
+
+            {/* 6. PEDIDOS DE MATERIAIS DA EMPRESA (LARGURA TOTAL 12 COLUNAS) */}
+            <MaterialOrdersSection
+              councilId={councilId}
+              orders={orders}
+              availableStock={availableStock}
+              materialLabelMap={lookups.materialLabel}
+              canCreateOrder={canCreateOrder}
+            />
           </div>
         );
       }}

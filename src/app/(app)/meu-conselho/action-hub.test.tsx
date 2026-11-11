@@ -17,11 +17,11 @@ describe("ActionHub", () => {
     expect(html).toContain("Agendar reunião");
     expect(html).toContain("Ver estoque");
     expect(html).toContain("Solicitações");
-    expect(html).toContain("Atas de preços");
+    expect(html).toContain("Atas vigentes");
 
-    // Layout em grid compacto
-    expect(html).toContain("lg:grid-cols-6");
-    expect(html).toContain("size-8");
+    // Layout em grid responsivo de 3 colunas
+    expect(html).toContain("lg:grid-cols-3");
+    expect(html).toContain("w-10 h-10");
   });
 
   it("respeita permissões desabilitadas", () => {

@@ -32,7 +32,7 @@ export function KpiCard({ label, value, hint, icon, href, accent = false }: KpiC
         ) : null}
       </div>
       <div className="flex items-baseline justify-between mt-1">
-        <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 tabular-nums">
+        <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 tabular-nums whitespace-nowrap">
           {value ?? "—"}
         </span>
         {hint ? <span className="text-[11px] font-medium text-slate-400 truncate">{hint}</span> : null}
