@@ -1,78 +1,69 @@
-import { Sparkles } from "lucide-react";
-import { generateOperationalBriefing } from "@/modules/insights/groq";
+import { Sparkles, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { generateBriefing } from "@/modules/insights/service";
 import type { BriefingFacts } from "@/modules/insights/briefing";
-import { cn } from "@/lib/utils";
 
-const TONE_STYLES = {
-  ok: "border-success/50 bg-[linear-gradient(180deg,oklch(0.97_0.02_155)_0%,oklch(1_0.002_250)_55%)]",
-  atencao: "border-highlight/40 bg-[linear-gradient(180deg,oklch(0.97_0.03_75)_0%,oklch(1_0.002_250)_55%)]",
-  critico: "border-destructive/30 bg-[linear-gradient(180deg,oklch(0.97_0.03_25)_0%,oklch(1_0.002_250)_55%)]",
-} as const;
-
-const TONE_LABEL = {
-  ok: "Situação estável",
-  atencao: "Há pontos de atenção",
-  critico: "Há itens críticos",
-} as const;
-
-/** Ilha de IA: só narra fatos já carregados; se a Groq falhar, o restante do painel permanece. */
 export async function BriefingCard({ facts }: { facts: BriefingFacts }) {
-  const result = await generateOperationalBriefing(facts);
+  const insight = await generateBriefing(facts);
 
-  if (!result.ok) {
-    return (
-      <section className="surface-card p-5" aria-label="Resumo de IA">
-        <div className="mb-2 flex items-center gap-2 text-primary">
-          <span className="grid size-9 place-items-center rounded-xl bg-secondary">
-            <Sparkles className="size-4 text-highlight" aria-hidden />
-          </span>
-          <h2 className="font-heading text-lg font-medium tracking-tight">Resumo de IA</h2>
-        </div>
-        <p className="text-sm leading-relaxed text-muted-foreground">{result.message}</p>
-      </section>
-    );
-  }
-
-  const briefing = result.data;
   return (
-    <section className={cn("surface-card card-hover p-5", TONE_STYLES[briefing.tone])} aria-label="Resumo de IA">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-primary">
-          <span className="grid size-9 place-items-center rounded-xl bg-card/80 shadow-sm">
-            <Sparkles className="size-4 text-highlight" aria-hidden />
+    <section
+      aria-label="Briefing Operacional de IA"
+      className="relative overflow-hidden rounded-2xl border border-primary/10 bg-gradient-to-r from-card via-card to-amber-500/5 p-4 sm:p-5 shadow-xs"
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <span className="grid size-7 place-items-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+            <Sparkles className="size-4" aria-hidden />
           </span>
-          <p className="text-[0.7rem] font-semibold tracking-[0.14em] text-muted-foreground uppercase">Resumo de IA</p>
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Briefing Operacional
+          </h2>
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.68rem] font-semibold ${
+              insight.hasBlockers
+                ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+            }`}
+          >
+            {insight.hasBlockers ? (
+              <>
+                <AlertTriangle className="size-3 text-amber-600 dark:text-amber-400" />
+                Pontos de atenção
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="size-3 text-emerald-600 dark:text-emerald-400" />
+                Operação estável
+              </>
+            )}
+          </span>
         </div>
-        <span className="rounded-full border border-border/70 bg-card/80 px-2.5 py-0.5 text-[0.7rem] font-semibold tracking-wide text-muted-foreground uppercase">
-          {TONE_LABEL[briefing.tone]}
-        </span>
+        <p className="text-xs font-semibold text-primary">{insight.headline}</p>
       </div>
-      <h2 className="font-heading text-xl font-medium tracking-tight text-primary md:text-[1.4rem]">{briefing.headline}</h2>
-      <ul className="mt-4 space-y-2 text-sm leading-relaxed text-foreground/80">
-        {briefing.bullets.map((bullet, index) => (
-          <li key={`${index}-${bullet.slice(0, 24)}`} className="flex gap-2.5">
-            <span className="mt-2 size-1.5 shrink-0 rounded-full bg-highlight" aria-hidden />
-            <span>{bullet}</span>
-          </li>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {insight.bullets.map((bullet, index) => (
+          <div
+            key={index}
+            className="flex items-start gap-2 rounded-xl bg-background/60 p-2.5 text-xs text-foreground/90 border border-border/40"
+          >
+            <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-amber-500" />
+            <span className="leading-snug">{bullet}</span>
+          </div>
         ))}
-      </ul>
-      <p className="mt-4 text-[0.7rem] text-muted-foreground">Narrado pela Groq a partir dos números já carregados. Nenhum valor é inventado.</p>
+      </div>
     </section>
   );
 }
 
 export function BriefingFallback() {
   return (
-    <section className="surface-card p-5" aria-label="Gerando resumo de IA">
-      <div className="flex items-center gap-2">
-        <span className="grid size-9 place-items-center rounded-xl bg-secondary">
-          <Sparkles className="size-4 animate-pulse text-highlight" aria-hidden />
-        </span>
-        <p className="text-[0.7rem] font-semibold tracking-[0.14em] text-muted-foreground uppercase">Resumo de IA</p>
-      </div>
-      <div className="mt-4 h-6 w-2/3 animate-pulse rounded bg-muted" />
-      <div className="mt-3 h-4 w-full animate-pulse rounded bg-muted/80" />
-      <div className="mt-2 h-4 w-5/6 animate-pulse rounded bg-muted/70" />
-    </section>
+    <div
+      aria-label="Carregando Briefing Operacional"
+      className="flex items-center gap-2 rounded-2xl border border-border/40 bg-card p-4 text-xs text-muted-foreground"
+    >
+      <Sparkles className="size-4 animate-spin text-amber-500" />
+      <span>Carregando Briefing Operacional...</span>
+    </div>
   );
 }
