@@ -49,7 +49,7 @@ export function LinkedProcessCard({ processView }: LinkedProcessCardProps) {
 
       <div className="mt-4 flex items-center justify-end border-t border-border/40 pt-4">
         <Link
-          href={`/processos?abrir=${proc.id}`}
+          href={`/processos/${proc.id}`}
           className={buttonVariants({ size: "sm" })}
         >
           Anexar documentos do processo →

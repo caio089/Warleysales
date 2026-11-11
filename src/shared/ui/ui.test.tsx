@@ -89,10 +89,10 @@ describe("componentes compartilhados (renderização no servidor)", () => {
     expect(html).toContain("Documentação pendente");
     expect(html).toContain("0/7 documentos anexados");
     expect(html).toContain("0 de 7 documentos");
-    expect(html).toContain('href="/processos?abrir=proc-123"');
+    expect(html).toContain('href="/processos/proc-123"');
     expect(html).toContain("Anexar documentos do processo →");
   });
-  it("ProcessesTable exibe cabeçalhos, dados e botão de ação rápida 'Anexar'", () => {
+  it("ProcessesTable exibe cabeçalhos, dados e o link para a página do processo", () => {
     expect(ProcessesTableReExport).toBe(ProcessesTable);
     const rows = [
       {
@@ -113,7 +113,8 @@ describe("componentes compartilhados (renderização no servidor)", () => {
     expect(html).toContain("Em andamento");
     expect(html).toContain("Documentação pendente");
     expect(html).toContain("42%");
-    expect(html).toContain("Anexar");
+    expect(html).toContain("Abrir");
+    expect(html).toContain('href="/processos/proc-1"');
     expect(html).toContain("Ações");
   });
 });

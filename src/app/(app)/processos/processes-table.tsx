@@ -10,7 +10,7 @@ import {
   Search,
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   type FilterDefinition,
@@ -27,8 +27,6 @@ import {
   PROCESS_STATUS,
   presentationOf,
 } from "@/shared/ui/status-presentation";
-import { openProcessAttachment } from "./process-attachment-sheet";
-
 export interface ProcessTableRow {
   id: string;
   number: string;
@@ -262,7 +260,9 @@ export function ProcessesTable({
                   return (
                     <tr
                       key={row.id}
-                      onClick={() => openProcessAttachment(row.id)}
+                      onClick={() => {
+                        window.location.assign(row.href);
+                      }}
                       className="cursor-pointer border-t border-border/70 transition-colors hover:bg-primary/[0.035]"
                     >
                       <td className="px-4 py-3.5">
@@ -275,7 +275,13 @@ export function ProcessesTable({
                         </Link>
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className="line-clamp-2">{row.title}</span>
+                        <Link
+                          href={row.href}
+                          onClick={(event) => event.stopPropagation()}
+                          className="line-clamp-2 font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
+                        >
+                          {row.title}
+                        </Link>
                       </td>
                       <td className="px-4 py-3.5">{row.council}</td>
                       <td className="px-4 py-3.5">
@@ -295,20 +301,19 @@ export function ProcessesTable({
                         />
                       </td>
                       <td className="px-4 py-3.5 text-right">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="inline-flex items-center gap-1.5"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openProcessAttachment(row.id);
-                          }}
-                          title={`Anexar documentos no processo ${row.number}`}
+                        <Link
+                          href={row.href}
+                          onClick={(e) => e.stopPropagation()}
+                          title={`Abrir a página do processo ${row.number}`}
+                          className={buttonVariants({
+                            variant: "outline",
+                            size: "sm",
+                            className: "inline-flex items-center gap-1.5",
+                          })}
                         >
                           <Paperclip className="size-3.5" aria-hidden />
-                          <span>Anexar</span>
-                        </Button>
+                          <span>Abrir</span>
+                        </Link>
                       </td>
                     </tr>
                   );
