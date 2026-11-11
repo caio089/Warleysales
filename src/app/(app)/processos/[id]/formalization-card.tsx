@@ -445,6 +445,8 @@ export function FormalizationCard({
         action={submitFormalizationFormAction}
         submitLabel={isWarley ? "Gravar economia e liberar estoque" : "Submeter para Homologação de Warley"}
         pendingLabel="Submetendo formalização…"
+        submitVariant={isWarley ? "highlight" : "default"}
+        submitClassName="font-medium px-5 shadow-xs"
         hiddenFields={{
           processId,
           councilId,
@@ -452,35 +454,38 @@ export function FormalizationCard({
         }}
       >
         {(fieldErrors) => (
-          <div className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <FormField
-                  label="Fornecedor"
-                  required
-                  errors={fieldErrors.supplierId}
-                  hint="Escreva o nome de quem venceu o pregão"
-                >
-                  {(p) => (
-                    <>
-                      <Input
-                        {...p}
-                        name="supplierName"
-                        required
-                        list={`fornecedores-${processId}`}
-                        placeholder="Ex.: Papelaria Central Ltda"
-                        autoComplete="off"
-                      />
-                      <datalist id={`fornecedores-${processId}`}>
-                        {suppliers.map((supplier) => (
-                          <option key={supplier.id} value={supplier.name} />
-                        ))}
-                      </datalist>
-                    </>
-                  )}
-                </FormField>
-              </div>
+          <div className="space-y-5">
+            {/* Linha 1: Fornecedor * */}
+            <div>
+              <FormField
+                label="Fornecedor"
+                required
+                errors={fieldErrors.supplierId}
+                hint="Escreva o nome de quem venceu o pregão"
+              >
+                {(p) => (
+                  <>
+                    <Input
+                      {...p}
+                      name="supplierName"
+                      required
+                      list={`fornecedores-${processId}`}
+                      placeholder="Ex.: Papelaria Central Ltda"
+                      autoComplete="off"
+                      className="w-full"
+                    />
+                    <datalist id={`fornecedores-${processId}`}>
+                      {suppliers.map((supplier) => (
+                        <option key={supplier.id} value={supplier.name} />
+                      ))}
+                    </datalist>
+                  </>
+                )}
+              </FormField>
+            </div>
 
+            {/* Linha 2 (grid 2 colunas): Data do pregão * e Valor de referência (R$) * */}
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <TextField
                   name="auctionDate"
@@ -513,26 +518,49 @@ export function FormalizationCard({
                   )}
                 </FormField>
               </div>
+            </div>
 
-              <div className="md:col-span-2 space-y-3">
-                <p className="text-sm font-medium">Quantidade contratada</p>
-                {requestItems.length > 0 ? (
-                  requestItems.map((item) => (
-                    <div key={item.materialId} className="grid gap-3 md:grid-cols-[1fr_10rem] md:items-end">
-                      <p className="text-sm text-foreground">{item.name}</p>
+            {/* Linha 3: Quantidade Contratada */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-foreground">
+                  Quantidade Contratada <span className="text-destructive">*</span>
+                </label>
+                <span className="text-xs text-muted-foreground">
+                  Volume homologado para liberação no estoque
+                </span>
+              </div>
+
+              {requestItems.length > 0 ? (
+                <div className="space-y-2.5">
+                  {requestItems.map((item) => (
+                    <div
+                      key={item.materialId}
+                      className="flex flex-col gap-3 rounded-lg border border-border/70 bg-card p-3.5 sm:flex-row sm:items-center sm:justify-between shadow-xs"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-foreground truncate">{item.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Demanda do pedido: <span className="font-medium text-foreground">{item.quantity} un.</span>
+                        </p>
+                      </div>
                       <input type="hidden" name="itemMaterialId" value={item.materialId} />
-                      <TextField
-                        name="itemQuantity"
-                        label="Quantidade"
-                        type="number"
-                        min="0.001"
-                        step="0.001"
-                        required
-                        defaultValue={String(item.quantity)}
-                      />
+                      <div className="w-full sm:w-44 shrink-0">
+                        <TextField
+                          name="itemQuantity"
+                          label="Quantidade"
+                          type="number"
+                          min="0.001"
+                          step="0.001"
+                          required
+                          defaultValue={String(item.quantity)}
+                        />
+                      </div>
                     </div>
-                  ))
-                ) : (
+                  ))}
+                </div>
+              ) : (
+                <div className="max-w-xs">
                   <TextField
                     name="itemQuantity"
                     label="Quantidade"
@@ -542,42 +570,51 @@ export function FormalizationCard({
                     required
                     hint="Quantidade correta que entra no estoque"
                   />
-                )}
-              </div>
-
-              <div>
-                <FormField
-                  label="Valor comprado (R$)"
-                  required
-                  errors={fieldErrors.contractedValue}
-                  hint="Valor final da proposta vencedora"
-                >
-                  {(p) => (
-                    <Input
-                      {...p}
-                      name="contractedValue"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      required
-                      value={contractedInput}
-                      onChange={(e) => setContractedInput(e.target.value)}
-                      placeholder="0,00"
-                    />
-                  )}
-                </FormField>
-              </div>
+                </div>
+              )}
             </div>
 
-            {/* Painel Reativo de Economia em Tempo Real */}
-            <div className="rounded-xl border border-border/80 bg-secondary/30 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            {/* Linha 4: Valor comprado (R$) * */}
+            <div>
+              <FormField
+                label="Valor comprado (R$)"
+                required
+                errors={fieldErrors.contractedValue}
+                hint="Valor final da proposta vencedora"
+              >
+                {(p) => (
+                  <Input
+                    {...p}
+                    name="contractedValue"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    value={contractedInput}
+                    onChange={(e) => setContractedInput(e.target.value)}
+                    placeholder="0,00"
+                  />
+                )}
+              </FormField>
+            </div>
+
+            {/* Linha 5: Painel Reativo de Economia em Tempo Real */}
+            <div
+              className={`rounded-xl border p-4 sm:p-5 transition-all ${
+                savingsValue > 0
+                  ? "border-emerald-500/40 bg-emerald-500/10 dark:border-emerald-500/30 dark:bg-emerald-950/20"
+                  : savingsValue < 0
+                    ? "border-destructive/30 bg-destructive/5"
+                    : "border-border/80 bg-secondary/30"
+              }`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <span className="text-xs font-semibold uppercase tracking-wider text-primary">
                   Cálculo de Economia em Tempo Real
                 </span>
                 {estimatedNum > 0 && contractedNum >= 0 ? (
                   savingsValue > 0 ? (
-                    <span className="inline-flex items-center rounded-full border border-emerald-600/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                    <span className="inline-flex items-center rounded-full border border-emerald-600/30 bg-emerald-500/20 px-2.5 py-0.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
                       +{formatPercent(savingsPercent)} de economia
                     </span>
                   ) : savingsValue < 0 ? (
@@ -595,23 +632,41 @@ export function FormalizationCard({
               </div>
 
               {estimatedNum > 0 && contractedNum >= 0 ? (
-                <div className="grid grid-cols-3 gap-2 pt-1">
-                  <div>
-                    <p className="text-[0.7rem] text-muted-foreground uppercase">Valor Estimado</p>
-                    <p className="text-sm font-semibold text-foreground">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 pt-1">
+                  <div className="rounded-lg bg-background/60 p-2.5 border border-border/40">
+                    <p className="text-[0.7rem] text-muted-foreground uppercase font-medium">Valor Estimado</p>
+                    <p className="text-base font-semibold text-foreground mt-0.5">
                       {formatCurrency(estimatedNum)}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-[0.7rem] text-muted-foreground uppercase">Valor Contratado</p>
-                    <p className="text-sm font-semibold text-foreground">
+                  <div className="rounded-lg bg-background/60 p-2.5 border border-border/40">
+                    <p className="text-[0.7rem] text-muted-foreground uppercase font-medium">Valor Contratado</p>
+                    <p className="text-base font-semibold text-foreground mt-0.5">
                       {formatCurrency(contractedNum)}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-[0.7rem] text-muted-foreground uppercase">Economia Gerada</p>
+                  <div
+                    className={`rounded-lg p-2.5 border ${
+                      savingsValue > 0
+                        ? "border-emerald-500/40 bg-emerald-500/15"
+                        : savingsValue < 0
+                          ? "border-destructive/30 bg-destructive/10"
+                          : "border-border/40 bg-background/60"
+                    }`}
+                  >
                     <p
-                      className={`text-sm font-bold ${
+                      className={`text-[0.7rem] uppercase font-semibold ${
+                        savingsValue > 0
+                          ? "text-emerald-800 dark:text-emerald-300"
+                          : savingsValue < 0
+                            ? "text-destructive"
+                            : "text-muted-foreground"
+                      }`}
+                    >
+                      Economia Gerada
+                    </p>
+                    <p
+                      className={`text-base font-bold mt-0.5 ${
                         savingsValue > 0
                           ? "text-emerald-700 dark:text-emerald-400"
                           : savingsValue < 0
