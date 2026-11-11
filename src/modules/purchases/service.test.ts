@@ -112,6 +112,24 @@ describe("PurchaseRequestService", () => {
     const balances = atas.ok ? atas.data.flatMap((a) => a.items.map((i) => i.balance.balance)).sort((a, b) => a - b) : [];
     expect(balances).toEqual([1, 10]);
   });
+  it("item digitado grava o nome e não altera o estoque", async () => {
+    const r = await ctx.service.create(operatorOf(COUNCIL_A), {
+      councilId: COUNCIL_A,
+      title: "Material de expediente",
+      items: [{ description: "Caneta azul", quantity: 12, unit: "cx" }],
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const materials = await ctx.inventory.listMaterials(manager());
+    const material = materials.ok ? materials.data.find((item) => item.name === "Caneta azul") : undefined;
+    expect(material?.unit).toBe("cx");
+    expect(r.data.items[0]?.materialId).toBe(material?.id);
+    const levels = await ctx.inventory.listLevels(manager(), COUNCIL_A);
+    const level = levels.ok ? levels.data.find((item) => item.materialId === material?.id) : undefined;
+    expect(level?.physical ?? 0).toBe(0);
+    expect(level?.blocked).toBe(12);
+    expect(level?.available).toBe(0);
+  });
   it("permissões: operador não aprova; consulta não cria; conselho alheio não vê", async () => {
     const id = await submitted([{ quantity: 1 }]);
     expect((await ctx.service.approve(operatorOf(COUNCIL_A), { requestId: id })).ok).toBe(false);

@@ -132,7 +132,7 @@ async function AuditContent({ rawParams }: { rawParams: Record<string, string | 
     if (!entriesRes.ok) return entriesRes;
     const lookups = lookupsRes.ok
       ? lookupsRes.data
-      : { councils: [], councilLabel: {}, materials: [], materialLabel: {} };
+      : { councils: [], councilLabel: {}, materials: [], materialLabel: {}, materialName: {} };
     return ok({
       entries: entriesRes.data,
       lookups,

@@ -5,12 +5,12 @@ import { revalidatePath } from "next/cache";
 import { runAction } from "@/server/action-runner";
 import type { ActionState } from "@/shared/ui/forms/action-state";
 
-/** Itens vêm como campos repetidos materialId/quantity (formulário dinâmico). */
+/** Itens digitados no formulário: nome, quantidade e unidade. Linha em branco é ignorada. */
 function readItems(formData: FormData) {
-  const materials = formData.getAll("materialId").map(String);
+  const names = formData.getAll("itemName").map((value) => String(value).trim());
   const quantities = formData.getAll("quantity").map((q) => Number(String(q).replace(",", ".")));
-  const atas = formData.getAll("ataItemId").map((v) => (String(v) ? String(v) : null));
-  return materials.map((materialId, i) => ({ materialId, quantity: quantities[i], ataItemId: atas[i] ?? null })).filter((i) => i.materialId);
+  const units = formData.getAll("unit").map((value) => String(value).trim());
+  return names.map((description, i) => ({ description, quantity: quantities[i], unit: units[i] || "un" })).filter((item) => item.description.length > 0 || item.quantity > 0);
 }
 
 export async function createRequestFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {

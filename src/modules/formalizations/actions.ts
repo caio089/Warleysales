@@ -38,8 +38,8 @@ export async function submitFormalizationFormAction(
   const contractedValue = parseMoney(formData.get("contractedValue"));
 
   const result = await runAction(
-    ({ services, actor }) =>
-      services.formalizations.submit(actor, {
+    async ({ services, actor }) => {
+      const submitted = await services.formalizations.submit(actor, {
         processId,
         councilId,
         supplierId,
@@ -48,14 +48,25 @@ export async function submitFormalizationFormAction(
         estimatedValue,
         contractedValue,
         requestId,
-      }),
-    "Formalização submetida com sucesso. Aguardando homologação de Warley.",
+      });
+      if (!submitted.ok || !actor.isCentralAdmin) return submitted;
+      return services.formalizations.homologate(actor, {
+        processId,
+        note: "Liberação após registro do fornecedor, do valor e da quantidade.",
+      });
+    },
+    (formalization) =>
+      formalization.status === "homologado"
+        ? "Economia gravada e estoque liberado. O status passou para disponível."
+        : "Formalização registrada. O estoque continua bloqueado até a liberação.",
   );
 
   if (result.status === "success") {
     revalidatePath(`/processos/${processId}`);
     revalidatePath("/processos");
     revalidatePath("/dashboard");
+    revalidatePath("/estoque");
+    revalidatePath("/meu-conselho");
   }
 
   return result.status === "success"

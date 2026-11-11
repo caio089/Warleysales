@@ -54,7 +54,7 @@ async function Content({ rawParams }: { rawParams: Record<string, string | strin
     if (!entriesRes.ok) return entriesRes;
     const lookups = lookupsRes.ok
       ? lookupsRes.data
-      : { councils: [], councilLabel: {}, materials: [], materialLabel: {} };
+      : { councils: [], councilLabel: {}, materials: [], materialLabel: {}, materialName: {} };
     return ok({
       entries: entriesRes.data,
       lookups,

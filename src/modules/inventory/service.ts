@@ -80,6 +80,22 @@ export class InventoryService {
     return saved;
   }
 
+  /**
+   * Garante um material para um item digitado na solicitação.
+   * Reaproveita nome e unidade iguais; não mexe no saldo do estoque.
+   */
+  async ensureMaterial(input: { name: string; unit?: string }): Promise<Result<Material>> {
+    const name = input.name.trim();
+    const unit = input.unit?.trim() || "un";
+    const same = (value: string) => value.trim().toLocaleLowerCase("pt-BR");
+    const existing = (await this.repository.listMaterials()).find((material) => same(material.name) === same(name) && same(material.unit) === same(unit));
+    if (existing) return ok(existing);
+
+    const slug = name.normalize("NFD").replace(/\p{M}/gu, "").toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24) || "ITEM";
+    const suffix = this.runtime.newId().replace(/-/g, "").slice(0, 6).toUpperCase();
+    return this.repository.insertMaterial({ id: this.runtime.newId(), code: `${slug}-${suffix}`.slice(0, 40), name, unit, active: true });
+  }
+
   async listMaterials(actor: Actor): Promise<Result<Material[]>> {
     if (!actor.isCentralAdmin && actor.memberships.length === 0) return fail("FORBIDDEN", "Sem acesso.");
     return ok(await this.repository.listMaterials());
@@ -182,6 +198,7 @@ export class InventoryService {
 
     for (const item of items) {
       const result = await this.repository.transact({ councilId, materialId: item.materialId }, (state) => {
+        if ((state.balance.blocked ?? 0) === 0) return ok({ balance: state.balance, value: undefined });
         const next = releaseBlocked(state.balance, item.quantity);
         if (!next.ok) return next;
         return ok({

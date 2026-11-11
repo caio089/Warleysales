@@ -12,6 +12,7 @@ import {
   COMPLETION_STATUS,
   MEETING_STATUS,
   ORDER_STATUS,
+  STOCK_HOLD_STATUS,
   presentationOf,
   PROCESS_STATUS,
   REQUEST_STATUS,
@@ -27,6 +28,7 @@ const DICTIONARIES = {
   stock: STOCK_LEVEL,
   completion: COMPLETION_STATUS,
   order: ORDER_STATUS,
+  hold: STOCK_HOLD_STATUS,
 } as const;
 
 export type StatusDictionary = keyof typeof DICTIONARIES;

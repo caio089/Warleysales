@@ -8,6 +8,8 @@ export interface Lookups {
   councilLabel: Record<string, string>;
   materials: { id: string; label: string }[];
   materialLabel: Record<string, string>;
+  /** Nome do material, sem o código interno. */
+  materialName: Record<string, string>;
 }
 
 export async function loadLookups({ services, actor }: ScreenContext): Promise<Result<Lookups>> {
@@ -21,5 +23,6 @@ export async function loadLookups({ services, actor }: ScreenContext): Promise<R
     councilLabel: Object.fromEntries(councilRows.map((c) => [c.id, c.label])),
     materials: materialRows.map((m) => ({ id: m.id, label: `${m.code} — ${m.name}` })),
     materialLabel: Object.fromEntries(materialRows.map((m) => [m.id, `${m.code} — ${m.name}`])),
+    materialName: Object.fromEntries(materialRows.map((m) => [m.id, m.name])),
   });
 }

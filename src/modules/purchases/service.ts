@@ -42,8 +42,20 @@ export class PurchaseRequestService {
       processId = createdProc.data.id;
     }
 
-    if (d.items && d.items.length > 0) {
-      const provisioned = await this.inventory.provisionBlocked(actor, d.councilId, d.items);
+    const items: { materialId: string; quantity: number; ataItemId: string | null }[] = [];
+    for (const item of d.items) {
+      if (item.materialId) {
+        items.push({ materialId: item.materialId, quantity: item.quantity, ataItemId: item.ataItemId ?? null });
+        continue;
+      }
+      const material = await this.inventory.ensureMaterial({ name: item.description ?? "", unit: item.unit });
+      if (!material.ok) return material;
+      items.push({ materialId: material.data.id, quantity: item.quantity, ataItemId: item.ataItemId ?? null });
+    }
+
+    // A quantidade pedida entra bloqueada: visível no estoque, mas indisponível para pedido até a liberação.
+    if (items.length > 0) {
+      const provisioned = await this.inventory.provisionBlocked(actor, d.councilId, items);
       if (!provisioned.ok) return provisioned;
     }
 
@@ -51,7 +63,7 @@ export class PurchaseRequestService {
       id: this.runtime.newId(), councilId: d.councilId, title: d.title, status: "rascunho",
       processId,
       estimatedValue: d.estimatedValue ?? null,
-      items: d.items.map((i) => ({ id: this.runtime.newId(), materialId: i.materialId, quantity: i.quantity, ataItemId: i.ataItemId ?? null, receivedTotal: 0 })),
+      items: items.map((i) => ({ id: this.runtime.newId(), materialId: i.materialId, quantity: i.quantity, ataItemId: i.ataItemId, receivedTotal: 0 })),
       events: [{ from: null, to: "rascunho", actorId: actor.userId, at: now }],
       receiptKeys: [], createdBy: actor.userId, createdAt: now,
     });

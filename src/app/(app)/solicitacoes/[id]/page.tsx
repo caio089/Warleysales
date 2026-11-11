@@ -53,7 +53,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
           .filter((i) => i.quantity - i.receivedTotal > 0)
           .map((i) => ({
             id: i.id,
-            label: lookups.materialLabel[i.materialId] ?? "—",
+            label: lookups.materialName[i.materialId] ?? lookups.materialLabel[i.materialId] ?? "—",
             pending: i.quantity - i.receivedTotal,
           }));
         return (
@@ -72,14 +72,14 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
                 caption="Itens da solicitação"
                 rows={request.items.map((i) => ({
                   id: i.id,
-                  material: lookups.materialLabel[i.materialId] ?? "—",
+                  material: lookups.materialName[i.materialId] ?? lookups.materialLabel[i.materialId] ?? "—",
                   quantity: i.quantity,
                   received: i.receivedTotal,
                   pending: i.quantity - i.receivedTotal,
                   ata: i.ataItemId ? "Vinculada" : "—",
                 }))}
                 columns={[
-                  { key: "material", header: "Material" },
+                  { key: "material", header: "Item" },
                   { key: "quantity", header: "Solicitado", kind: "number" },
                   { key: "received", header: "Recebido", kind: "number" },
                   { key: "pending", header: "Pendente", kind: "number" },

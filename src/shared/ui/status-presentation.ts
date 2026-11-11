@@ -59,6 +59,14 @@ export const COMPLETION_STATUS: Dictionary = {
   pendente: { label: "Documentação pendente", tone: "warning" },
 };
 
+/** Situação da solicitação dentro do estoque, até o saldo ficar disponível para pedido. */
+export const STOCK_HOLD_STATUS: Dictionary = {
+  bloqueado: { label: "Bloqueado", tone: "warning" },
+  apto: { label: "Bloqueado · pronto para contratar", tone: "info" },
+  aguardando_homologacao: { label: "Bloqueado · aguardando liberação", tone: "warning" },
+  disponivel: { label: "Disponível", tone: "success" },
+};
+
 export const ORDER_STATUS: Dictionary = {
   pendente: { label: "Pendente", tone: "warning" },
   aprovado: { label: "Aprovado", tone: "success" },

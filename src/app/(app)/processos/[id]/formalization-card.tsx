@@ -429,7 +429,7 @@ export function FormalizationCard({
 
       <ActionForm
         action={submitFormalizationFormAction}
-        submitLabel="Submeter para Homologação de Warley"
+        submitLabel={isWarley ? "Gravar economia e liberar estoque" : "Submeter para Homologação de Warley"}
         pendingLabel="Submetendo formalização…"
         hiddenFields={{
           processId,

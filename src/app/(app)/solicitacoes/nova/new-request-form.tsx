@@ -8,15 +8,7 @@ import { SelectField, TextField } from "@/shared/ui/forms/fields";
 
 type Option = { value: string; label: string };
 
-export function NewRequestForm({
-  councils,
-  materials,
-  ataItems,
-}: {
-  councils: Option[];
-  materials: Option[];
-  ataItems: Option[];
-}) {
+export function NewRequestForm({ councils }: { councils: Option[] }) {
   const [rows, setRows] = useState([0]);
   return (
     <div className="surface-card max-w-2xl p-6">
@@ -42,13 +34,12 @@ export function NewRequestForm({
             </label>
             <fieldset className="space-y-3">
               <legend className="text-sm font-medium">Itens</legend>
-              <p className="text-xs text-muted-foreground">Ao aprovar, o item da ata vigente consome o saldo (rascunho não consome). Sem vínculo, a ata permanece intacta.</p>
-              {materials.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum material cadastrado. Cadastre materiais em Estoque → Materiais.</p> : null}
+              <p className="text-xs text-muted-foreground">Escreva o que precisa e a quantidade. Esta solicitação não tira saldo do estoque.</p>
               {rows.map((key) => (
-                <div key={key} className="grid gap-3 md:grid-cols-[1fr_8rem_1fr]">
-                  <SelectField name="materialId" label="Material" options={materials} errors={e["items.0.materialId"]} />
-                  <TextField name="quantity" label="Quantidade" type="number" step="0.001" min="0" errors={e["items.0.quantity"]} />
-                  <SelectField name="ataItemId" label="Item da ata (opcional)" options={ataItems} optional placeholder="Sem vínculo" errors={e["items.0.ataItemId"]} />
+                <div key={key} className="grid gap-3 md:grid-cols-[1fr_8rem_7rem]">
+                  <TextField name="itemName" label="Item" required placeholder="Ex.: Papel A4" errors={e["items.0.description"]} />
+                  <TextField name="quantity" label="Quantidade" type="number" step="0.001" min="0" required errors={e["items.0.quantity"]} />
+                  <TextField name="unit" label="Unidade" placeholder="un" defaultValue="un" errors={e["items.0.unit"]} />
                 </div>
               ))}
               {e.items ? <p role="alert" className="text-xs text-destructive">{e.items.join(" ")}</p> : null}

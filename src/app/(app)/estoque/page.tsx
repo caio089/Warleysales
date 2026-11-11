@@ -21,17 +21,55 @@ export const metadata: Metadata = { title: "Gestão de Estoque" };
 
 async function Content() {
   const result = await loadScreen(async (ctx) => {
-    const [levels, lookups] = await Promise.all([
+    const [levels, lookups, requests, processes, pendingFormalizations, homologatedFormalizations] = await Promise.all([
       ctx.services.inventory.listLevels(ctx.actor),
       loadLookups(ctx),
+      ctx.services.purchases.list(ctx.actor),
+      ctx.services.processes.list(ctx.actor),
+      ctx.services.formalizations.listPending(ctx.actor),
+      ctx.services.formalizations.listHomologated(ctx.actor),
     ]);
     if (!levels.ok) return levels;
     if (!lookups.ok) return lookups;
+    if (!requests.ok) return requests;
+    if (!processes.ok) return processes;
     const summary = calculateStockSummary(levels.data);
+    const formalizations = [
+      ...(pendingFormalizations.ok ? pendingFormalizations.data : []),
+      ...(homologatedFormalizations.ok ? homologatedFormalizations.data : []),
+    ];
+    const processById = new Map(processes.data.map((view) => [view.process.id, view]));
+    const formalizationByProcess = new Map(formalizations.map((item) => [item.processId, item]));
+    const holds = requests.data
+      .filter((request) => request.processId)
+      .map((request) => {
+        const processId = request.processId!;
+        const view = processById.get(processId);
+        const formalization = formalizationByProcess.get(processId);
+        const status = formalization?.status === "homologado"
+          ? "disponivel"
+          : formalization?.status === "aguardando_homologacao"
+            ? "aguardando_homologacao"
+            : view?.progress.isComplete
+              ? "apto"
+              : "bloqueado";
+        const itemName = request.items.length === 1
+          ? lookups.data.materialName[request.items[0]!.materialId] ?? request.title
+          : request.title;
+        return {
+          id: request.id,
+          name: itemName,
+          council: lookups.data.councilLabel[request.councilId] ?? "—",
+          quantity: request.items.reduce((total, item) => total + item.quantity, 0),
+          status,
+          href: `/processos/${processId}`,
+        };
+      });
     return ok({
       levels: levels.data,
       lookups: lookups.data,
       summary,
+      holds,
       canMove: canInAnyCouncil(ctx.actor, "stock.move"),
       canAdjust: canInAnyCouncil(ctx.actor, "stock.adjust"),
     });
@@ -39,7 +77,7 @@ async function Content() {
 
   return (
     <Screen result={result}>
-      {({ levels, lookups, summary, canMove, canAdjust }) => {
+      {({ levels, lookups, summary, holds, canMove, canAdjust }) => {
         const councils = lookups.councils.map((c) => ({ value: c.id, label: c.label }));
         const materials = lookups.materials.map((m) => ({ value: m.id, label: m.label }));
 
@@ -70,6 +108,28 @@ async function Content() {
                 label="% Saldo Liberado"
                 value={formatPercent(summary.percentReady)}
                 hint="Percentual do estoque total liberado"
+              />
+            </section>
+
+            <section aria-label="Solicitações no estoque" className="space-y-3">
+              <div>
+                <SectionLabel>Solicitações no estoque</SectionLabel>
+                <p className="text-xs text-muted-foreground">
+                  Cada solicitação entra bloqueada. Clique no nome para ver os documentos. O saldo só fica disponível para pedido depois dos documentos, da ata ou do contrato, do fornecedor, do valor comprado e da quantidade. Nesse momento a economia é gravada e o status muda para disponível.
+                </p>
+              </div>
+              <SimpleTable
+                caption="Solicitações bloqueadas e liberadas"
+                rows={holds}
+                columns={[
+                  { key: "name", header: "Nome", kind: "link", hrefKey: "href" },
+                  { key: "council", header: "Órgão" },
+                  { key: "quantity", header: "Quantidade", kind: "number" },
+                  { key: "status", header: "Status", kind: "status", dictionary: "hold" },
+                ]}
+                filterKeys={[{ key: "status", label: "Status", dictionary: "hold" }, { key: "council", label: "Órgão" }]}
+                emptyTitle="Nenhuma solicitação no estoque"
+                emptyDescription="Ao criar uma solicitação com processo, ela aparece aqui bloqueada até a liberação."
               />
             </section>
 

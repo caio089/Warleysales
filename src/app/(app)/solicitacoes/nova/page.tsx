@@ -12,27 +12,14 @@ export const metadata: Metadata = { title: "Nova solicitação" };
 
 async function Content() {
   const result = await loadScreen(async (ctx) => {
-    const [lookups, atas] = await Promise.all([loadLookups(ctx), ctx.services.atas.list(ctx.actor)]);
+    const lookups = await loadLookups(ctx);
     if (!lookups.ok) return lookups;
-    if (!atas.ok) return atas;
-    const ataItems = atas.data
-      .filter((a) => a.ata.status === "vigente" && a.validity === "vigente")
-      .flatMap((a) => a.items
-        .filter((i) => i.balance.balance > 0)
-        .map((i) => ({
-          value: i.itemId,
-          label: `${a.ata.number} — ${i.description} (saldo ${i.balance.balance})`,
-        })));
-    return ok({ lookups: lookups.data, ataItems });
+    return ok({ lookups: lookups.data });
   });
   return (
     <Screen result={result}>
-      {({ lookups: l, ataItems }) => (
-        <NewRequestForm
-          councils={l.councils.map((c) => ({ value: c.id, label: c.label }))}
-          materials={l.materials.map((m) => ({ value: m.id, label: m.label }))}
-          ataItems={ataItems}
-        />
+      {({ lookups: l }) => (
+        <NewRequestForm councils={l.councils.map((c) => ({ value: c.id, label: c.label }))} />
       )}
     </Screen>
   );
