@@ -36,20 +36,25 @@ function PanelShell({
   empty,
   children,
   hasItems,
+  action,
 }: {
   title: string;
   href: string;
   empty: string;
   children: ReactNode;
   hasItems: boolean;
+  action?: ReactNode;
 }) {
   return (
-    <section className="surface-card flex h-full flex-col p-5">
+    <section className="surface-card flex flex-col p-5">
       <header className="mb-4 flex items-center justify-between gap-2">
         <h2 className="font-heading text-lg font-medium tracking-tight text-primary">{title}</h2>
-        <Link href={href} className="text-sm font-medium text-primary underline-offset-4 hover:text-highlight hover:underline">
-          Ver tudo
-        </Link>
+        <div className="flex items-center gap-2">
+          {action}
+          <Link href={href} className="text-sm font-medium text-primary underline-offset-4 hover:text-highlight hover:underline">
+            Ver tudo
+          </Link>
+        </div>
       </header>
       {!hasItems ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/80 bg-secondary/40 px-4 py-8 text-center">
@@ -83,8 +88,10 @@ function Row({ row }: { row: RowLink }) {
 
 export function RequestsOverview({
   rows,
+  action,
 }: {
   rows: { id: string; title: string; status: string; createdAt: Date }[];
+  action?: ReactNode;
 }) {
   return (
     <PanelShell
@@ -92,6 +99,7 @@ export function RequestsOverview({
       href="/solicitacoes"
       empty="Nenhuma solicitação neste conselho. Use Nova solicitação acima."
       hasItems={rows.length > 0}
+      action={action}
     >
       {rows.map((r) => (
         <Row
@@ -112,8 +120,10 @@ export function RequestsOverview({
 
 export function ProcessesOverview({
   rows,
+  action,
 }: {
   rows: { id: string; number: string; title: string; status: string; progress: number }[];
+  action?: ReactNode;
 }) {
   return (
     <PanelShell
@@ -121,6 +131,7 @@ export function ProcessesOverview({
       href="/processos"
       empty="Nenhum processo. Abra um processo para anexar os 7 documentos."
       hasItems={rows.length > 0}
+      action={action}
     >
       {rows.map((r) => (
         <Row
@@ -141,15 +152,18 @@ export function ProcessesOverview({
 
 export function MeetingsOverview({
   rows,
+  action,
 }: {
   rows: { id: string; title: string; status: string; scheduledAt: Date }[];
+  action?: ReactNode;
 }) {
   return (
     <PanelShell
       title="Reuniões"
       href="/reunioes"
-      empty="Nenhuma reunião agendada. Use Agendar reunião abaixo."
+      empty="Nenhuma reunião agendada."
       hasItems={rows.length > 0}
+      action={action}
     >
       {rows.map((r) => (
         <Row
