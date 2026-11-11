@@ -38,7 +38,7 @@ export function ProcessActions({ processId, status, canChangeStatus, canRegister
         <section aria-labelledby="situacao" className="surface-card p-6">
           <h2 id="situacao" className="mb-1 font-heading text-lg font-medium tracking-tight text-primary">Situação administrativa</h2>
           <p className="mb-4 text-sm text-muted-foreground">
-            É o andamento do processo (em andamento, concluído…). Não confundir com “documentação completa” — são coisas diferentes.
+            Atualize a etapa administrativa do processo conforme o andamento das deliberações e sessões.
           </p>
           <ActionForm action={changeProcessStatusFormAction} submitLabel="Atualizar situação" hiddenFields={{ processId }}>
             {(e) => <SelectField name="status" label="Nova situação" required options={statusOptions} errors={e.status} />}
@@ -54,7 +54,7 @@ export function ProcessActions({ processId, status, canChangeStatus, canRegister
             <>
               {documentalComplete ? (
                 <p className="mb-4 text-sm text-muted-foreground">
-                  Obrigatório para a limpeza documental (R6). Sem este registro o job só examina e pula.
+                  Emissão do relatório formal de encerramento do processo administrativo para fins de registro institucional e auditoria.
                 </p>
               ) : (
                 <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3.5 text-sm text-amber-800 dark:text-amber-300">
