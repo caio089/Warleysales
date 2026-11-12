@@ -95,7 +95,7 @@ export function AppShell({ navHrefs, topbarSlot, children }: AppShellProps) {
             </Button>
           ) : null}
         </div>
-        <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-3">
+        <div className="sidebar-scroll relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-3">
           <SidebarNav items={navItems} collapsed={collapsed} />
         </div>
         <div className="relative shrink-0 border-t border-sidebar-border/60">
@@ -123,12 +123,12 @@ export function AppShell({ navHrefs, topbarSlot, children }: AppShellProps) {
       </aside>
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-[16.5rem] border-transparent bg-sidebar p-0 text-sidebar-foreground">
+        <SheetContent side="left" className="flex w-[16.5rem] flex-col border-transparent bg-sidebar p-0 text-sidebar-foreground">
           <SheetTitle className="sr-only">Navegação</SheetTitle>
-          <div className="flex h-[4.25rem] items-center border-b border-sidebar-border/60 px-4">
+          <div className="flex h-[4.25rem] shrink-0 items-center border-b border-sidebar-border/60 px-4">
             <BrandMark inverted />
           </div>
-          <div className="px-2 py-4">
+          <div className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 py-4">
             <SidebarNav items={navItems} onNavigate={() => setMobileOpen(false)} />
           </div>
         </SheetContent>

@@ -1,6 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  usePathname: () => "/processos",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 vi.mock("@/modules/documents/actions", () => ({
   loadProcessDocumentsAction: vi.fn(),
   prepareDocumentUploadAction: vi.fn(),

@@ -37,10 +37,11 @@ describe("Meu Painel Overview Lists", () => {
           {
             councilId: "c1",
             materialId: "m1",
+            physical: 15,
             available: 15,
             reserved: 0,
+            blocked: 0,
             minimum: 5,
-            maximum: 50,
             level: "normal",
           },
         ]}
@@ -81,10 +82,11 @@ describe("Meu Painel Overview Lists", () => {
           {
             id: "ord-1",
             councilId: "c1",
+            requestedBy: "usr-1",
             number: "PED-2026-001",
             status: "pendente",
             notes: "Uso administrativo",
-            items: [{ materialId: "m1", quantity: 2 }],
+            items: [{ id: "item-1", orderId: "ord-1", materialId: "m1", quantity: 2 }],
             createdAt: new Date("2026-11-11T12:00:00Z"),
             updatedAt: new Date("2026-11-11T12:00:00Z"),
           },

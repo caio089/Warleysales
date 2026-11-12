@@ -1,17 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type ReactNode, useId, useMemo, useState } from "react";
 import {
   ArrowDown,
+  ArrowRight,
   ArrowUp,
   ArrowUpDown,
-  Paperclip,
   Search,
 } from "lucide-react";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import {
   type FilterDefinition,
   type QueryColumn,
@@ -52,6 +54,7 @@ export function ProcessesTable({
   emptyDescription = "Crie o primeiro processo e anexe DFD, ETP, MR, TR, PP, PJ e ED — o progresso sobe sozinho.",
   emptyAction,
 }: ProcessesTableProps) {
+  const router = useRouter();
   const searchId = useId();
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<{ key: string | null; direction: SortDirection }>({
@@ -260,16 +263,13 @@ export function ProcessesTable({
                   return (
                     <tr
                       key={row.id}
-                      onClick={() => {
-                        window.location.assign(row.href);
-                      }}
-                      className="cursor-pointer border-t border-border/70 transition-colors hover:bg-primary/[0.035]"
+                      onClick={() => router.push(row.href)}
+                      className="group cursor-pointer border-t border-border/70 transition-colors hover:bg-primary/[0.035]"
                     >
                       <td className="px-4 py-3.5">
                         <Link
                           href={row.href}
-                          onClick={(e) => e.stopPropagation()}
-                          className="font-medium text-primary underline-offset-4 transition-colors hover:text-highlight hover:underline"
+                          className="font-medium text-primary underline-offset-4 transition-colors group-hover:text-highlight group-hover:underline"
                         >
                           {row.number}
                         </Link>
@@ -303,16 +303,14 @@ export function ProcessesTable({
                       <td className="px-4 py-3.5 text-right">
                         <Link
                           href={row.href}
-                          onClick={(e) => e.stopPropagation()}
-                          title={`Abrir a página do processo ${row.number}`}
-                          className={buttonVariants({
-                            variant: "outline",
-                            size: "sm",
-                            className: "inline-flex items-center gap-1.5",
-                          })}
+                          className={cn(
+                            buttonVariants({ variant: "outline", size: "sm" }),
+                            "inline-flex items-center gap-1.5",
+                          )}
+                          title={`Abrir processo completo ${row.number}`}
                         >
-                          <Paperclip className="size-3.5" aria-hidden />
                           <span>Abrir</span>
+                          <ArrowRight className="size-3.5" aria-hidden />
                         </Link>
                       </td>
                     </tr>
