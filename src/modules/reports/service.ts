@@ -40,6 +40,7 @@ export interface DashboardSnapshot {
 
 export interface SummaryFilter {
   councilId?: string;
+  excludeCouncilIds?: readonly string[];
 }
 
 interface ScopedData {
@@ -63,7 +64,7 @@ export class ReportService {
   ) {}
 
   async operationalSummary(actor: Actor, filter: SummaryFilter = {}): Promise<Result<OperationalSummary>> {
-    const loaded = await this.loadScoped(actor, filter.councilId, "report.view");
+    const loaded = await this.loadScoped(actor, filter.councilId, "report.view", filter.excludeCouncilIds);
     if (!loaded.ok) return loaded;
     return ok(this.toSummary(loaded.data));
   }
@@ -83,7 +84,7 @@ export class ReportService {
     });
   }
 
-  private async loadScoped(actor: Actor, councilId: string | undefined, permission: "report.view" | "council.read"): Promise<Result<ScopedData>> {
+  private async loadScoped(actor: Actor, councilId: string | undefined, permission: "report.view" | "council.read", excludeCouncilIds: readonly string[] = []): Promise<Result<ScopedData>> {
     const allowedSomewhere = actor.isCentralAdmin || actor.memberships.some((m) => can(actor, permission, m.councilId));
     if (!allowedSomewhere) return fail("FORBIDDEN", permission === "report.view" ? "Você não tem permissão para ver relatórios." : "Você não tem permissão para ver este painel.");
     if (councilId && !can(actor, permission, councilId)) {
@@ -101,11 +102,12 @@ export class ReportService {
     if (!contracts.ok) return contracts;
     if (!atas.ok) return atas;
 
+    const excluded = new Set(excludeCouncilIds);
     return ok({
-      processes: councilId ? processes.data.filter((p) => p.process.councilId === councilId) : processes.data,
-      levels: levels.data,
-      contracts: councilId ? contracts.data.filter((c) => c.contract.councilId === councilId) : contracts.data,
-      atas: councilId ? atas.data.filter((a) => a.ata.councilId === councilId) : atas.data,
+      processes: processes.data.filter((p) => (!councilId || p.process.councilId === councilId) && !excluded.has(p.process.councilId)),
+      levels: levels.data.filter((level) => !excluded.has(level.councilId)),
+      contracts: contracts.data.filter((c) => (!councilId || c.contract.councilId === councilId) && !excluded.has(c.contract.councilId)),
+      atas: atas.data.filter((a) => (!councilId || a.ata.councilId === councilId) && !excluded.has(a.ata.councilId)),
     });
   }
 

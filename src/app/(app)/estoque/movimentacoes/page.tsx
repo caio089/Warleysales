@@ -35,7 +35,7 @@ async function Content() {
     <Screen result={result}>
       {({ movements, lookups, canMove, canAdjust }) => (
         <div className="space-y-6">
-          <PageHeader eyebrow="Estoque · Histórico" title="Movimentações" description="Consulte entradas, saídas e ajustes por órgão. Cada lançamento atualiza o saldo do material." actions={canMove ? <a href="#nova-movimentacao" className={buttonVariants()}><Plus className="size-4" aria-hidden /> Registrar movimentação</a> : undefined} />
+          <PageHeader eyebrow="Estoque · Histórico" backHref="/estoque" backLabel="Voltar para Estoque" title="Movimentações" description="Consulte entradas, saídas e ajustes por órgão. Cada lançamento atualiza o saldo do material." actions={canMove ? <a href="#nova-movimentacao" className={buttonVariants()}><Plus className="size-4" aria-hidden /> Registrar movimentação</a> : undefined} />
           <div className="grid gap-3 sm:grid-cols-3" aria-label="Resumo das movimentações">
             <KpiCard icon={<ClipboardList className="size-4" aria-hidden />} label="Registros" value={movements.length} />
             <KpiCard icon={<ArrowDownToLine className="size-4" aria-hidden />} label="Entradas" value={movements.filter((m) => ["entry", "adjustment_in", "transfer_in"].includes(m.type)).length} />

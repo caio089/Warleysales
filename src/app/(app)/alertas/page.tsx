@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Bell, BellRing, CheckCheck } from "lucide-react";
-import { markNotificationReadFormAction } from "@/modules/notifications/actions";
 import { loadScreen } from "@/server/screen";
 import { formatDateTimeFortaleza } from "@/shared/lib/time";
 import { EmptyState, LoadingState } from "@/shared/ui/feedback-states";
-import { ActionForm } from "@/shared/ui/forms/action-form";
 import { KpiCard } from "@/shared/ui/kpi-card";
 import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { PageHeader, SectionLabel } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
+import { MarkReadForm } from "./mark-read-form";
 
 export const metadata: Metadata = { title: "Alertas" };
 
@@ -42,7 +41,7 @@ async function Content() {
                       {pending.map((item) => (
                         <li key={item.id} className="surface-card flex flex-col gap-4 border-l-4 border-l-highlight p-5 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0"><p className="font-semibold text-primary">{item.title}</p><p className="mt-1 text-sm leading-relaxed text-muted-foreground">{item.body}</p><p className="mt-2 text-xs text-muted-foreground">{formatDateTimeFortaleza(item.createdAt)}</p></div>
-                          <ActionForm action={markNotificationReadFormAction} submitLabel="Marcar como lido" submitVariant="outline" hiddenFields={{ notificationId: item.id }}>{() => null}</ActionForm>
+                          <MarkReadForm notificationId={item.id} />
                         </li>
                       ))}
                     </ul>

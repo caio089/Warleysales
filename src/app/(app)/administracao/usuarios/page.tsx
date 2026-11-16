@@ -56,7 +56,7 @@ async function Content() {
 export default function UsersPage() {
   return (
     <>
-      <PageHeader eyebrow="Administração · Acesso" title="Usuários e vínculos" description="Consulte quem pode acessar cada órgão ou empresa e ajuste os respectivos papéis." />
+      <PageHeader eyebrow="Administração · Acesso" backHref="/administracao" backLabel="Voltar para Administração" title="Usuários e vínculos" description="Consulte quem pode acessar cada órgão ou empresa e ajuste os respectivos papéis." />
       <Suspense fallback={<LoadingState />}><Content /></Suspense>
     </>
   );

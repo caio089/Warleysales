@@ -1,5 +1,6 @@
 import type { AuditEntry, AuditFilter } from "@/modules/audit/schemas";
 import { auditReportPdf, operationalReportPdf } from "@/modules/reports/pdf";
+import { demoCouncilIds, savingsForExport } from "@/modules/reports/export-data";
 import { getServices } from "@/server/runtime";
 import { getSession } from "@/server/session";
 import { toFortalezaDate } from "@/shared/lib/time";
@@ -8,8 +9,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function branding() {
   return {
-    institution: process.env.REPORT_INSTITUTION_NAME?.trim() || "Warley - Central Operacional",
-    subtitle: process.env.REPORT_INSTITUTION_SUBTITLE?.trim() || "Gestão de solicitações, contratações e estoque",
+    institution: process.env.REPORT_INSTITUTION_NAME?.trim() || "Relatórios operacionais",
+    subtitle: process.env.REPORT_INSTITUTION_SUBTITLE?.trim() || "Dados registrados no sistema",
   };
 }
 
@@ -34,19 +35,24 @@ export async function GET(request: Request) {
   const councilId = params.get("councilId") || undefined;
   if (councilId && !UUID.test(councilId)) return Response.json({ error: "Órgão inválido." }, { status: 400 });
   const councils = await services.councils.list(session.actor);
+  if (!councils.ok) return Response.json({ error: councils.message }, { status: councils.code === "FORBIDDEN" ? 403 : 400 });
   const councilLabel = councils.ok && councilId ? councils.data.find((c) => c.id === councilId)?.acronym : undefined;
+  if (councilId && !councilLabel) return Response.json({ error: "Órgão não encontrado ou sem acesso." }, { status: 404 });
   const context = {
-    branding: branding(), issuedAt: new Date(), issuedBy: session.actor.userId,
+    branding: branding(), issuedAt: new Date(), issuedBy: session.displayName || "Usuário autenticado",
     scopeLabel: councilLabel ? `Órgão ${councilLabel}` : "Todos os órgãos autorizados",
   };
 
   if (kind === "operational") {
-    const [summary, savings] = await Promise.all([
-      services.reports.operationalSummary(session.actor),
-      services.formalizations.getSavingsSummary(session.actor),
+    const excludedIds = demoCouncilIds(councils.data);
+    const [summary, formalizations] = await Promise.all([
+      services.reports.operationalSummary(session.actor, { councilId, excludeCouncilIds: excludedIds }),
+      services.formalizations.listHomologated(session.actor, councilId),
     ]);
     if (!summary.ok) return Response.json({ error: summary.message }, { status: summary.code === "FORBIDDEN" ? 403 : 400 });
-    const pdf = await operationalReportPdf(summary.data, savings.ok ? savings.data : null, { ...context, scopeLabel: "Todos os órgãos autorizados" });
+    if (!formalizations.ok) return Response.json({ error: formalizations.message }, { status: formalizations.code === "FORBIDDEN" ? 403 : 400 });
+    const savings = savingsForExport(formalizations.data.filter((item) => !excludedIds.includes(item.councilId)));
+    const pdf = await operationalReportPdf(summary.data, savings, context);
     return download(pdf, `relatorio-operacional-${toFortalezaDate(new Date())}.pdf`);
   }
 
@@ -75,8 +81,13 @@ export async function GET(request: Request) {
     beforeId = batch.data.at(-1)?.id;
     if (batchNumber === 4) truncated = true;
   }
-  const baseLabels = [councilLabel && `Órgão ${councilLabel}`, entity && `Módulo ${entity}`, action && `Evento ${action}`, actorId && `Usuário ${actorId}`, period && `Período ${period}`, result && `Resultado ${result}`].filter(Boolean).join("; ") || "Sem filtros adicionais";
+  const directory = session.actor.isCentralAdmin ? await services.memberships.directory(session.actor) : null;
+  const actorNames = directory?.ok ? Object.fromEntries(directory.data.profiles.map((profile) => [profile.id, profile.fullName])) : {};
+  const councilNames = Object.fromEntries(councils.data.map((council) => [council.id, council.acronym]));
+  const periodLabels: Record<string, string> = { hoje: "Hoje", "7d": "Últimos 7 dias", "30d": "Últimos 30 dias" };
+  const resultLabels: Record<string, string> = { success: "Concluído", denied: "Negado", error: "Erro" };
+  const baseLabels = [councilLabel && `Órgão ${councilLabel}`, entity && `Módulo ${entity.replaceAll("_", " ")}`, action && `Evento ${action.replaceAll(".", " · ")}`, actorId && `Usuário ${actorNames[actorId] || `ID ${actorId.slice(0, 8)}`}`, period && `Período ${periodLabels[period] ?? period}`, result && `Resultado ${resultLabels[result] ?? result}`].filter(Boolean).join("; ") || "Sem filtros adicionais";
   const filterLabels = truncated ? `${baseLabels}; limite de 5.000 eventos atingido - refine os filtros para exportar o restante` : baseLabels;
-  const pdf = await auditReportPdf(exported, filterLabels, context);
+  const pdf = await auditReportPdf(exported, filterLabels, { ...context, actorNames, councilNames });
   return download(pdf, `relatorio-auditoria-${toFortalezaDate(new Date())}.pdf`);
 }

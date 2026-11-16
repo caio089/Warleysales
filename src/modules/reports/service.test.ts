@@ -55,6 +55,14 @@ describe("ReportService", () => {
     expect(all.ok && all.data.processes.total).toBe(2);
     expect(onlyA.ok && onlyA.data.processes.total).toBe(1);
   });
+  it("exclui órgãos de demonstração do consolidado exportado", async () => {
+    const { report, processes } = setup();
+    const admin = { userId: crypto.randomUUID(), isCentralAdmin: true, isSpecialDeleter: false, memberships: [] };
+    await processes.create(admin, { councilId: COUNCIL_A, number: "001/2026", title: "Registro real" });
+    await processes.create(admin, { councilId: COUNCIL_B, number: "002/2026", title: "Demonstração" });
+    const result = await report.operationalSummary(admin, { excludeCouncilIds: [COUNCIL_B] });
+    expect(result.ok && result.data.processes.total).toBe(1);
+  });
   it("dashboard sem dados não inventa pauta de atenção", async () => {
     const { report } = setup();
     const r = await report.dashboard(managerOf(COUNCIL_A));

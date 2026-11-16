@@ -26,7 +26,7 @@ async function DeliveriesContent() {
     const requests = requestsRes.data;
     const lookups = lookupsRes.data;
 
-    // Entradas no ledger para todas as empresas acessíveis
+    // Entradas no histórico para todos os órgãos acessíveis.
     const movementsLists = await Promise.all(
       lookups.councils.map((c) => ctx.services.inventory.listMovements(ctx.actor, c.id)),
     );
@@ -41,14 +41,13 @@ async function DeliveriesContent() {
       requestId: string;
       requestTitle: string;
       councilId: string;
-      company: string;
+      organization: string;
       materialId: string;
       material: string;
       quantity: number;
       receivedTotal: number;
       pending: number;
       progressPct: number;
-      status: string;
     }[] = [];
 
     let totalDeliveredUnits = 0;
@@ -79,14 +78,13 @@ async function DeliveriesContent() {
             requestId: r.id,
             requestTitle: r.title,
             councilId: r.councilId,
-            company: lookups.councilLabel[r.councilId] ?? "—",
+            organization: lookups.councilLabel[r.councilId] ?? "—",
             materialId: item.materialId,
             material: lookups.materialLabel[item.materialId] ?? "—",
             quantity: qty,
             receivedTotal: rec,
             pending: pend,
             progressPct,
-            status: r.status,
           });
         });
       }
@@ -153,66 +151,84 @@ async function DeliveriesContent() {
             />
           </section>
 
-          {/* Tabela de Acompanhamento de Entregas por Pedido e Produto */}
-          <section aria-label="Acompanhamento por Item" className="space-y-3">
-            <SectionLabel>Status de Entrega por Pedido e Produto</SectionLabel>
+          <section aria-label="Entregas pendentes" className="space-y-3">
+            <SectionLabel>Precisam de acompanhamento</SectionLabel>
+            <p className="text-sm text-muted-foreground">Itens com quantidade ainda não recebida. Abra a solicitação para registrar o recebimento.</p>
             <SimpleTable
-              caption="Acompanhamento detalhado de entregas"
-              rows={deliveryLines.map((line) => ({
+              caption="Entregas pendentes por solicitação"
+              rows={deliveryLines.filter((line) => line.pending > 0).map((line) => ({
                 id: line.id,
-                company: line.company,
+                organization: line.organization,
+                request: line.requestTitle,
+                material: line.material,
+                received: `${line.receivedTotal} de ${line.quantity}`,
+                pending: line.pending,
+                progress: line.progressPct,
+                href: `/solicitacoes/${line.requestId}`,
+              }))}
+              columns={[
+                { key: "request", header: "Solicitação", kind: "link", hrefKey: "href" },
+                { key: "organization", header: "Órgão" },
+                { key: "material", header: "Material" },
+                { key: "received", header: "Recebido" },
+                { key: "pending", header: "Falta receber", kind: "number" },
+                { key: "progress", header: "Progresso", kind: "progress" },
+              ]}
+              filterKeys={[{ key: "organization", label: "Órgão" }]}
+              emptyTitle="Nenhuma entrega pendente"
+              emptyDescription="Os itens aprovados e ainda não recebidos aparecerão aqui."
+            />
+          </section>
+
+          <section aria-label="Itens concluídos" className="space-y-3">
+            <SectionLabel>Entregues integralmente</SectionLabel>
+            <SimpleTable
+              caption="Itens com recebimento completo"
+              rows={deliveryLines.filter((line) => line.pending === 0).map((line) => ({
+                id: line.id,
+                organization: line.organization,
                 request: line.requestTitle,
                 material: line.material,
                 quantity: line.quantity,
                 received: line.receivedTotal,
-                pending: line.pending,
-                progress: line.progressPct,
-                status: line.status,
                 href: `/solicitacoes/${line.requestId}`,
               }))}
               columns={[
-                { key: "company", header: "Empresa Destinatária" },
-                { key: "request", header: "Solicitação / Pedido", kind: "link", hrefKey: "href" },
-                { key: "material", header: "Produto" },
+                { key: "request", header: "Solicitação", kind: "link", hrefKey: "href" },
+                { key: "organization", header: "Órgão" },
+                { key: "material", header: "Material" },
                 { key: "quantity", header: "Solicitado", kind: "number" },
                 { key: "received", header: "Recebido", kind: "number" },
-                { key: "pending", header: "Pendente", kind: "number" },
-                { key: "progress", header: "Atendimento", kind: "progress" },
-                { key: "status", header: "Situação", kind: "status", dictionary: "request" },
               ]}
-              filterKeys={[
-                { key: "company", label: "Empresa" },
-                { key: "status", label: "Situação", dictionary: "request" },
-              ]}
-              emptyTitle="Nenhuma entrega em andamento"
-              emptyDescription="Quando as solicitações são aprovadas, o acompanhamento de entregas é exibido aqui em tempo real."
+              filterKeys={[{ key: "organization", label: "Órgão" }]}
+              emptyTitle="Nenhum item concluído"
             />
           </section>
 
-          {/* Histórico Recente de Entradas no Estoque (Ledger) */}
-          <section aria-label="Histórico de Recebimentos" className="space-y-3">
-            <SectionLabel>Histórico Recente de Recebimentos e Entradas</SectionLabel>
-            <SimpleTable
-              caption="Histórico de entradas registradas no estoque"
-              rows={deliveryMovements.map((m) => ({
-                id: String(m.id),
-                at: m.createdAt.toISOString(),
-                company: lookups.councilLabel[m.councilId] ?? "—",
-                material: lookups.materialLabel[m.materialId] ?? "—",
-                quantity: m.quantity,
-                reason: m.reason || "Recebimento de compra",
-              }))}
-              columns={[
-                { key: "at", header: "Data da Entrega", kind: "datetime" },
-                { key: "company", header: "Empresa" },
-                { key: "material", header: "Produto Entregue" },
-                { key: "quantity", header: "Quantidade", kind: "number" },
-                { key: "reason", header: "Motivo / Origem" },
-              ]}
-              emptyTitle="Nenhum histórico de recebimento ainda"
-              emptyDescription="As entregas confirmadas nas solicitações geram histórico permanente aqui."
-            />
-          </section>
+          <details className="surface-card group p-5">
+            <summary className="cursor-pointer text-sm font-semibold text-primary focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Histórico de entradas no estoque <span className="font-normal text-muted-foreground">· últimas {deliveryMovements.length} movimentações</span></summary>
+            <div className="mt-5">
+              <SimpleTable
+                caption="Histórico de entradas registradas no estoque"
+                rows={deliveryMovements.map((m) => ({
+                  id: String(m.id),
+                  at: m.createdAt.toISOString(),
+                  organization: lookups.councilLabel[m.councilId] ?? "—",
+                  material: lookups.materialLabel[m.materialId] ?? "—",
+                  quantity: m.quantity,
+                  reason: m.reason || "Entrada registrada",
+                }))}
+                columns={[
+                  { key: "at", header: "Registrado em", kind: "datetime" },
+                  { key: "organization", header: "Órgão" },
+                  { key: "material", header: "Material" },
+                  { key: "quantity", header: "Quantidade", kind: "number" },
+                  { key: "reason", header: "Origem" },
+                ]}
+                emptyTitle="Nenhuma entrada registrada"
+              />
+            </div>
+          </details>
         </div>
       )}
     </Screen>
@@ -223,9 +239,9 @@ export default function DeliveriesPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Operação & Logística"
+        eyebrow="Operação · Logística"
         title="Central de Entregas"
-        description="Controle e transparência de tudo o que já foi entregue a cada empresa e o saldo que ainda está pendente de recebimento."
+        description="Veja primeiro o que falta receber, depois os itens concluídos e o histórico de entradas por órgão."
       />
       <Suspense fallback={<LoadingState />}>
         <DeliveriesContent />

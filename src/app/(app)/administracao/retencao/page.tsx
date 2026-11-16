@@ -51,5 +51,5 @@ async function Content() {
 }
 
 export default function RetentionPage() {
-  return (<><PageHeader eyebrow="Administração · Documentos" title="Retenção documental" description="Acompanhe os processos com documentação concluída, seus bloqueios e as autorizações de destinação." /><Suspense fallback={<LoadingState />}><Content /></Suspense></>);
+  return (<><PageHeader eyebrow="Administração · Documentos" backHref="/administracao" backLabel="Voltar para Administração" title="Retenção documental" description="Acompanhe os processos com documentação concluída, seus bloqueios e as autorizações de destinação." /><Suspense fallback={<LoadingState />}><Content /></Suspense></>);
 }

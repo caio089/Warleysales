@@ -1,4 +1,5 @@
 import { PDFDocument } from "pdf-lib";
+import { extractText, getDocumentProxy } from "unpdf";
 import { describe, expect, it } from "vitest";
 import { auditReportPdf, operationalReportPdf } from "./pdf";
 
@@ -29,5 +30,25 @@ describe("PDF de relatórios", () => {
     }));
     const document = await PDFDocument.load(await auditReportPdf(entries, "Sem filtros", context));
     expect(document.getPageCount()).toBeGreaterThan(1);
+  });
+  it("apresenta eventos de auditoria em linguagem legível e preserva as referências", async () => {
+    const id = "12345678-1234-1234-1234-123456789012";
+    const bytes = await auditReportPdf([{
+      id, actorId: id, action: "document.upload", entity: "attachment", entityId: id,
+      councilId: id, result: "success", details: { type: "ETP", sha256: "hash-tecnico-oculto" },
+      createdAt: new Date("2026-11-16T12:00:00Z"),
+    }], "Sem filtros", { ...context, actorNames: { [id]: "Maria Silva" }, councilNames: { [id]: "CRM" } });
+    const pdf = await getDocumentProxy(bytes);
+    try {
+      const extracted = await extractText(pdf, { mergePages: true });
+      const text = String(extracted.text);
+      expect(text).toContain("Documento anexado");
+      expect(text).toContain("Maria Silva");
+      expect(text).toContain("CRM");
+      expect(text).toContain(id);
+      expect(text).not.toContain("hash-tecnico-oculto");
+    } finally {
+      await pdf.destroy();
+    }
   });
 });

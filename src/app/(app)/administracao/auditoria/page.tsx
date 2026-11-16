@@ -100,6 +100,8 @@ export default async function AuditPage(props: AuditPageProps) {
   return (
     <>
       <PageHeader
+        backHref="/administracao"
+        backLabel="Voltar para Administração"
         title="Auditoria"
         description="Registros somente de inclusão: não podem ser alterados nem apagados."
       />

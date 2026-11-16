@@ -117,26 +117,26 @@ async function CouncilsContent() {
                 {councils.map((c) => (
                   <div
                     key={c.id}
-                    className="surface-card card-hover flex flex-col justify-between p-5 transition-all"
+                    className="surface-card card-hover flex min-w-0 flex-col justify-between overflow-hidden p-5 transition-all"
                   >
                     <div>
                       <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3">
+                        <div className="flex min-w-0 flex-1 items-start gap-3">
                           <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary text-sm font-bold text-primary-foreground shadow-xs">
                             {c.acronym.slice(0, 4)}
                           </span>
-                          <div className="min-w-0">
-                            <h3 className="truncate font-heading text-base font-semibold text-primary">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="line-clamp-2 break-words font-heading text-base font-semibold leading-snug text-primary" title={c.name}>
                               {c.name}
                             </h3>
                             <p className="text-xs text-muted-foreground">Sigla: {c.acronym}</p>
                             <p className="text-xs font-medium text-primary/75">{c.organizationType === "private_company" ? "Empresa privada" : "Órgão público"}</p>
                           </div>
                         </div>
-                        <StatusBadge
+                        <span className="shrink-0"><StatusBadge
                           label={c.active ? "Ativo" : "Inativo"}
                           tone={c.active ? "success" : "neutral"}
-                        />
+                        /></span>
                       </div>
 
                       {c.institutionalInfo ? (
@@ -187,7 +187,7 @@ async function CouncilsContent() {
                     </div>
 
                     {/* Ações Rápidas */}
-                    <div className="mt-5 flex items-center justify-between gap-2 border-t border-border/60 pt-3">
+                    <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3">
                       <Link
                         href={`/conselhos/${c.id}`}
                         className="text-xs font-semibold text-primary hover:text-highlight hover:underline"
@@ -219,6 +219,8 @@ export default function CouncilsPage() {
     <>
       <PageHeader
         eyebrow="Operação & Relacionamento"
+        backHref="/administracao"
+        backLabel="Voltar para Administração"
         title="Órgãos e Empresas"
         description="Gestão centralizada de órgãos públicos e empresas privadas atendidas pela assessoria."
         actions={

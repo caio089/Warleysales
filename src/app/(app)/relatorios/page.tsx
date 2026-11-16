@@ -5,6 +5,7 @@ import { BarChart3, Download, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AuditFilter } from "@/modules/audit/schemas";
 import { auditSources, operationalSources } from "@/modules/reports/analysis";
+import { demoCouncilIds, savingsForExport } from "@/modules/reports/export-data";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { formatCurrency, formatPercent } from "@/shared/lib/format";
@@ -31,14 +32,18 @@ interface ReportsPageProps {
 
 async function OperationalContent() {
   const result = await loadScreen(async ({ services, actor }) => {
-    const [operational, savings] = await Promise.all([
-      services.reports.operationalSummary(actor),
-      services.formalizations.getSavingsSummary(actor),
+    const councils = await services.councils.list(actor);
+    if (!councils.ok) return councils;
+    const excludedIds = demoCouncilIds(councils.data);
+    const [operational, formalizations] = await Promise.all([
+      services.reports.operationalSummary(actor, { excludeCouncilIds: excludedIds }),
+      services.formalizations.listHomologated(actor),
     ]);
     if (!operational.ok) return operational;
+    if (!formalizations.ok) return formalizations;
     return ok({
       summary: operational.data,
-      savings: savings.ok ? savings.data : null,
+      savings: savingsForExport(formalizations.data.filter((item) => !excludedIds.includes(item.councilId))),
     });
   });
 
@@ -46,7 +51,8 @@ async function OperationalContent() {
     <Screen result={result}>
       {({ summary: s, savings }) => (
         <div className="space-y-6">
-          <div className="flex justify-end">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">Indicadores oficiais: registros de demonstração não entram no consolidado nem no PDF.</p>
             <a href="/api/reports/pdf?kind=operational" className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:border-primary/40 hover:text-primary">
               <Download className="size-4" aria-hidden />
               Baixar relatório em PDF

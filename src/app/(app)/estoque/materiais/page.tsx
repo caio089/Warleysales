@@ -26,7 +26,7 @@ async function Content() {
     <Screen result={result}>
       {({ materials, canCreate }) => (
         <>
-          <PageHeader eyebrow="Estoque · Cadastro" title="Materiais" description="Organize o catálogo usado nas solicitações, pedidos e movimentações de estoque." actions={canCreate ? <a href="#novo-material" className={buttonVariants()}><Plus className="size-4" aria-hidden /> Novo material</a> : undefined} />
+          <PageHeader eyebrow="Estoque · Cadastro" backHref="/estoque" backLabel="Voltar para Estoque" title="Materiais" description="Organize o catálogo usado nas solicitações, pedidos e movimentações de estoque." actions={canCreate ? <a href="#novo-material" className={buttonVariants()}><Plus className="size-4" aria-hidden /> Novo material</a> : undefined} />
           <div className="mb-6 grid gap-3 sm:grid-cols-3" aria-label="Resumo dos materiais">
             <KpiCard icon={<Archive className="size-4" aria-hidden />} label="Cadastrados" value={materials.length} />
             <KpiCard icon={<CheckCircle2 className="size-4" aria-hidden />} label="Ativos" value={materials.filter((m) => m.active).length} />
