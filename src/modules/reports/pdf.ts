@@ -22,6 +22,7 @@ export interface PdfReportContext {
   scopeLabel: string;
   actorNames?: Record<string, string>;
   councilNames?: Record<string, string>;
+  demoPreview?: boolean;
 }
 
 const PAGE_WIDTH = 595.28;
@@ -113,7 +114,11 @@ function drawSection(page: PDFPage, title: string, rows: [string, string][], y: 
 
 export async function operationalReportPdf(summary: OperationalSummary, savings: SavingsReportData | null, context: PdfReportContext): Promise<Uint8Array> {
   const { document, regular, bold, first } = await createBase(context, "Relatório de Indicadores Operacionais");
-  let y = PAGE_HEIGHT - 176;
+  if (context.demoPreview) {
+    first.drawRectangle({ x: MARGIN, y: PAGE_HEIGHT - 184, width: CONTENT_WIDTH, height: 25, color: rgb(0.99, 0.93, 0.76) });
+    first.drawText("PRÉVIA DE DEMONSTRAÇÃO - não usar como prestação de contas", { x: MARGIN + 7, y: PAGE_HEIGHT - 176, size: 8, font: bold });
+  }
+  let y = PAGE_HEIGHT - (context.demoPreview ? 208 : 176);
   y = drawSection(first, "Processos", [
     ["Total", String(summary.processes.total)], ["Concluídos", String(summary.processes.completed)],
     ["Pendentes", String(summary.processes.pending)], ["Progresso documental médio", summary.processes.averageProgress === null ? "Sem dados" : percent(summary.processes.averageProgress)],
@@ -137,7 +142,7 @@ export async function operationalReportPdf(summary: OperationalSummary, savings:
   if (summary.processes.total + summary.stock.items + summary.contracts.total + summary.atas.total + (savings?.count ?? 0) === 0) {
     first.drawText("Sem registros operacionais para o escopo selecionado.", { x: MARGIN, y: Math.max(y - 10, 62), size: 9, font: bold });
   }
-  first.drawText("Fonte: Processos, Estoque, Contratos, Atas e Formalizações. Dados de demonstração excluídos.", { x: MARGIN, y: 48, size: 7.5, font: regular, color: rgb(0.35, 0.39, 0.39) });
+  first.drawText(context.demoPreview ? "Fonte: registros de demonstração dos módulos. Documento apenas para prévia." : "Fonte: Processos, Estoque, Contratos, Atas e Formalizações. Dados de demonstração excluídos.", { x: MARGIN, y: 48, size: 7.5, font: regular, color: rgb(0.35, 0.39, 0.39) });
   return document.save();
 }
 

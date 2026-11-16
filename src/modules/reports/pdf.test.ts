@@ -22,6 +22,22 @@ describe("PDF de relatórios", () => {
     expect((await PDFDocument.load(bytes)).getPageCount()).toBe(1);
   });
 
+  it("identifica explicitamente a prévia com dados de demonstração", async () => {
+    const bytes = await operationalReportPdf({
+      processes: { total: 1, completed: 0, pending: 1, averageProgress: 20, byStatus: { em_andamento: 1 } },
+      stock: { items: 0, critical: 0, withoutAvailability: 0 },
+      contracts: { total: 0, expired: 0, expiring30: 0 },
+      atas: { total: 0, expired: 0 },
+    }, null, { ...context, demoPreview: true });
+    const pdf = await getDocumentProxy(bytes);
+    try {
+      const extracted = await extractText(pdf, { mergePages: true });
+      expect(String(extracted.text)).toContain("PRÉVIA DE DEMONSTRAÇÃO");
+    } finally {
+      await pdf.destroy();
+    }
+  });
+
   it("pagina a trilha extensa de auditoria", async () => {
     const entries = Array.from({ length: 60 }, (_, index) => ({
       id: String(index + 1), actorId: "user-1", action: "process.create", entity: "process",

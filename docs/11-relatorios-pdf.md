@@ -1,6 +1,6 @@
 # Relatórios em PDF
 
-Na área **Relatórios**, o botão **Baixar relatório em PDF** gera o consolidado operacional com processos, estoque, contratos, atas e economia. A tela e o PDF excluem os órgãos marcados como dados de demonstração. O PDF também aceita `councilId` para restringir o escopo a um órgão autorizado. Na aba de auditoria, **Baixar auditoria em PDF** respeita os filtros de órgão, módulo, tipo de evento, usuário, período e resultado.
+Na área **Relatórios**, o botão **Baixar relatório em PDF** gera o consolidado operacional com processos, estoque, contratos, atas e economia. Quando há dados oficiais, a tela e o PDF excluem os órgãos marcados como demonstração. Se ainda não há dados oficiais, a tela exibe uma prévia com os dados de demonstração, e o PDF recebe um aviso explícito de que não serve como prestação de contas. O link **Ver somente dados oficiais** mostra o relatório oficial vazio; o parâmetro `mode=official` faz o mesmo no PDF. O PDF aceita `councilId` para restringir o escopo a um órgão autorizado. Na aba de auditoria, **Baixar auditoria em PDF** respeita os filtros de órgão, módulo, tipo de evento, usuário, período e resultado.
 
 O documento inclui cabeçalho institucional, data e horário de emissão em Fortaleza, usuário responsável, escopo, fonte dos dados e paginação. A trilha de auditoria é consultada novamente no servidor com as permissões do usuário. A exportação suporta até 5.000 eventos por arquivo; quando esse limite é atingido, o próprio PDF orienta a refinar os filtros.
 

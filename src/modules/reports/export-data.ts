@@ -1,11 +1,16 @@
 import type { ProcessFormalization } from "@/modules/formalizations/domain/formalization";
 import type { Council } from "@/modules/identity/schemas";
 import type { SavingsReportData } from "./pdf";
+import type { OperationalSummary } from "./service";
 
 const DEMO_DESCRIPTION = "Dados de demonstração para visualizar o painel.";
 
 export function demoCouncilIds(councils: readonly Council[]): string[] {
   return councils.filter((council) => council.institutionalInfo?.trim() === DEMO_DESCRIPTION).map((council) => council.id);
+}
+
+export function hasOperationalData(summary: OperationalSummary, savingsCount: number): boolean {
+  return summary.processes.total + summary.stock.items + summary.contracts.total + summary.atas.total + savingsCount > 0;
 }
 
 export function savingsForExport(formalizations: readonly ProcessFormalization[]): SavingsReportData {

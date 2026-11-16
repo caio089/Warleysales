@@ -5,7 +5,7 @@ import { BarChart3, Download, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AuditFilter } from "@/modules/audit/schemas";
 import { auditSources, operationalSources } from "@/modules/reports/analysis";
-import { demoCouncilIds, savingsForExport } from "@/modules/reports/export-data";
+import { demoCouncilIds, hasOperationalData, savingsForExport } from "@/modules/reports/export-data";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { formatCurrency, formatPercent } from "@/shared/lib/format";
@@ -30,7 +30,7 @@ interface ReportsPageProps {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-async function OperationalContent() {
+async function OperationalContent({ officialOnly }: { officialOnly: boolean }) {
   const result = await loadScreen(async ({ services, actor }) => {
     const councils = await services.councils.list(actor);
     if (!councils.ok) return councils;
@@ -41,23 +41,32 @@ async function OperationalContent() {
     ]);
     if (!operational.ok) return operational;
     if (!formalizations.ok) return formalizations;
+    const officialFormalizations = formalizations.data.filter((item) => !excludedIds.includes(item.councilId));
+    const mayPreview = !officialOnly && excludedIds.length > 0 && !hasOperationalData(operational.data, officialFormalizations.length);
+    const candidate = mayPreview ? await services.reports.operationalSummary(actor) : operational;
+    if (!candidate.ok) return candidate;
+    const preview = mayPreview && hasOperationalData(candidate.data, formalizations.data.length);
     return ok({
-      summary: operational.data,
-      savings: savingsForExport(formalizations.data.filter((item) => !excludedIds.includes(item.councilId))),
+      summary: preview ? candidate.data : operational.data,
+      savings: savingsForExport(preview ? formalizations.data : officialFormalizations),
+      preview,
+      officialOnly,
     });
   });
 
   return (
     <Screen result={result}>
-      {({ summary: s, savings }) => (
+      {({ summary: s, savings, preview, officialOnly: onlyOfficial }) => (
         <div className="space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-muted-foreground">Indicadores oficiais: registros de demonstração não entram no consolidado nem no PDF.</p>
-            <a href="/api/reports/pdf?kind=operational" className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:border-primary/40 hover:text-primary">
+            <p className="text-xs text-muted-foreground">{preview ? "Prévia de demonstração: estes dados servem para conhecer o sistema." : "Indicadores oficiais: dados de demonstração excluídos."}</p>
+            <a href={`/api/reports/pdf?kind=operational${onlyOfficial ? "&mode=official" : ""}`} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:border-primary/40 hover:text-primary">
               <Download className="size-4" aria-hidden />
               Baixar relatório em PDF
             </a>
           </div>
+          {preview ? <div role="status" className="rounded-xl border border-warning-foreground/30 bg-warning p-4 text-sm text-warning-foreground"><strong>Dados de demonstração.</strong> Ainda não há registros operacionais oficiais. Os números abaixo e o PDF são uma prévia e não devem ser usados como prestação de contas. <Link href="/relatorios?tab=indicadores&mode=official" className="font-semibold underline">Ver somente dados oficiais</Link>.</div> : null}
+          {onlyOfficial && !hasOperationalData(s, savings.count) ? <div role="status" className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">Ainda não há registros operacionais oficiais. <Link href="/relatorios?tab=indicadores" className="font-semibold text-primary underline">Ver prévia de demonstração</Link>.</div> : null}
           <Suspense fallback={<ModuleInsightFallback />}>
             <ReportAnalysisPanel sources={operationalSources(s, savings)} />
           </Suspense>
@@ -196,6 +205,7 @@ async function AuditContent({ rawParams }: { rawParams: Record<string, string | 
 export default async function ReportsPage(props: ReportsPageProps) {
   const rawParams = props.searchParams ? await props.searchParams : {};
   const tab = one(rawParams.tab) === "auditoria" ? "auditoria" : "indicadores";
+  const officialOnly = one(rawParams.mode) === "official";
 
   return (
     <>
@@ -235,9 +245,9 @@ export default async function ReportsPage(props: ReportsPageProps) {
           </Link>
         </div>
 
-        <Suspense key={tab} fallback={<LoadingState />}>
+        <Suspense key={`${tab}-${officialOnly}`} fallback={<LoadingState />}>
           {tab === "indicadores" ? (
-            <OperationalContent />
+            <OperationalContent officialOnly={officialOnly} />
           ) : (
             <AuditContent rawParams={rawParams} />
           )}

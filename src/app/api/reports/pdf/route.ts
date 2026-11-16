@@ -1,6 +1,6 @@
 import type { AuditEntry, AuditFilter } from "@/modules/audit/schemas";
 import { auditReportPdf, operationalReportPdf } from "@/modules/reports/pdf";
-import { demoCouncilIds, savingsForExport } from "@/modules/reports/export-data";
+import { demoCouncilIds, hasOperationalData, savingsForExport } from "@/modules/reports/export-data";
 import { getServices } from "@/server/runtime";
 import { getSession } from "@/server/session";
 import { toFortalezaDate } from "@/shared/lib/time";
@@ -51,8 +51,13 @@ export async function GET(request: Request) {
     ]);
     if (!summary.ok) return Response.json({ error: summary.message }, { status: summary.code === "FORBIDDEN" ? 403 : 400 });
     if (!formalizations.ok) return Response.json({ error: formalizations.message }, { status: formalizations.code === "FORBIDDEN" ? 403 : 400 });
-    const savings = savingsForExport(formalizations.data.filter((item) => !excludedIds.includes(item.councilId)));
-    const pdf = await operationalReportPdf(summary.data, savings, context);
+    const officialFormalizations = formalizations.data.filter((item) => !excludedIds.includes(item.councilId));
+    const mayPreview = params.get("mode") !== "official" && excludedIds.length > 0 && !hasOperationalData(summary.data, officialFormalizations.length);
+    const candidate = mayPreview ? await services.reports.operationalSummary(session.actor, { councilId }) : summary;
+    if (!candidate.ok) return Response.json({ error: candidate.message }, { status: candidate.code === "FORBIDDEN" ? 403 : 400 });
+    const preview = mayPreview && hasOperationalData(candidate.data, formalizations.data.length);
+    const savings = savingsForExport(preview ? formalizations.data : officialFormalizations);
+    const pdf = await operationalReportPdf(preview ? candidate.data : summary.data, savings, { ...context, demoPreview: preview });
     return download(pdf, `relatorio-operacional-${toFortalezaDate(new Date())}.pdf`);
   }
 
