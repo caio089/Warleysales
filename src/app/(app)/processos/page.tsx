@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { CircleCheck, FileClock, FolderKanban } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
@@ -9,6 +10,7 @@ import { ok } from "@/shared/lib/result";
 import { PROCESS_FLOW_STEPS } from "@/shared/ui/flow-copy";
 import { FlowGuide } from "@/shared/ui/flow-guide";
 import { LoadingState } from "@/shared/ui/feedback-states";
+import { KpiCard } from "@/shared/ui/kpi-card";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
@@ -55,6 +57,11 @@ async function Content() {
               { label: "Documentação pendente", value: processes.filter((p) => p.displayPercent < 100).length },
             ]} />
           </Suspense>
+          <div className="mb-6 grid gap-3 sm:grid-cols-3" aria-label="Resumo dos processos">
+            <KpiCard icon={<FolderKanban className="size-4" aria-hidden />} label="Processos" value={processes.length} />
+            <KpiCard icon={<CircleCheck className="size-4" aria-hidden />} label="Documentação completa" value={processes.filter((p) => p.displayPercent === 100).length} />
+            <KpiCard icon={<FileClock className="size-4" aria-hidden />} label="Documentação pendente" value={processes.filter((p) => p.displayPercent < 100).length} accent={processes.some((p) => p.displayPercent < 100)} />
+          </div>
           <FlowGuide title="Fluxo em 4 passos" steps={PROCESS_FLOW_STEPS} />
           <ProcessesTable
             rows={processes.map((p) => ({

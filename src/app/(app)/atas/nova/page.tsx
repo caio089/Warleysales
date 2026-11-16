@@ -41,5 +41,5 @@ async function Content() {
 }
 
 export default function NewAtaPage() {
-  return (<><PageHeader title="Nova ata" description="Nasce como rascunho: rascunho não consome saldo. Ative para permitir comprometimentos." /><Suspense fallback={<LoadingState />}><Content /></Suspense></>);
+  return (<><PageHeader eyebrow="Acompanhamento · Atas" backHref="/atas" backLabel="Todas as atas" title="Nova ata" description="A ata começa como rascunho. Ative-a depois de revisar os dados para permitir comprometimentos." /><Suspense fallback={<LoadingState />}><Content /></Suspense></>);
 }

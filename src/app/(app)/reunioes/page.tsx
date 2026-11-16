@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { CalendarClock, CalendarDays, FileCheck2, ListTodo } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { can, canInAnyCouncil } from "@/shared/lib/authz/policy";
 import { ok } from "@/shared/lib/result";
 import { LoadingState } from "@/shared/ui/feedback-states";
+import { FlowGuide } from "@/shared/ui/flow-guide";
 import { KpiCard } from "@/shared/ui/kpi-card";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
@@ -33,6 +35,13 @@ async function Content() {
 
         return (
           <div className="space-y-8">
+            <PageHeader eyebrow="Agenda · Governança" title="Reuniões" description="Agende encontros, registre o áudio e transforme a transcrição revisada em ata." actions={canManage ? <a href="#agendar-reuniao" className={buttonVariants()}>Agendar reunião</a> : undefined} />
+            <FlowGuide title="Da agenda à ata" steps={[
+              { title: "Agende", detail: "Defina o órgão, o assunto e a data." },
+              { title: "Realize", detail: "Atualize a situação da reunião." },
+              { title: "Registre", detail: "Grave ou anexe o áudio e revise a transcrição." },
+              { title: "Conclua", detail: "Revise a proposta de ata antes de salvar." },
+            ]} />
             <Suspense fallback={<ModuleInsightFallback />}>
               <ModuleInsight moduleName="Reuniões" sourceHref="/reunioes" facts={[
                 { label: "Total", value: totalMeetings },
@@ -121,7 +130,7 @@ async function Content() {
                   }))}
                   actionable={meetings.filter((m) => m.status === "agendada" || m.status === "realizada").map((m) => ({ value: m.id, label: m.title }))}
                 />
-                <section aria-labelledby="novo" className="surface-card max-w-lg p-6">
+                <section id="agendar-reuniao" aria-labelledby="novo" className="surface-card max-w-lg scroll-mt-6 p-6">
                   <h2 id="novo" className="mb-4 font-heading text-lg font-medium tracking-tight text-primary">
                     Agendar reunião
                   </h2>
@@ -138,14 +147,6 @@ async function Content() {
 
 export default function MeetingsPage() {
   return (
-    <>
-      <PageHeader
-        title="Reuniões"
-        description="A ata de reunião só pode ser registrada depois que a reunião é realizada."
-      />
-      <Suspense fallback={<LoadingState />}>
-        <Content />
-      </Suspense>
-    </>
+    <Suspense fallback={<LoadingState />}><Content /></Suspense>
   );
 }

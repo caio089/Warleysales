@@ -284,27 +284,18 @@ async function Content({
 
         return (
           <div className="space-y-6">
-            <Suspense fallback={<ModuleInsightFallback />}>
-              <ModuleInsight moduleName="Meu painel" sourceHref="/meu-conselho" facts={[
-                { label: "Solicitações pendentes", value: pendingRequestsCount },
-                { label: "Solicitações em andamento", value: inProgressRequestsCount },
-                { label: "Unidades recebidas", value: totalReceivedUnits },
-                { label: "Unidades pendentes", value: totalPendingUnits },
-                { label: "Pedidos de material", value: orders.length },
-              ]} />
-            </Suspense>
             {/* 1. CABEÇALHO DO ÓRGÃO + BANNER DE ECONOMIA INTEGRADO */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-xs">
               {/* Faixa Superior: Identificação e Ações Principais */}
-              <div className="p-6 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+              <div className="flex flex-col gap-5 border-b border-border/70 p-6 lg:flex-row lg:items-center lg:justify-between">
                 <div className="space-y-1">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                     PAINEL DA EMPRESA
                   </span>
-                  <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+                  <h1 className="text-2xl font-bold tracking-tight text-primary">
                     {label}
                   </h1>
-                  <p className="text-xs text-slate-500 leading-relaxed max-w-2xl">
+                  <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
                     Ambiente exclusivo para acompanhamento de demandas, estoque local, entregas e reuniões com o Warley.
                   </p>
                   <div className="pt-1.5">
@@ -329,7 +320,7 @@ async function Content({
               </div>
 
               {/* Faixa Inferior: Eficiência Orçamentária Institucional */}
-              <div className="px-6 py-4 bg-gradient-to-r from-emerald-50/70 via-emerald-50/30 to-white flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div className="flex flex-col gap-4 bg-gradient-to-r from-emerald-50/70 via-emerald-50/30 to-card px-6 py-4 dark:from-emerald-900/20 dark:via-emerald-900/10 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
                     <TrendingDown className="size-4.5" aria-hidden />
@@ -383,6 +374,16 @@ async function Content({
                 </div>
               </div>
             </div>
+
+            <Suspense fallback={<ModuleInsightFallback />}>
+              <ModuleInsight moduleName="Meu painel" sourceHref="/meu-conselho" facts={[
+                { label: "Solicitações pendentes", value: pendingRequestsCount },
+                { label: "Solicitações em andamento", value: inProgressRequestsCount },
+                { label: "Unidades recebidas", value: totalReceivedUnits },
+                { label: "Unidades pendentes", value: totalPendingUnits },
+                { label: "Pedidos de material", value: orders.length },
+              ]} />
+            </Suspense>
 
             {/* 2. O QUE VOCÊ PODE FAZER */}
             <div className="space-y-3">

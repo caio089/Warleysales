@@ -91,6 +91,8 @@ async function CouncilContent({ params }: { params: Promise<{ id: string }> }) {
         <div className="space-y-8">
           <PageHeader
             eyebrow={`Visão 360° — ${council.organizationType === "private_company" ? "Empresa privada" : "Órgão público"}`}
+            backHref="/conselhos"
+            backLabel="Órgãos e empresas"
             title={`${council.acronym} — ${council.name}`}
             description={council.institutionalInfo || (council.organizationType === "private_company" ? "Empresa privada atendida pela assessoria." : "Órgão parceiro na plataforma de gestão de Warley.")}
             actions={

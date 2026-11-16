@@ -60,6 +60,8 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
           <>
             <PageHeader
               eyebrow="Solicitações"
+              backHref="/solicitacoes"
+              backLabel="Todas as solicitações"
               title={request.title}
               description={`Órgão ${lookups.councilLabel[request.councilId] ?? "—"} · siga o próximo passo abaixo`}
               actions={<StatusBadge label={status.label} tone={status.tone} />}

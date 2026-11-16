@@ -30,6 +30,8 @@ export default function NewRequestPage() {
     <>
       <PageHeader
         eyebrow="Solicitações"
+        backHref="/solicitacoes"
+        backLabel="Todas as solicitações"
         title="Nova solicitação"
         description="1) Preencha e salve o rascunho · 2) Na tela seguinte, clique em Enviar · 3) O gestor aprova · 4) No recebimento o estoque sobe."
       />

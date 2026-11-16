@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { Archive, CircleAlert, Clock3, FileCheck2 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { canInAnyCouncil } from "@/shared/lib/authz/policy";
 import { ok } from "@/shared/lib/result";
 import { LoadingState } from "@/shared/ui/feedback-states";
+import { KpiCard } from "@/shared/ui/kpi-card";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
@@ -27,7 +29,13 @@ async function Content() {
     <Screen result={result}>
       {({ atas, lookups, processLabel, canCreate }) => (
         <>
-        <PageHeader eyebrow="Compras" title="Atas de registro de preços" description="Vigência de 1 ano, prorrogável 1× (art. 84, Lei 14.133/2021). Rascunho não consome saldo. A ata ligada a um processo aparece junto do contrato desse processo." actions={canCreate ? <Link href="/atas/nova" className={buttonVariants()}>Nova ata</Link> : undefined} />
+        <PageHeader eyebrow="Acompanhamento · Compras" title="Atas de registro de preços" description="Acompanhe vigência, prorrogações e o vínculo de cada ata com seu processo. Rascunhos ainda não consomem saldo." actions={canCreate ? <Link href="/atas/nova" className={buttonVariants()}>Nova ata</Link> : undefined} />
+        <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumo das atas">
+          <KpiCard icon={<Archive className="size-4" aria-hidden />} label="Total de atas" value={atas.length} />
+          <KpiCard icon={<Clock3 className="size-4" aria-hidden />} label="Rascunhos" value={atas.filter((a) => a.ata.status === "rascunho").length} hint="Aguardam ativação" />
+          <KpiCard icon={<FileCheck2 className="size-4" aria-hidden />} label="Vigentes" value={atas.filter((a) => a.validity === "vigente" && a.ata.status !== "rascunho").length} />
+          <KpiCard icon={<CircleAlert className="size-4" aria-hidden />} label="Vencidas" value={atas.filter((a) => a.validity !== "vigente" && a.ata.status !== "rascunho").length} accent={atas.some((a) => a.validity !== "vigente" && a.ata.status !== "rascunho")} />
+        </div>
         <Suspense fallback={<ModuleInsightFallback />}>
           <ModuleInsight moduleName="Atas" sourceHref="/atas" facts={[
             { label: "Total", value: atas.length },

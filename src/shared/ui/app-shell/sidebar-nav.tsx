@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { NAV_GROUPS, type NavItem, type NavGroup } from "@/shared/lib/authz/navigation";
 
@@ -23,15 +23,8 @@ function resolveInitialOpen(items: NavItem[], pathname: string): string | null {
 /** Menu lateral com grupos colapsáveis (acordeão). */
 export function SidebarNav({ items, onNavigate, collapsed = false }: SidebarNavProps) {
   const pathname = usePathname();
-  const [openGroup, setOpenGroup] = useState<string | null>(() =>
-    resolveInitialOpen(items, pathname),
-  );
-
-  // Abre automaticamente o grupo da rota ativa quando o pathname muda
-  useEffect(() => {
-    const active = items.find((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
-    if (active?.group) setOpenGroup(active.group);
-  }, [pathname, items]);
+  const [override, setOverride] = useState<{ pathname: string; group: string | null } | null>(null);
+  const openGroup = override?.pathname === pathname ? override.group : resolveInitialOpen(items, pathname);
 
   // Filtra apenas grupos que tenham ao menos um item visível
   const visibleGroups = NAV_GROUPS.filter((g) => items.some((i) => i.group === g.id));
@@ -49,7 +42,6 @@ export function SidebarNav({ items, onNavigate, collapsed = false }: SidebarNavP
           // ── Modo recolhido: apenas ícones dos itens, sem cabeçalho de grupo ──
           <CollapsedGroup
             key={group.id}
-            group={group}
             items={groupItems}
             pathname={pathname}
             onNavigate={onNavigate}
@@ -65,7 +57,7 @@ export function SidebarNav({ items, onNavigate, collapsed = false }: SidebarNavP
             hasActive={hasActive}
             pathname={pathname}
             onNavigate={onNavigate}
-            onToggle={() => setOpenGroup((prev) => (prev === group.id ? null : group.id))}
+            onToggle={() => setOverride({ pathname, group: openGroup === group.id ? null : group.id })}
           />
         );
       })}
@@ -78,19 +70,16 @@ export function SidebarNav({ items, onNavigate, collapsed = false }: SidebarNavP
 // ─────────────────────────────────────────────────────────────────────────────
 
 function CollapsedGroup({
-  group,
   items,
   pathname,
   onNavigate,
   hasActive,
 }: {
-  group: NavGroup;
   items: NavItem[];
   pathname: string;
   onNavigate?: () => void;
   hasActive: boolean;
 }) {
-  const GroupIcon = group.icon;
   return (
     <div className="flex flex-col items-center gap-0.5">
       {/* Ponto indicador de grupo ativo */}

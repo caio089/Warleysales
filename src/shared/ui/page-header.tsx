@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 interface PageHeaderProps {
   title: string;
@@ -7,12 +9,15 @@ interface PageHeaderProps {
   eyebrow?: string;
   /** Ações principais (botões) alinhadas à direita. */
   actions?: ReactNode;
+  backHref?: string;
+  backLabel?: string;
 }
 
-export function PageHeader({ title, description, eyebrow, actions }: PageHeaderProps) {
+export function PageHeader({ title, description, eyebrow, actions, backHref, backLabel = "Voltar" }: PageHeaderProps) {
   return (
     <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0 flex-1">
+        {backHref ? <Link href={backHref} className="mb-4 inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowLeft className="size-4" aria-hidden />{backLabel}</Link> : null}
         {eyebrow ? (
           <p className="mb-2 text-[0.7rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase">{eyebrow}</p>
         ) : null}

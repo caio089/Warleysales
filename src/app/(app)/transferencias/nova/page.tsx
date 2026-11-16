@@ -15,5 +15,5 @@ async function Content() {
 }
 
 export default function NewTransferPage() {
-  return (<><PageHeader title="Nova transferência" description="O conselho de destino solicita; o de origem aprova, separa e despacha." /><Suspense fallback={<LoadingState />}><Content /></Suspense></>);
+  return (<><PageHeader eyebrow="Estoque · Transferências" backHref="/transferencias" backLabel="Todas as transferências" title="Nova transferência" description="O órgão de destino solicita; o de origem aprova, separa e despacha." /><Suspense fallback={<LoadingState />}><Content /></Suspense></>);
 }

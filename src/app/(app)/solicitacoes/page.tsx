@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { CircleCheck, ClipboardList, Clock3 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
@@ -9,6 +10,7 @@ import { ok } from "@/shared/lib/result";
 import { REQUEST_FLOW_STEPS } from "@/shared/ui/flow-copy";
 import { FlowGuide } from "@/shared/ui/flow-guide";
 import { LoadingState } from "@/shared/ui/feedback-states";
+import { KpiCard } from "@/shared/ui/kpi-card";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
@@ -55,6 +57,11 @@ async function Content() {
               { label: "Atendidas", value: requests.filter((r) => r.status === "atendida").length },
             ]} />
           </Suspense>
+          <div className="mb-6 grid gap-3 sm:grid-cols-3" aria-label="Resumo das solicitações">
+            <KpiCard icon={<ClipboardList className="size-4" aria-hidden />} label="Solicitações" value={requests.length} />
+            <KpiCard icon={<Clock3 className="size-4" aria-hidden />} label="Aguardando análise" value={requests.filter((r) => ["enviada", "em_analise", "aguardando_correcao"].includes(r.status)).length} accent={requests.some((r) => ["enviada", "em_analise", "aguardando_correcao"].includes(r.status))} />
+            <KpiCard icon={<CircleCheck className="size-4" aria-hidden />} label="Atendidas" value={requests.filter((r) => r.status === "atendida").length} />
+          </div>
           <FlowGuide title="Fluxo em 4 passos" steps={REQUEST_FLOW_STEPS} />
           <SimpleTable
             caption="Solicitações de compra"

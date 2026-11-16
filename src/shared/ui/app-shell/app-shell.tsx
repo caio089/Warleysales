@@ -1,7 +1,7 @@
 "use client";
 
 import { Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -11,8 +11,25 @@ import { PageReveal } from "../page-reveal";
 import { SidebarNav } from "./sidebar-nav";
 
 const SIDEBAR_STORAGE_KEY = "conselhos.sidebar.collapsed";
+const SIDEBAR_CHANGE_EVENT = "conselhos:sidebar-change";
 const SIDEBAR_EXPANDED = "16.5rem";
 const SIDEBAR_COLLAPSED = "4.25rem";
+
+function subscribeSidebar(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(SIDEBAR_CHANGE_EVENT, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(SIDEBAR_CHANGE_EVENT, callback);
+  };
+}
+
+function getSidebarSnapshot() {
+  try { return localStorage.getItem(SIDEBAR_STORAGE_KEY) === "1"; }
+  catch { return false; }
+}
+
+const getServerSidebarSnapshot = () => false;
 
 interface AppShellProps {
   /**
@@ -28,29 +45,14 @@ interface AppShellProps {
 /** Layout administrativo: sidebar fixa (não rola nem desloca no hover), recolhível no desktop. */
 export function AppShell({ navHrefs, topbarSlot, children }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
+  const collapsed = useSyncExternalStore(subscribeSidebar, getSidebarSnapshot, getServerSidebarSnapshot);
   const navItems = NAV_ITEMS.filter((item) => navHrefs.includes(item.href));
 
-  useEffect(() => {
-    try {
-      setCollapsed(localStorage.getItem(SIDEBAR_STORAGE_KEY) === "1");
-    } catch {
-      /* ignore */
-    }
-    setHydrated(true);
-  }, []);
-
   function toggleCollapsed() {
-    setCollapsed((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(SIDEBAR_STORAGE_KEY, next ? "1" : "0");
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
+    try {
+      localStorage.setItem(SIDEBAR_STORAGE_KEY, collapsed ? "0" : "1");
+      window.dispatchEvent(new Event(SIDEBAR_CHANGE_EVENT));
+    } catch { /* armazenamento indisponível */ }
   }
 
   const desktopWidth = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED;
@@ -65,7 +67,7 @@ export function AppShell({ navHrefs, topbarSlot, children }: AppShellProps) {
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-30 hidden flex-col overflow-hidden bg-sidebar text-sidebar-foreground md:flex",
-          hydrated && "transition-[width] duration-200 ease-out",
+          "transition-[width] duration-200 ease-out",
         )}
         style={{ width: desktopWidth }}
         aria-label="Menu lateral"
@@ -135,7 +137,7 @@ export function AppShell({ navHrefs, topbarSlot, children }: AppShellProps) {
       </Sheet>
 
       <div
-        className={cn("flex min-h-screen min-w-0 flex-col md:pl-[var(--shell-sidebar)]", hydrated && "md:transition-[padding] md:duration-200 md:ease-out")}
+        className="flex min-h-screen min-w-0 flex-col md:pl-[var(--shell-sidebar)] md:transition-[padding] md:duration-200 md:ease-out"
         style={{ ["--shell-sidebar" as string]: desktopWidth }}
       >
         <header className="sticky top-0 z-20 flex h-[4.25rem] items-center gap-3 border-b border-border/70 bg-card/80 px-4 backdrop-blur-md md:px-6">

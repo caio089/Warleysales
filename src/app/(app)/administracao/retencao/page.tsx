@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { Archive, Ban, FileCheck2 } from "lucide-react";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { ok } from "@/shared/lib/result";
 import { LoadingState } from "@/shared/ui/feedback-states";
+import { KpiCard } from "@/shared/ui/kpi-card";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { SimpleTable } from "@/shared/ui/simple-table";
@@ -24,6 +26,11 @@ async function Content() {
     <Screen result={result}>
       {({ overview, lookups }) => (
         <div className="space-y-8">
+          <div className="grid gap-3 sm:grid-cols-3" aria-label="Resumo da retenção documental">
+            <KpiCard icon={<Archive className="size-4" aria-hidden />} label="Pastas concluídas" value={overview.length} />
+            <KpiCard icon={<Ban className="size-4" aria-hidden />} label="Bloqueadas" value={overview.filter((o) => o.action === "blocked").length} accent={overview.some((o) => o.action === "blocked")} />
+            <KpiCard icon={<FileCheck2 className="size-4" aria-hidden />} label="Elegíveis" value={overview.filter((o) => o.action === "eligible_for_disposal").length} />
+          </div>
           <p className="rounded-lg border bg-info p-3 text-sm text-info-foreground">Sem autorização formal de retenção, o job apenas arquiva: nenhum arquivo é eliminado fisicamente (padrão seguro P2).</p>
           <SimpleTable
             caption="Elegibilidade de limpeza documental"
@@ -44,5 +51,5 @@ async function Content() {
 }
 
 export default function RetentionPage() {
-  return (<><PageHeader title="Retenção documental" description="Janela de 30 dias, relatório de encerramento, bloqueios e autorização." /><Suspense fallback={<LoadingState />}><Content /></Suspense></>);
+  return (<><PageHeader eyebrow="Administração · Documentos" title="Retenção documental" description="Acompanhe os processos com documentação concluída, seus bloqueios e as autorizações de destinação." /><Suspense fallback={<LoadingState />}><Content /></Suspense></>);
 }

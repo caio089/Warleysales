@@ -19,8 +19,10 @@ export default function NewProcessPage() {
     <>
       <PageHeader
         eyebrow="Processos"
+        backHref="/processos"
+        backLabel="Todos os processos"
         title="Novo processo"
-        description="Informe conselho, número (NNN/AAAA) e objeto. Depois você anexa os 7 documentos na tela do processo."
+        description="Informe o órgão, número (NNN/AAAA) e objeto. Depois, anexe os sete documentos na tela do processo."
       />
       <Suspense fallback={<LoadingState />}><Content /></Suspense>
     </>

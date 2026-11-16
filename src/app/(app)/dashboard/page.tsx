@@ -303,6 +303,7 @@ async function DashboardContent({
                   hint={replenishmentItems.length > 0 ? "Exige reposição urgente" : "Estável"}
                 />
                 <KpiCard
+                  href="/relatorios?tab=indicadores"
                   icon={<TrendingDown className="size-4" aria-hidden />}
                   label="Economia Gerada"
                   value={formatCurrency(savingsSummary.totalSavings)}

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { Building2, Link2, UsersRound } from "lucide-react";
 import { loadScreen } from "@/server/screen";
 import { LoadingState } from "@/shared/ui/feedback-states";
+import { KpiCard } from "@/shared/ui/kpi-card";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { SimpleTable } from "@/shared/ui/simple-table";
@@ -15,8 +17,13 @@ async function Content() {
     <Screen result={result}>
       {(dir) => (
         <div className="space-y-8">
+          <div className="grid gap-3 sm:grid-cols-3" aria-label="Resumo de acesso">
+            <KpiCard icon={<UsersRound className="size-4" aria-hidden />} label="Usuários" value={dir.profiles.length} />
+            <KpiCard icon={<Building2 className="size-4" aria-hidden />} label="Órgãos e empresas" value={dir.councils.length} />
+            <KpiCard icon={<Link2 className="size-4" aria-hidden />} label="Vínculos ativos" value={dir.memberships.length} />
+          </div>
           <p className="rounded-lg border bg-info p-3 text-sm text-info-foreground">
-            Cadastro é somente por convite (P7). Convide no Auth e depois vincule o perfil ao conselho com o papel correto.
+            O acesso começa com um convite no Supabase Auth. Depois, vincule a pessoa ao órgão ou empresa e escolha seu papel.
           </p>
           <SimpleTable
             caption="Vínculos de conselho"
@@ -29,7 +36,7 @@ async function Content() {
             columns={[{ key: "user", header: "Usuário" }, { key: "council", header: "Órgão ou empresa" }, { key: "role", header: "Papel" }]}
             filterKeys={[{ key: "council", label: "Órgão ou empresa" }, { key: "role", label: "Papel" }]}
             emptyTitle="Nenhum vínculo"
-            emptyDescription="Sem vínculo, o usuário autenticado não opera nenhum conselho."
+            emptyDescription="Sem vínculo, o usuário autenticado não opera nenhum órgão ou empresa."
           />
           <MembershipForms
             users={dir.profiles.map((p) => ({ value: p.id, label: p.fullName || p.id.slice(0, 8) }))}
@@ -49,7 +56,7 @@ async function Content() {
 export default function UsersPage() {
   return (
     <>
-      <PageHeader title="Usuários e vínculos" description="Papel por conselho. Exclusão manual continua exclusiva do Warley." />
+      <PageHeader eyebrow="Administração · Acesso" title="Usuários e vínculos" description="Consulte quem pode acessar cada órgão ou empresa e ajuste os respectivos papéis." />
       <Suspense fallback={<LoadingState />}><Content /></Suspense>
     </>
   );

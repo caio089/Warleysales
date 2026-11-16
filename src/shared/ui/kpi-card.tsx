@@ -31,17 +31,17 @@ export function KpiCard({ label, value, hint, icon, href, accent = false }: KpiC
           </div>
         ) : null}
       </div>
-      <div className="flex items-baseline justify-between mt-1">
-        <span className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 tabular-nums whitespace-nowrap">
+      <div className="mt-1 flex min-w-0 flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+        <span className="min-w-0 break-words text-xl font-bold tracking-tight text-slate-900 tabular-nums dark:text-slate-100 sm:text-2xl">
           {value ?? "—"}
         </span>
-        {hint ? <span className="text-[11px] font-medium text-slate-400 truncate">{hint}</span> : null}
+        {hint ? <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{hint}</span> : null}
       </div>
     </>
   );
 
   const className = cn(
-    "bg-white dark:bg-card rounded-2xl p-4 border border-slate-200/80 dark:border-border/80 border-l-4 shadow-xs flex flex-col justify-between h-28 transition-all group",
+    "bg-white dark:bg-card rounded-2xl p-4 border border-slate-200/80 dark:border-border/80 border-l-4 shadow-xs flex flex-col justify-between min-h-28 transition-all group",
     accent ? "border-l-amber-500" : "border-l-emerald-500",
     href && "hover:border-slate-300 dark:hover:border-border hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F2942]/20",
   );

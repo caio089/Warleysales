@@ -46,5 +46,5 @@ async function Content({ processId }: { processId?: string }) {
 
 export default async function NewContractPage({ searchParams }: { searchParams: Promise<{ processId?: string }> }) {
   const { processId } = await searchParams;
-  return (<><PageHeader title="Novo contrato" description="Vincule o mesmo processo da ata para os dois ficarem ligados." /><Suspense fallback={<LoadingState />}><Content processId={processId} /></Suspense></>);
+  return (<><PageHeader eyebrow="Acompanhamento · Contratos" backHref="/contratos" backLabel="Todos os contratos" title="Novo contrato" description="Preencha os dados e vincule o processo para reunir contrato e ata na mesma contratação." /><Suspense fallback={<LoadingState />}><Content processId={processId} /></Suspense></>);
 }

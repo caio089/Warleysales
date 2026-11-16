@@ -116,20 +116,6 @@ function ProcessAttachmentSheetInner({
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  // Quando o propProcessId é alterado explicitamente, limpa o dismissedId
-  useEffect(() => {
-    if (propProcessId) {
-      setDismissedId(null);
-    }
-  }, [propProcessId]);
-
-  // Quando searchParamId é limpo pela navegação ou muda para outro id, reseta dismissedId
-  useEffect(() => {
-    if (!searchParamId || (dismissedId && searchParamId !== dismissedId)) {
-      setDismissedId(null);
-    }
-  }, [searchParamId, dismissedId]);
-
   const candidateId =
     propProcessId !== undefined ? propProcessId : (internalId ?? searchParamId);
   const activeProcessId =

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Search, SlidersHorizontal, X } from "lucide-react";
 import { useId, useMemo, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,17 +66,29 @@ export function DataTable<T>({
       }),
     [data, columns, filters, search, sort, activeFilters, page, pageSize],
   );
+  const hasActiveQuery = search.trim().length > 0 || Object.values(activeFilters).some(Boolean);
+  const clearQuery = () => { setSearch(""); setActiveFilters({}); setPage(1); };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3">
+    <section aria-label={caption} className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-border bg-card text-primary" aria-hidden><SlidersHorizontal className="size-4" /></span>
+          <div>
+            <h2 className="font-heading text-lg font-semibold text-primary">{caption}</h2>
+            <p className="text-xs text-muted-foreground" aria-live="polite">{result.total} de {data.length} registros</p>
+          </div>
+        </div>
+        {hasActiveQuery ? <Button type="button" variant="ghost" size="sm" onClick={clearQuery}><X className="size-3.5" aria-hidden /> Limpar filtros</Button> : null}
+      </div>
+      <div className="surface-card flex flex-wrap items-end gap-3 p-3 sm:p-4">
         <div className="relative w-full sm:w-72">
-          <label htmlFor={searchId} className="sr-only">Buscar na tabela</label>
+          <label htmlFor={searchId} className="sr-only">Buscar em {caption}</label>
           <Search className="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground" aria-hidden />
           <Input
             id={searchId}
             type="text"
-            placeholder="Buscar…"
+            placeholder={`Buscar em ${caption.toLowerCase()}…`}
             className="pl-9"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -99,13 +111,17 @@ export function DataTable<T>({
       </div>
 
       {result.total === 0 ? (
-        <EmptyState title={emptyTitle} description={emptyDescription} action={emptyAction} />
+        <EmptyState
+          title={hasActiveQuery ? "Nenhum resultado para estes filtros" : emptyTitle}
+          description={hasActiveQuery ? "Tente outra busca ou limpe os filtros para ver todos os registros." : emptyDescription}
+          action={hasActiveQuery ? <Button type="button" variant="outline" onClick={clearQuery}>Mostrar todos</Button> : emptyAction}
+        />
       ) : (
         <div className="surface-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <caption className="sr-only">{caption}</caption>
-              <thead className="sticky top-0 bg-secondary/90 text-left backdrop-blur-sm">
+              <thead className="bg-secondary/90 text-left">
                 <tr>
                   {columns.map((col) => {
                     const active = sort.key === col.key;
@@ -130,7 +146,7 @@ export function DataTable<T>({
               </thead>
               <tbody>
                 {result.rows.map((row) => (
-                  <tr key={getRowId(row)} className="border-t border-border/70 transition-colors hover:bg-primary/[0.035]">
+                  <tr key={getRowId(row)} className="border-t border-border/70 transition-colors even:bg-secondary/20 hover:bg-primary/[0.06] focus-within:bg-primary/[0.06]">
                     {columns.map((col) => (
                       <td key={col.key} className={col.className ?? "px-4 py-3.5"}>
                         {col.render ? col.render(row) : (col.accessor(row) ?? "—")}
@@ -145,8 +161,8 @@ export function DataTable<T>({
       )}
 
       {result.total > 0 ? (
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span aria-live="polite">{result.total} registro(s) no banco</span>
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+          <span aria-live="polite">Mostrando {Math.min((result.page - 1) * pageSize + 1, result.total)}–{Math.min(result.page * pageSize, result.total)} de {result.total}</span>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" disabled={result.page <= 1} onClick={() => setPage(result.page - 1)}>Anterior</Button>
             <span>Página {result.page} de {result.pageCount}</span>
@@ -154,6 +170,6 @@ export function DataTable<T>({
           </div>
         </div>
       ) : null}
-    </div>
+    </section>
   );
 }

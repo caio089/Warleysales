@@ -9,6 +9,8 @@ export default function NewCouncilPage() {
     <>
       <PageHeader
         eyebrow="Administração"
+        backHref="/conselhos"
+        backLabel="Órgãos e empresas"
         title="Cadastrar órgão ou empresa"
         description="Cadastre órgãos públicos e empresas privadas atendidas pela assessoria."
       />

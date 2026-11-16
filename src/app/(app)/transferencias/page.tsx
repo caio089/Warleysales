@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { ArrowLeftRight, CheckCircle2, Clock3, Package } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { canInAnyCouncil } from "@/shared/lib/authz/policy";
 import { ok } from "@/shared/lib/result";
 import { LoadingState } from "@/shared/ui/feedback-states";
+import { KpiCard } from "@/shared/ui/kpi-card";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
@@ -25,7 +27,13 @@ async function Content() {
     <Screen result={result}>
       {({ transfers, lookups, canCreate }) => (
         <>
-        <PageHeader eyebrow="Estoque" title="Transferências" description="Material em trânsito não fica disponível na origem nem no destino." actions={canCreate ? <Link href="/transferencias/nova" className={buttonVariants()}>Nova transferência</Link> : undefined} />
+        <PageHeader eyebrow="Estoque · Distribuição" title="Transferências" description="Acompanhe as solicitações entre órgãos. Material em trânsito não fica disponível na origem nem no destino." actions={canCreate ? <Link href="/transferencias/nova" className={buttonVariants()}>Nova transferência</Link> : undefined} />
+        <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumo das transferências">
+          <KpiCard icon={<ArrowLeftRight className="size-4" aria-hidden />} label="Total" value={transfers.length} />
+          <KpiCard icon={<Clock3 className="size-4" aria-hidden />} label="Em andamento" value={transfers.filter((t) => !["recebida", "cancelada", "recusada"].includes(t.status)).length} accent={transfers.some((t) => !["recebida", "cancelada", "recusada"].includes(t.status))} />
+          <KpiCard icon={<CheckCircle2 className="size-4" aria-hidden />} label="Recebidas" value={transfers.filter((t) => t.status === "recebida").length} />
+          <KpiCard icon={<Package className="size-4" aria-hidden />} label="Itens solicitados" value={transfers.reduce((sum, t) => sum + t.items.length, 0)} />
+        </div>
         <Suspense fallback={<ModuleInsightFallback />}>
           <ModuleInsight moduleName="Transferências" sourceHref="/transferencias" facts={[
             { label: "Total", value: transfers.length },

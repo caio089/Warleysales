@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { CalendarClock, CircleAlert, FileText, Wallet } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { canInAnyCouncil } from "@/shared/lib/authz/policy";
+import { formatCurrency } from "@/shared/lib/format";
 import { ok } from "@/shared/lib/result";
 import { LoadingState } from "@/shared/ui/feedback-states";
+import { KpiCard } from "@/shared/ui/kpi-card";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
@@ -27,7 +30,13 @@ async function Content() {
     <Screen result={result}>
       {({ contracts, lookups, processLabel, canCreate }) => (
         <>
-        <PageHeader eyebrow="Contratos" title="Contratos" description="Prazos e valores com histórico de aditivos preservado. O contrato ligado a um processo aparece junto da ata desse processo." actions={canCreate ? <Link href="/contratos/novo" className={buttonVariants()}>Novo contrato</Link> : undefined} />
+        <PageHeader eyebrow="Acompanhamento · Compras" title="Contratos" description="Consulte vigências, valores e aditivos. Contratos vinculados a processos aparecem junto das respectivas atas." actions={canCreate ? <Link href="/contratos/novo" className={buttonVariants()}>Novo contrato</Link> : undefined} />
+        <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumo dos contratos">
+          <KpiCard icon={<FileText className="size-4" aria-hidden />} label="Total de contratos" value={contracts.length} />
+          <KpiCard icon={<CalendarClock className="size-4" aria-hidden />} label="Vencem em 30 dias" value={contracts.filter((c) => c.remainingDays >= 0 && c.remainingDays <= 30).length} accent={contracts.some((c) => c.remainingDays >= 0 && c.remainingDays <= 30)} />
+          <KpiCard icon={<CircleAlert className="size-4" aria-hidden />} label="Vencidos" value={contracts.filter((c) => c.remainingDays < 0).length} accent={contracts.some((c) => c.remainingDays < 0)} />
+          <KpiCard icon={<Wallet className="size-4" aria-hidden />} label="Valor vigente" value={formatCurrency(contracts.reduce((sum, c) => sum + c.terms.value, 0))} hint="Soma dos contratos" />
+        </div>
         <Suspense fallback={<ModuleInsightFallback />}>
           <ModuleInsight moduleName="Contratos" sourceHref="/contratos" facts={[
             { label: "Total", value: contracts.length },
