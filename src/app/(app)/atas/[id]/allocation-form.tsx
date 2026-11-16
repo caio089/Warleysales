@@ -16,7 +16,7 @@ export function AllocationForm({ ataId, items, councils }: { ataId: string; item
         {(e) => (
           <>
             <SelectField name="itemId" label="Item" required options={items} errors={e.itemId} />
-            <SelectField name="councilId" label="Conselho" options={councils} optional placeholder="Saldo comum (sem limite)" errors={e.allocations} />
+            <SelectField name="councilId" label="Órgão" options={councils} optional placeholder="Saldo comum (sem limite)" errors={e.allocations} />
             <TextField name="quantity" label="Quantidade alocada" type="number" step="0.001" min="0" errors={e.allocations} />
           </>
         )}

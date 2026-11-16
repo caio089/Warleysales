@@ -23,6 +23,13 @@ describe("CouncilService", () => {
     const bad = await service.create(centralAdmin(), { name: "Outro Conselho", acronym: "OUT", whatsappE164: "123" });
     expect(!bad.ok && bad.fieldErrors?.whatsappE164).toBeDefined();
   });
+  it("cadastra empresa privada e mantém órgão público como padrão", async () => {
+    const service = setup();
+    const company = await service.create(centralAdmin(), { name: "Empresa Privada Ltda", acronym: "EPL", organizationType: "private_company" });
+    const publicBody = await service.create(centralAdmin(), base);
+    expect(company.ok && company.data.organizationType).toBe("private_company");
+    expect(publicBody.ok && publicBody.data.organizationType).toBe("public_body");
+  });
   it("somente admin central cadastra", async () => {
     expect((await setup().create(managerOf(COUNCIL_A), base)).ok).toBe(false);
     expect((await setup().create(makeActor(), base)).ok).toBe(false);

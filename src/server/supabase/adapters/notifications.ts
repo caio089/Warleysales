@@ -59,4 +59,27 @@ export class SupabaseNotificationRepository implements NotificationRepository {
     if (row.read_at === null) unwrap("notifications.markRead", await this.db.from("notifications").update({ read_at: toIso(at) }).eq("id", id).is("read_at", null));
     return true;
   }
+
+  async listPendingEmails(limit: number) {
+    const rows = unwrap("notifications.pendingEmails", await this.db.from("notifications")
+      .select().not("email_queued_at", "is", null).is("email_sent_at", null)
+      .order("email_failures", { ascending: true })
+      .order("created_at", { ascending: true }).limit(limit).returns<NotificationRow[]>());
+    return rows.map(toNotification);
+  }
+
+  async markEmailSent(ids: readonly string[], at: Date) {
+    if (ids.length === 0) return;
+    unwrap("notifications.emailSent", await this.db.from("notifications").update({
+      email_sent_at: toIso(at), email_attempted_at: toIso(at), email_last_error: null,
+    }).in("id", ids).is("email_sent_at", null));
+  }
+
+  async markEmailFailed(ids: readonly string[], at: Date, reason: string) {
+    if (ids.length === 0) return;
+    // Contador atualizado de forma atômica pela RPC para evitar perder tentativas concorrentes.
+    unwrap("notifications.emailFailed", await this.db.rpc("record_notification_email_failure", {
+      p_notification_ids: ids, p_attempted_at: toIso(at), p_reason: reason.slice(0, 200),
+    }));
+  }
 }

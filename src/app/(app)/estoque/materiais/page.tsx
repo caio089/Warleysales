@@ -6,6 +6,7 @@ import { ok } from "@/shared/lib/result";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
+import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { SimpleTable } from "@/shared/ui/simple-table";
 import { NewMaterialForm } from "./new-material-form";
 
@@ -21,6 +22,12 @@ async function Content() {
     <Screen result={result}>
       {({ materials, canCreate }) => (
         <div className="space-y-8">
+          <Suspense fallback={<ModuleInsightFallback />}>
+            <ModuleInsight moduleName="Materiais" sourceHref="/estoque/materiais" facts={[
+              { label: "Cadastrados", value: materials.length },
+              { label: "Ativos", value: materials.filter((m) => m.active).length },
+            ]} />
+          </Suspense>
           <SimpleTable
             caption="Catálogo de materiais"
             rows={materials.map((m) => ({ id: m.id, code: m.code, name: m.name, unit: m.unit, active: m.active ? "Ativo" : "Inativo" }))}

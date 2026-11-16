@@ -6,6 +6,7 @@ import { ActionForm } from "@/shared/ui/forms/action-form";
 import { EmptyState, LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
+import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { formatDateTimeFortaleza } from "@/shared/lib/time";
 
 export const metadata: Metadata = { title: "Alertas" };
@@ -14,7 +15,15 @@ async function Content() {
   const result = await loadScreen(({ services, actor }) => services.notifications.listMine(actor));
   return (
     <Screen result={result}>
-      {({ items, unread }) => items.length === 0 ? <EmptyState title="Nenhum alerta" description="Você será avisado nos marcos de 90, 60, 30, 15, 7 e 0 dias do vencimento de atas e contratos." /> : (
+      {({ items, unread }) => (
+        <div className="space-y-6">
+          <Suspense fallback={<ModuleInsightFallback />}>
+            <ModuleInsight moduleName="Alertas" sourceHref="/alertas" facts={[
+              { label: "Total", value: items.length },
+              { label: "Não lidos", value: unread },
+            ]} />
+          </Suspense>
+          {items.length === 0 ? <EmptyState title="Nenhum alerta" description="Você será avisado nos marcos de 90, 60, 30, 15, 7 e 0 dias do vencimento de atas e contratos." /> : (
         <section aria-label="Notificações">
           <p className="mb-3 text-sm text-muted-foreground" aria-live="polite">{unread} não lida(s)</p>
           <ul className="space-y-3">
@@ -26,6 +35,8 @@ async function Content() {
             ))}
           </ul>
         </section>
+          )}
+        </div>
       )}
     </Screen>
   );

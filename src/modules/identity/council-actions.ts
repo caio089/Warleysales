@@ -10,11 +10,12 @@ export async function createCouncilFormAction(_previous: ActionState, formData: 
     ({ services, actor }) =>
       services.councils.create(actor, {
         name: formData.get("name"),
+        organizationType: formData.get("organizationType"),
         acronym: formData.get("acronym"),
         institutionalInfo: formData.get("institutionalInfo") || null,
         whatsappE164: formData.get("whatsapp") || null,
       }),
-    "Conselho criado com sucesso.",
+    "Organização criada com sucesso.",
   );
   if (result.status !== "success" || !result.data) return result;
   revalidatePath("/conselhos");
@@ -28,11 +29,12 @@ export async function updateCouncilFormAction(_previous: ActionState, formData: 
       services.councils.update(actor, {
         councilId,
         name: formData.get("name"),
+        organizationType: formData.get("organizationType"),
         acronym: formData.get("acronym"),
         institutionalInfo: formData.get("institutionalInfo") || null,
         whatsappE164: formData.get("whatsapp") || null,
       }),
-    "Conselho atualizado com sucesso.",
+    "Organização atualizada com sucesso.",
   );
   if (result.status === "success") {
     revalidatePath("/conselhos");

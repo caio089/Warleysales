@@ -67,8 +67,9 @@ export class SupabaseAuditRepository implements AuditRepository {
     if (filter.councilIds !== undefined && filter.councilIds !== "all" && filter.councilIds.length === 0) {
       return [];
     }
-    // Mais recentes primeiro, limitado para não carregar a trilha inteira (consulta paginada fica como evolução).
+    // Carrega um lote em ordem decrescente; beforeId permite avançar sem repetir eventos.
     let query = this.db.from("audit_logs").select().order("id", { ascending: false }).limit(AUDIT_LIST_LIMIT);
+    if (filter.beforeId && /^\d+$/.test(filter.beforeId)) query = query.lt("id", filter.beforeId);
     if (filter.councilIds !== undefined && filter.councilIds !== "all") {
       query = query.in("council_id", [...filter.councilIds]);
     } else if (filter.councilId) {

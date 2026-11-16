@@ -9,9 +9,10 @@ import { KpiCard } from "@/shared/ui/kpi-card";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader, SectionLabel } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
+import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { StatusBadge } from "@/shared/ui/status-badge";
 
-export const metadata: Metadata = { title: "Órgãos Parceiros" };
+export const metadata: Metadata = { title: "Órgãos e Empresas" };
 
 async function CouncilsContent() {
   const result = await loadScreen(async ({ services, actor }) => {
@@ -50,19 +51,28 @@ async function CouncilsContent() {
         totalActive: councils.filter((c) => c.active).length,
         totalWithPending: enriched.filter((c) => c.openRequestsCount > 0).length,
         totalWithCriticalStock: enriched.filter((c) => c.criticalStockCount > 0).length,
+        totalPrivateCompanies: councils.filter((c) => c.organizationType === "private_company").length,
       },
     };
   });
 
   return (
     <Screen result={result}>
-      {({ councils, totalActive, totalWithPending, totalWithCriticalStock }) => (
+      {({ councils, totalActive, totalWithPending, totalWithCriticalStock, totalPrivateCompanies }) => (
         <div className="space-y-8">
+          <Suspense fallback={<ModuleInsightFallback />}>
+            <ModuleInsight moduleName="Órgãos e empresas" sourceHref="/conselhos" facts={[
+              { label: "Cadastrados", value: councils.length },
+              { label: "Ativos", value: totalActive },
+              { label: "Com demandas abertas", value: totalWithPending },
+              { label: "Empresas privadas", value: totalPrivateCompanies },
+            ]} />
+          </Suspense>
           {/* Métricas dos Órgãos */}
           <section aria-label="Métricas dos Órgãos" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <KpiCard
               icon={<Building2 className="size-4" aria-hidden />}
-              label="Órgãos Cadastrados"
+              label="Organizações Cadastradas"
               value={councils.length}
               hint={`${totalActive} ativos no sistema`}
             />
@@ -82,24 +92,24 @@ async function CouncilsContent() {
             />
             <KpiCard
               icon={<Building2 className="size-4" aria-hidden />}
-              label="Taxa de Atividade"
-              value={councils.length > 0 ? `${Math.round((totalActive / councils.length) * 100)}%` : "100%"}
-              hint="Órgãos operando"
+              label="Empresas Privadas"
+              value={totalPrivateCompanies}
+              hint="Atendidas pela assessoria"
             />
           </section>
 
           {/* Listagem de Órgãos em Cards Ricos */}
           <section aria-label="Lista de Órgãos" className="space-y-4">
-            <SectionLabel>Órgãos Parceiros Cadastrados</SectionLabel>
+            <SectionLabel>Órgãos e Empresas Cadastrados</SectionLabel>
             {councils.length === 0 ? (
               <div className="surface-card flex flex-col items-center justify-center p-12 text-center">
                 <Building2 className="size-12 text-muted-foreground/50" />
-                <h3 className="mt-4 font-heading text-lg font-medium text-primary">Nenhum órgão cadastrado</h3>
+                <h3 className="mt-4 font-heading text-lg font-medium text-primary">Nenhuma organização cadastrada</h3>
                 <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                  Cadastre o primeiro órgão para iniciar o controle de solicitações, estoque e documentos.
+                  Cadastre o primeiro órgão ou empresa para iniciar o acompanhamento.
                 </p>
                 <Link href="/conselhos/novo" className={buttonVariants({ className: "mt-4" })}>
-                  Cadastrar Órgão
+                  Cadastrar Organização
                 </Link>
               </div>
             ) : (
@@ -120,6 +130,7 @@ async function CouncilsContent() {
                               {c.name}
                             </h3>
                             <p className="text-xs text-muted-foreground">Sigla: {c.acronym}</p>
+                            <p className="text-xs font-medium text-primary/75">{c.organizationType === "private_company" ? "Empresa privada" : "Órgão público"}</p>
                           </div>
                         </div>
                         <StatusBadge
@@ -181,14 +192,14 @@ async function CouncilsContent() {
                         href={`/conselhos/${c.id}`}
                         className="text-xs font-semibold text-primary hover:text-highlight hover:underline"
                       >
-                        Visão 360° do Órgão
+                        Visão 360°
                       </Link>
                       <Link
                         href={`/meu-conselho?councilId=${c.id}`}
                         className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary"
-                        title="Ver como o órgão enxerga o painel"
+                        title="Ver como a organização enxerga o painel"
                       >
-                        <span>Painel Órgão</span>
+                        <span>Painel da organização</span>
                         <ExternalLink className="size-3" />
                       </Link>
                     </div>
@@ -208,12 +219,12 @@ export default function CouncilsPage() {
     <>
       <PageHeader
         eyebrow="Operação & Relacionamento"
-        title="Órgãos Parceiros"
-        description="Gestão centralizada de todos os órgãos conveniados, contatos rápidos, situação operacional e estoque vinculado."
+        title="Órgãos e Empresas"
+        description="Gestão centralizada de órgãos públicos e empresas privadas atendidas pela assessoria."
         actions={
           <Link href="/conselhos/novo" className={buttonVariants()}>
             <Plus className="mr-1.5 size-4" />
-            Cadastrar Novo Órgão
+            Cadastrar Organização
           </Link>
         }
       />

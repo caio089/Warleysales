@@ -9,6 +9,7 @@ import { ok } from "@/shared/lib/result";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
+import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { SimpleTable } from "@/shared/ui/simple-table";
 
 export const metadata: Metadata = { title: "Atas de registro de preços" };
@@ -27,11 +28,19 @@ async function Content() {
       {({ atas, lookups, processLabel, canCreate }) => (
         <>
         <PageHeader eyebrow="Compras" title="Atas de registro de preços" description="Vigência de 1 ano, prorrogável 1× (art. 84, Lei 14.133/2021). Rascunho não consome saldo. A ata ligada a um processo aparece junto do contrato desse processo." actions={canCreate ? <Link href="/atas/nova" className={buttonVariants()}>Nova ata</Link> : undefined} />
+        <Suspense fallback={<ModuleInsightFallback />}>
+          <ModuleInsight moduleName="Atas" sourceHref="/atas" facts={[
+            { label: "Total", value: atas.length },
+            { label: "Rascunhos", value: atas.filter((a) => a.ata.status === "rascunho").length },
+            { label: "Vigentes", value: atas.filter((a) => a.validity === "vigente" && a.ata.status !== "rascunho").length },
+            { label: "Vencidas", value: atas.filter((a) => a.validity !== "vigente" && a.ata.status !== "rascunho").length },
+          ]} />
+        </Suspense>
         <SimpleTable
           caption="Atas de registro de preços"
           rows={atas.map((a) => ({ id: a.ata.id, number: a.ata.number, council: lookups.councilLabel[a.ata.councilId] ?? "—", process: a.ata.processId ? (processLabel[a.ata.processId] ?? "Processo") : "—", status: a.ata.status === "rascunho" ? "Rascunho" : a.validity === "vigente" ? "Vigente" : "Vencida", endDate: a.endDate, extensions: a.ata.extensions.length, href: `/atas/${a.ata.id}`, processHref: a.ata.processId ? `/processos/${a.ata.processId}` : "" }))}
           columns={[
-            { key: "number", header: "Número", kind: "link", hrefKey: "href" }, { key: "council", header: "Conselho gerenciador" },
+            { key: "number", header: "Número", kind: "link", hrefKey: "href" }, { key: "council", header: "Órgão gerenciador" },
             { key: "process", header: "Processo", kind: "link", hrefKey: "processHref" },
             { key: "status", header: "Situação" }, { key: "endDate", header: "Vigência até", kind: "date" }, { key: "extensions", header: "Prorrogações", kind: "number" },
           ]}

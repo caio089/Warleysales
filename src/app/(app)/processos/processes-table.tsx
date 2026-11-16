@@ -101,7 +101,7 @@ export function ProcessesTable({
   const filterDefs: FilterDefinition<ProcessTableRow>[] = useMemo(
     () => [
       { id: "status", label: "Situação", options: statusOptions, accessor: (r) => r.status },
-      { id: "council", label: "Conselho", options: councilOptions, accessor: (r) => r.council },
+      { id: "council", label: "Órgão", options: councilOptions, accessor: (r) => r.council },
     ],
     [statusOptions, councilOptions],
   );
@@ -122,7 +122,7 @@ export function ProcessesTable({
   const headers: { key: string; label: string; sortable: boolean }[] = [
     { key: "number", label: "Número", sortable: true },
     { key: "title", label: "Objeto", sortable: true },
-    { key: "council", label: "Conselho", sortable: true },
+    { key: "council", label: "Órgão", sortable: true },
     { key: "status", label: "Situação", sortable: true },
     { key: "completion", label: "Documentação", sortable: true },
     { key: "progress", label: "Progresso", sortable: true },
@@ -176,7 +176,7 @@ export function ProcessesTable({
 
         <label className="flex flex-col gap-1.5">
           <span className="text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
-            Conselho
+            Órgão
           </span>
           <select
             className="h-10 min-w-40 rounded-lg border border-input bg-card px-3 text-sm font-medium text-foreground focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"

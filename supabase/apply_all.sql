@@ -1466,4 +1466,59 @@ end $$;
 
 notify pgrst, 'reload schema';
 
+-- ===== 20261116000001_notification_emails.sql =====
+-- Alertas antigos permanecem apenas no aplicativo. Novos avisos entram na fila de e-mail.
+alter table public.notifications
+  add column email_queued_at timestamptz,
+  add column email_sent_at timestamptz,
+  add column email_attempted_at timestamptz,
+  add column email_failures integer not null default 0,
+  add column email_last_error text;
+alter table public.notifications alter column email_queued_at set default now();
+create index notifications_pending_email_idx on public.notifications (created_at)
+  where email_queued_at is not null and email_sent_at is null;
+
+create function public.record_notification_email_failure(
+  p_notification_ids uuid[], p_attempted_at timestamptz, p_reason text
+) returns void language sql security definer set search_path = '' as $$
+  update public.notifications
+  set email_attempted_at = p_attempted_at,
+      email_failures = email_failures + 1,
+      email_last_error = left(p_reason, 200)
+  where id = any(p_notification_ids) and email_sent_at is null;
+$$;
+revoke all on function public.record_notification_email_failure(uuid[], timestamptz, text) from public, anon, authenticated;
+grant execute on function public.record_notification_email_failure(uuid[], timestamptz, text) to service_role;
+
+-- ===== 20261116000002_meeting_audio.sql =====
+-- Gravações de reuniões em bucket privado, com transcrição revisável no cadastro.
+alter table public.meetings
+  add column audio_path text,
+  add column transcript_text text;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('meeting-audio', 'meeting-audio', false, 26214400,
+        array['audio/webm', 'audio/mp4', 'audio/ogg', 'audio/mpeg'])
+on conflict (id) do update set public = false;
+-- Sem políticas de acesso em storage.objects para anon/authenticated.
+-- Upload somente por URL assinada de uso único; reprodução por URL temporária.
+
+-- ===== 20261116000003_private_organizations.sql =====
+-- Distingue órgãos públicos de empresas privadas atendidas pela assessoria.
+alter table public.councils
+  add column if not exists organization_type text not null default 'public_body';
+
+alter table public.councils
+  drop constraint if exists councils_organization_type_check;
+
+alter table public.councils
+  add constraint councils_organization_type_check
+  check (organization_type in ('public_body', 'private_company'));
+
+create index if not exists idx_councils_organization_type
+  on public.councils (organization_type, active);
+
+comment on column public.councils.organization_type is
+  'public_body para órgão público; private_company para empresa privada atendida pela assessoria.';
+
 commit;

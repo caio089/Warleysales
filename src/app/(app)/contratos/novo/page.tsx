@@ -16,8 +16,11 @@ async function Content({ processId }: { processId?: string }) {
     if (!lookups.ok) return lookups;
     const processes = await ctx.services.processes.list(ctx.actor);
     if (!processes.ok) return processes;
+    const suppliers = await ctx.services.suppliers.list(ctx.actor);
+    if (!suppliers.ok) return suppliers;
     return ok({
       lookups: lookups.data,
+      suppliers: suppliers.data.filter((supplier) => supplier.active).map((supplier) => ({ value: supplier.id, label: supplier.name, cnpj: supplier.cnpj })),
       processes: processes.data.map((view) => ({
         value: view.process.id,
         label: `${view.process.number} — ${view.process.title}`,
@@ -32,6 +35,7 @@ async function Content({ processId }: { processId?: string }) {
           <NewContractForm
             councils={data.lookups.councils.map((c) => ({ value: c.id, label: c.label }))}
             processes={data.processes}
+            suppliers={data.suppliers}
             defaultProcessId={processId}
           />
         </div>

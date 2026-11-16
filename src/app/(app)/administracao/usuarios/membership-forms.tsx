@@ -29,7 +29,7 @@ export function MembershipForms({
             {(e) => (
               <>
                 <SelectField name="userId" label="Usuário" required options={users} errors={e.userId} />
-                <SelectField name="councilId" label="Conselho" required options={councils} errors={e.councilId} />
+                <SelectField name="councilId" label="Órgão ou empresa" required options={councils} errors={e.councilId} />
                 <SelectField name="role" label="Papel" required options={roles} errors={e.role} />
               </>
             )}

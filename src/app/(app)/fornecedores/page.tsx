@@ -6,6 +6,7 @@ import { ok } from "@/shared/lib/result";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
+import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { SimpleTable } from "@/shared/ui/simple-table";
 import { formatCnpj } from "@/modules/suppliers/domain/cnpj";
 import { NewSupplierForm } from "./new-supplier-form";
@@ -22,6 +23,13 @@ async function Content() {
     <Screen result={result}>
       {({ suppliers, canCreate }) => (
         <div className="space-y-8">
+          <Suspense fallback={<ModuleInsightFallback />}>
+            <ModuleInsight moduleName="Fornecedores" sourceHref="/fornecedores" facts={[
+              { label: "Cadastrados", value: suppliers.length },
+              { label: "Ativos", value: suppliers.filter((s) => s.active).length },
+              { label: "Inativos", value: suppliers.filter((s) => !s.active).length },
+            ]} />
+          </Suspense>
           <SimpleTable
             caption="Fornecedores"
             rows={suppliers.map((s) => ({ id: s.id, name: s.name, cnpj: s.cnpj ? formatCnpj(s.cnpj) : null, email: s.email, phone: s.phone, active: s.active ? "Ativo" : "Inativo" }))}

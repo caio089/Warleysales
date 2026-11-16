@@ -9,6 +9,7 @@ import { ok } from "@/shared/lib/result";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
+import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { SimpleTable } from "@/shared/ui/simple-table";
 
 export const metadata: Metadata = { title: "Transferências" };
@@ -25,6 +26,13 @@ async function Content() {
       {({ transfers, lookups, canCreate }) => (
         <>
         <PageHeader eyebrow="Estoque" title="Transferências" description="Material em trânsito não fica disponível na origem nem no destino." actions={canCreate ? <Link href="/transferencias/nova" className={buttonVariants()}>Nova transferência</Link> : undefined} />
+        <Suspense fallback={<ModuleInsightFallback />}>
+          <ModuleInsight moduleName="Transferências" sourceHref="/transferencias" facts={[
+            { label: "Total", value: transfers.length },
+            { label: "Em andamento", value: transfers.filter((t) => !["recebida", "cancelada", "recusada"].includes(t.status)).length },
+            { label: "Recebidas", value: transfers.filter((t) => t.status === "recebida").length },
+          ]} />
+        </Suspense>
         <SimpleTable
           caption="Transferências entre conselhos"
           rows={transfers.map((t) => ({ id: t.id, origin: lookups.councilLabel[t.originCouncilId] ?? "—", destination: lookups.councilLabel[t.destinationCouncilId] ?? "—", status: t.status, items: t.items.length, createdAt: t.createdAt.toISOString(), href: `/transferencias/${t.id}` }))}

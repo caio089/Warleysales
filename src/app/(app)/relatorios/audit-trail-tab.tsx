@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Download,
   FilterX,
   Search,
   ShieldAlert,
@@ -52,16 +53,18 @@ export const ACTION_LABELS: Record<string, string> = {
   "ata.allocate": "Remanejamento de Ata",
   "contract.create": "Criação de Contrato",
   "contract.amend": "Aditivo de Contrato",
+  "contract.update": "Atualização de Contrato",
   "document.upload": "Upload de Documento",
   "document.unlink": "Desvinculação de Documento",
   "document.manual_delete": "Exclusão Manual de Documento",
   "meeting.create": "Criação de Reunião",
   "meeting.minutes": "Registro de Ata da Reunião",
+  "meeting.audio": "Registro de Áudio da Reunião",
   "meeting.action_item": "Item de Ação de Reunião",
   "supplier.create": "Cadastro de Fornecedor",
   "supplier.update": "Atualização de Fornecedor",
-  "council.create": "Criação de Órgão",
-  "council.update": "Atualização de Órgão",
+  "council.create": "Cadastro de Organização",
+  "council.update": "Atualização de Organização",
   "membership.assign": "Atribuição de Papel",
   "membership.remove": "Remoção de Membro",
   "retention.authorize": "Autorização de Temporalidade",
@@ -90,7 +93,7 @@ export const ENTITY_LABELS: Record<string, string> = {
   attachment: "Documentos",
   meeting: "Reuniões",
   supplier: "Fornecedores",
-  council: "Órgãos / Conselhos",
+  council: "Órgãos e empresas",
   council_membership: "Usuários e Permissões",
   retention_schedule: "Tabela de Temporalidade",
 };
@@ -136,6 +139,7 @@ export function extractJustificationOrDetails(details: Record<string, unknown> |
 export interface AuditTrailFilters {
   councilId?: string;
   entity?: string;
+  action?: string;
   actorId?: string;
   period?: "todos" | "hoje" | "7d" | "30d" | string;
   result?: "todos" | "success" | "denied" | "error" | string;
@@ -176,14 +180,45 @@ export function AuditTrailTab({
 
   const [councilFilter, setCouncilFilter] = useState(initialFilters.councilId ?? "");
   const [entityFilter, setEntityFilter] = useState(initialFilters.entity ?? "");
+  const [actionFilter, setActionFilter] = useState(initialFilters.action ?? "");
   const [userFilter, setUserFilter] = useState(initialFilters.actorId ?? "");
   const [periodFilter, setPeriodFilter] = useState(initialFilters.period ?? "todos");
   const [resultFilter, setResultFilter] = useState(initialFilters.result ?? "todos");
+  const [loadedEntries, setLoadedEntries] = useState(entries);
+  const [hasMore, setHasMore] = useState(entries.length >= 1000);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 15;
 
+  async function loadMore() {
+    const beforeId = loadedEntries.at(-1)?.id;
+    if (!beforeId || loadingMore) return;
+    setLoadingMore(true);
+    setLoadError("");
+    try {
+      const params = new URLSearchParams({ beforeId });
+      if (councilFilter) params.set("councilId", councilFilter);
+      if (entityFilter) params.set("entity", entityFilter);
+      if (actionFilter) params.set("action", actionFilter);
+      if (userFilter) params.set("actorId", userFilter);
+      if (periodFilter !== "todos") params.set("period", periodFilter);
+      if (resultFilter !== "todos") params.set("result", resultFilter);
+      const response = await fetch(`/api/audit/older?${params.toString()}`);
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? "Não foi possível carregar mais eventos.");
+      const older = payload.entries as AuditEntry[];
+      setLoadedEntries((previous) => [...previous, ...older]);
+      setHasMore(older.length >= 1000);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Não foi possível carregar mais eventos.");
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
   // Sincroniza query params
-  const updateUrl = (updates: Partial<{ councilId: string; entity: string; actorId: string; period: string; result: string }>) => {
+  const updateUrl = (updates: Partial<{ councilId: string; entity: string; action: string; actorId: string; period: string; result: string }>) => {
     if (!router || !pathname) return;
     const params = new URLSearchParams(searchParams?.toString() ?? "");
     if (pathname.includes("/relatorios")) {
@@ -203,6 +238,7 @@ export function AuditTrailTab({
   const handleClearFilters = () => {
     setCouncilFilter("");
     setEntityFilter("");
+    setActionFilter("");
     setUserFilter("");
     setPeriodFilter("todos");
     setResultFilter("todos");
@@ -220,16 +256,19 @@ export function AuditTrailTab({
   // Lista dinâmica de módulos
   const availableEntities = useMemo(() => {
     const known = Object.keys(ENTITY_LABELS);
-    const fromEntries = entries.map((e) => e.entity);
+    const fromEntries = loadedEntries.map((e) => e.entity);
     const all = Array.from(new Set([...known, ...fromEntries])).sort();
     return all.map((e) => ({ id: e, label: formatEntityLabel(e) }));
-  }, [entries]);
+  }, [loadedEntries]);
+  const availableActions = useMemo(() => Array.from(new Set([...Object.keys(ACTION_LABELS), ...loadedEntries.map((entry) => entry.action)]))
+    .sort((a, b) => formatActionLabel(a).localeCompare(formatActionLabel(b), "pt-BR")), [loadedEntries]);
 
   // Filtragem local
   const filteredEntries = useMemo(() => {
-    return entries.filter((e) => {
+    return loadedEntries.filter((e) => {
       if (councilFilter && e.councilId !== councilFilter) return false;
       if (entityFilter && e.entity !== entityFilter) return false;
+      if (actionFilter && e.action !== actionFilter) return false;
       if (userFilter.trim()) {
         const query = userFilter.trim().toLowerCase();
         const actor = e.actorId ? e.actorId.toLowerCase() : "sistema (job)";
@@ -239,7 +278,7 @@ export function AuditTrailTab({
       if (resultFilter && resultFilter !== "todos" && e.result !== resultFilter) return false;
       return true;
     });
-  }, [entries, councilFilter, entityFilter, userFilter, periodFilter, resultFilter]);
+  }, [loadedEntries, councilFilter, entityFilter, actionFilter, userFilter, periodFilter, resultFilter]);
 
   // Métricas
   const totalCount = filteredEntries.length;
@@ -253,8 +292,15 @@ export function AuditTrailTab({
   const paginatedEntries = filteredEntries.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const hasActiveFilters = Boolean(
-    councilFilter || entityFilter || userFilter || (periodFilter && periodFilter !== "todos") || (resultFilter && resultFilter !== "todos"),
+    councilFilter || entityFilter || actionFilter || userFilter || (periodFilter && periodFilter !== "todos") || (resultFilter && resultFilter !== "todos"),
   );
+  const exportParams = new URLSearchParams({ kind: "audit" });
+  if (councilFilter) exportParams.set("councilId", councilFilter);
+  if (entityFilter) exportParams.set("entity", entityFilter);
+  if (actionFilter) exportParams.set("action", actionFilter);
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userFilter)) exportParams.set("actorId", userFilter);
+  if (periodFilter !== "todos") exportParams.set("period", periodFilter);
+  if (resultFilter !== "todos") exportParams.set("result", resultFilter);
 
   return (
     <div className="space-y-6">
@@ -265,7 +311,7 @@ export function AuditTrailTab({
           <KpiCard
             label="Total de Ações"
             value={totalCount}
-            hint="Eventos registrados no período"
+            hint="Eventos carregados no filtro"
             icon={<Activity className="size-4" aria-hidden />}
           />
           <KpiCard
@@ -290,9 +336,16 @@ export function AuditTrailTab({
         </div>
       </section>
 
+      <div className="flex justify-end">
+        <a href={`/api/reports/pdf?${exportParams.toString()}`} className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:border-primary/40 hover:text-primary">
+          <Download className="size-4" aria-hidden />
+          Baixar auditoria em PDF
+        </a>
+      </div>
+
       {/* Barra de Filtros */}
       <section aria-label="Filtros de Auditoria" className="surface-card p-4 space-y-3">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 items-end">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 items-end">
           {/* Órgão */}
           <label className="flex flex-col gap-1.5">
             <span className="text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">Órgão</span>
@@ -313,6 +366,18 @@ export function AuditTrailTab({
                   {c.label}
                 </option>
               ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">Tipo de evento</span>
+            <select aria-label="Filtrar por tipo de evento" value={actionFilter} onChange={(e) => {
+              setActionFilter(e.target.value);
+              setPage(1);
+              updateUrl({ action: e.target.value });
+            }} className="h-10 rounded-xl border border-input bg-card px-3 text-sm font-medium text-foreground shadow-xs">
+              <option value="">Todos os eventos</option>
+              {availableActions.map((action) => <option key={action} value={action}>{formatActionLabel(action)}</option>)}
             </select>
           </label>
 
@@ -418,6 +483,8 @@ export function AuditTrailTab({
           </div>
         ) : null}
       </section>
+
+      <p className="text-xs text-muted-foreground">{loadedEntries.length} evento(s) carregado(s){hasMore ? ". Há registros mais antigos para consultar." : "."}</p>
 
       {/* Tabela Detalhada */}
       {filteredEntries.length === 0 ? (
@@ -548,6 +615,8 @@ export function AuditTrailTab({
           )}
         </div>
       )}
+      {hasMore ? <div className="flex justify-center"><Button type="button" variant="outline" onClick={loadMore} disabled={loadingMore}>{loadingMore ? "Carregando…" : "Carregar eventos anteriores"}</Button></div> : null}
+      {loadError ? <p role="alert" className="text-sm text-destructive">{loadError}</p> : null}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { idSchema, parseInput, type RuntimeDeps } from "@/shared/lib/service-sup
 import { toFortalezaDate } from "@/shared/lib/time";
 import { z } from "zod";
 import { dedupKey, selectDueAlerts, type AlertCandidate } from "./domain/milestones";
+import { dispatchNotificationEmails, type EmailSender } from "./email-delivery";
 import type { AlertSource, NotificationRepository } from "./repository";
 import type { AppNotification } from "./schemas";
 
@@ -61,6 +62,18 @@ export class NotificationService {
   async listMine(actor: Actor): Promise<Result<{ items: AppNotification[]; unread: number }>> {
     const items = await this.repository.listForUser(actor.userId);
     return ok({ items, unread: items.filter((n) => !n.readAt).length });
+  }
+
+  async dispatchEmails(
+    sender: EmailSender,
+    recipientEmail: (userId: string) => Promise<string | null>,
+    siteUrl: string,
+  ) {
+    const summary = await dispatchNotificationEmails(
+      this.repository, sender, recipientEmail, siteUrl, this.runtime.now,
+    );
+    log("info", "notifications.email_dispatch", { ...summary });
+    return summary;
   }
 
   /** Só o próprio destinatário marca como lida. */

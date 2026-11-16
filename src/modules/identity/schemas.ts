@@ -2,6 +2,7 @@ import type { CouncilRole } from "@/shared/lib/authz/navigation";
 
 export interface Council {
   id: string;
+  organizationType: "public_body" | "private_company";
   name: string;
   acronym: string;
   responsibleUserId: string | null;

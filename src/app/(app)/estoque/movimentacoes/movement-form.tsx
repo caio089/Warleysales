@@ -30,7 +30,7 @@ export function MovementForm({ councils, materials, defaultType, allowAdjust = f
     <ActionForm action={registerMovementFormAction} submitLabel="Registrar quantidade" idempotencyField="idempotencyKey">
       {(e) => (
         <>
-          <SelectField name="councilId" label="Conselho" required options={councils} defaultValue={defaultCouncilId} errors={e.councilId} />
+          <SelectField name="councilId" label="Órgão" required options={councils} defaultValue={defaultCouncilId} errors={e.councilId} />
           <SelectField name="materialId" label="Material" required options={materials} defaultValue={defaultMaterialId} errors={e.materialId} />
           <SelectField name="type" label="Tipo" required options={types} defaultValue={defaultType ?? ""} errors={e.type} />
           <TextField

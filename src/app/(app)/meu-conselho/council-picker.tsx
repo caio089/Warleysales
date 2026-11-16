@@ -14,7 +14,7 @@ export function CouncilPicker({ councils, councilId }: CouncilPickerProps) {
 
   return (
     <label className="flex min-w-[14rem] flex-col gap-1.5">
-      <span className="text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">Conselho ativo</span>
+      <span className="text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">Órgão ativo</span>
       <select
         className="h-11 rounded-xl border border-input bg-card px-3 text-sm font-medium text-foreground shadow-sm focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
         value={councilId}

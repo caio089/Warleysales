@@ -13,6 +13,7 @@ import { KpiCard } from "@/shared/ui/kpi-card";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader, SectionLabel } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
+import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { SimpleTable } from "@/shared/ui/simple-table";
 import { MovementForm } from "./movimentacoes/movement-form";
 import { MinimumForm } from "./minimum-form";
@@ -97,6 +98,14 @@ async function Content() {
 
         return (
           <div className="space-y-8">
+            <Suspense fallback={<ModuleInsightFallback />}>
+              <ModuleInsight moduleName="Estoque" sourceHref="/estoque" facts={[
+                { label: "Bloqueado", value: summary.totalBlocked },
+                { label: "Pronto para uso", value: summary.totalReady },
+                { label: "Reservado", value: summary.totalReserved },
+                { label: "Itens críticos", value: levels.filter((l) => l.level === "critico").length },
+              ]} />
+            </Suspense>
             {/* KPIs de Estoque */}
             <section aria-label="Métricas de Estoque" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <KpiCard
@@ -151,7 +160,7 @@ async function Content() {
             <section aria-label="Tabela de Saldos" className="space-y-3">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <SectionLabel>Saldos de Estoque por Órgão/Conselho</SectionLabel>
+                  <SectionLabel>Saldos de Estoque por Órgão</SectionLabel>
                   <p className="text-xs text-muted-foreground">
                     Segmentação entre estoque bloqueado em formalização, pronto para uso e reservado conforme o mínimo de segurança.
                   </p>
@@ -177,7 +186,7 @@ async function Content() {
                 })}
                 columns={[
                   { key: "material", header: "Produto", kind: "link", hrefKey: "processHref" },
-                  { key: "council", header: "Órgão/Conselho" },
+                  { key: "council", header: "Órgão" },
                   { key: "blocked", header: "Bloqueado", kind: "number" },
                   { key: "ready", header: "Pronto para Uso", kind: "number" },
                   { key: "reserved", header: "Reservado", kind: "number" },
@@ -186,7 +195,7 @@ async function Content() {
                   { key: "level", header: "Nível", kind: "status", dictionary: "stock" },
                 ]}
                 filterKeys={[
-                  { key: "council", label: "Órgão/Conselho" },
+                  { key: "council", label: "Órgão" },
                   { key: "level", label: "Nível", dictionary: "stock" },
                 ]}
                 emptyTitle="Nenhum saldo registrado"

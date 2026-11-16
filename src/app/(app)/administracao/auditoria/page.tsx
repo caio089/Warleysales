@@ -8,6 +8,7 @@ import { toFortalezaDate } from "@/shared/lib/time";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
+import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { AuditTrailTab } from "../../relatorios/audit-trail-tab";
 
 export const metadata: Metadata = { title: "Auditoria" };
@@ -23,6 +24,7 @@ interface AuditPageProps {
 async function Content({ rawParams }: { rawParams: Record<string, string | string[] | undefined> }) {
   const councilId = one(rawParams.councilId);
   const entity = one(rawParams.entity);
+  const action = one(rawParams.action);
   const actorId = one(rawParams.actorId);
   const period = one(rawParams.period);
   const resultFilter = one(rawParams.result);
@@ -30,7 +32,8 @@ async function Content({ rawParams }: { rawParams: Record<string, string | strin
   const filter: AuditFilter = {};
   if (councilId) filter.councilId = councilId;
   if (entity) filter.entity = entity;
-  if (actorId) filter.actorId = actorId;
+  if (action) filter.action = action;
+  if (actorId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(actorId)) filter.actorId = actorId;
   if (
     resultFilter &&
     resultFilter !== "todos" &&
@@ -41,9 +44,9 @@ async function Content({ rawParams }: { rawParams: Record<string, string | strin
   if (period === "hoje") {
     filter.startDate = toFortalezaDate(new Date());
   } else if (period === "7d") {
-    filter.startDate = new Date(Date.now() - 7 * 86_400_000).toISOString();
+    filter.startDate = new Date(new Date().getTime() - 7 * 86_400_000).toISOString();
   } else if (period === "30d") {
-    filter.startDate = new Date(Date.now() - 30 * 86_400_000).toISOString();
+    filter.startDate = new Date(new Date().getTime() - 30 * 86_400_000).toISOString();
   }
 
   const result = await loadScreen(async (ctx) => {
@@ -64,18 +67,29 @@ async function Content({ rawParams }: { rawParams: Record<string, string | strin
   return (
     <Screen result={result}>
       {({ entries, lookups }) => (
+        <div className="space-y-6">
+          <Suspense fallback={<ModuleInsightFallback />}>
+            <ModuleInsight moduleName="Auditoria" sourceHref="/administracao/auditoria" facts={[
+              { label: "Eventos no filtro", value: entries.length },
+              { label: "Ações negadas", value: entries.filter((e) => e.result === "denied").length },
+              { label: "Erros", value: entries.filter((e) => e.result === "error").length },
+            ]} />
+          </Suspense>
         <AuditTrailTab
+          key={JSON.stringify([councilId, entity, action, actorId, period, resultFilter, entries[0]?.id])}
           entries={entries}
           councils={lookups.councils}
           councilLabel={lookups.councilLabel}
           initialFilters={{
             councilId,
             entity,
+            action,
             actorId,
             period,
             result: resultFilter,
           }}
         />
+        </div>
       )}
     </Screen>
   );

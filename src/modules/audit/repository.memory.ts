@@ -30,6 +30,7 @@ export class InMemoryAuditRepository implements AuditRepository {
     const { start, end } = parseDateRange(filter.startDate, filter.endDate);
 
     return this.entries.filter((e) => {
+      if (filter.beforeId && /^\d+$/.test(filter.beforeId) && BigInt(e.id) >= BigInt(filter.beforeId)) return false;
       if (filter.councilId && e.councilId !== filter.councilId) {
         return false;
       }

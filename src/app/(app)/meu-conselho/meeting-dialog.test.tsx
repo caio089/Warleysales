@@ -8,6 +8,10 @@ vi.mock("@/modules/meetings/actions", () => ({
   addActionItemFormAction: vi.fn(),
 }));
 
+vi.mock("@/modules/meetings/media-actions", () => ({
+  draftMeetingMinutesAction: vi.fn(),
+}));
+
 import { MeetingDialog } from "./meeting-dialog";
 
 describe("MeetingDialog", () => {

@@ -7,6 +7,7 @@ import { ok } from "@/shared/lib/result";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
+import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { SimpleTable } from "@/shared/ui/simple-table";
 import { MovementForm } from "./movement-form";
 
@@ -31,6 +32,13 @@ async function Content() {
     <Screen result={result}>
       {({ movements, lookups, canMove, canAdjust }) => (
         <div className="space-y-8">
+          <Suspense fallback={<ModuleInsightFallback />}>
+            <ModuleInsight moduleName="Movimentações" sourceHref="/estoque/movimentacoes" facts={[
+              { label: "Total", value: movements.length },
+              { label: "Entradas", value: movements.filter((m) => m.type === "entry").length },
+              { label: "Saídas", value: movements.filter((m) => ["consumption", "transfer_out"].includes(m.type)).length },
+            ]} />
+          </Suspense>
           {canMove ? (
             <section aria-labelledby="nova" className="surface-card max-w-lg p-6">
               <h2 id="nova" className="mb-4 font-heading text-lg font-medium tracking-tight text-primary">Registrar quantidade</h2>
@@ -40,7 +48,7 @@ async function Content() {
           <SimpleTable
             caption="Movimentações de estoque (ledger)"
             rows={movements.map((m) => ({ id: m.id, at: m.createdAt.toISOString(), council: lookups.councilLabel[m.councilId] ?? "—", material: lookups.materialLabel[m.materialId] ?? "—", type: TYPE_LABEL[m.type] ?? m.type, quantity: m.quantity, reason: m.reason }))}
-            columns={[{ key: "at", header: "Quando", kind: "datetime" }, { key: "council", header: "Conselho" }, { key: "material", header: "Material" }, { key: "type", header: "Tipo" }, { key: "quantity", header: "Quantidade", kind: "number" }, { key: "reason", header: "Motivo" }]}
+            columns={[{ key: "at", header: "Quando", kind: "datetime" }, { key: "council", header: "Órgão" }, { key: "material", header: "Material" }, { key: "type", header: "Tipo" }, { key: "quantity", header: "Quantidade", kind: "number" }, { key: "reason", header: "Motivo" }]}
             filterKeys={[{ key: "type", label: "Tipo" }]}
             emptyTitle="Nenhuma movimentação registrada"
           />

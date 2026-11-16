@@ -11,6 +11,7 @@ import { FlowGuide } from "@/shared/ui/flow-guide";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
+import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { ProcessAttachmentSheet } from "./process-attachment-sheet";
 import { ProcessesTable } from "./processes-table";
 
@@ -47,6 +48,13 @@ async function Content() {
               ) : undefined
             }
           />
+          <Suspense fallback={<ModuleInsightFallback />}>
+            <ModuleInsight moduleName="Processos" sourceHref="/processos" facts={[
+              { label: "Total", value: processes.length },
+              { label: "Documentação completa", value: processes.filter((p) => p.displayPercent === 100).length },
+              { label: "Documentação pendente", value: processes.filter((p) => p.displayPercent < 100).length },
+            ]} />
+          </Suspense>
           <FlowGuide title="Fluxo em 4 passos" steps={PROCESS_FLOW_STEPS} />
           <ProcessesTable
             rows={processes.map((p) => ({

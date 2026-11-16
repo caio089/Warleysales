@@ -24,6 +24,8 @@ export interface Meeting {
   scheduledAt: Date; // UTC; exibição em America/Fortaleza
   status: MeetingStatus;
   minutes: MeetingMinutes | null;
+  audioPath: string | null;
+  transcript: string | null;
   actionItems: ActionItem[];
   createdBy: string;
 }

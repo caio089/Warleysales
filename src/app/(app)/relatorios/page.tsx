@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { BarChart3, ShieldCheck } from "lucide-react";
+import { BarChart3, Download, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AuditFilter } from "@/modules/audit/schemas";
+import { auditSources, operationalSources } from "@/modules/reports/analysis";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { formatCurrency, formatPercent } from "@/shared/lib/format";
@@ -13,8 +14,10 @@ import { LoadingState } from "@/shared/ui/feedback-states";
 import { KpiCard } from "@/shared/ui/kpi-card";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
+import { ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { presentationOf, PROCESS_STATUS } from "@/shared/ui/status-presentation";
 import { AuditTrailTab } from "./audit-trail-tab";
+import { ReportAnalysisPanel } from "./report-analysis";
 
 export const metadata: Metadata = { title: "Relatórios" };
 
@@ -43,6 +46,15 @@ async function OperationalContent() {
     <Screen result={result}>
       {({ summary: s, savings }) => (
         <div className="space-y-6">
+          <div className="flex justify-end">
+            <a href="/api/reports/pdf?kind=operational" className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium hover:border-primary/40 hover:text-primary">
+              <Download className="size-4" aria-hidden />
+              Baixar relatório em PDF
+            </a>
+          </div>
+          <Suspense fallback={<ModuleInsightFallback />}>
+            <ReportAnalysisPanel sources={operationalSources(s, savings)} />
+          </Suspense>
           <section aria-labelledby="proc">
             <h2 id="proc" className="mb-3 text-base font-semibold">Processos por situação</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -101,6 +113,7 @@ async function OperationalContent() {
 async function AuditContent({ rawParams }: { rawParams: Record<string, string | string[] | undefined> }) {
   const councilId = one(rawParams.councilId);
   const entity = one(rawParams.entity);
+  const action = one(rawParams.action);
   const actorId = one(rawParams.actorId);
   const period = one(rawParams.period);
   const resultFilter = one(rawParams.result);
@@ -108,7 +121,8 @@ async function AuditContent({ rawParams }: { rawParams: Record<string, string | 
   const filter: AuditFilter = {};
   if (councilId) filter.councilId = councilId;
   if (entity) filter.entity = entity;
-  if (actorId) filter.actorId = actorId;
+  if (action) filter.action = action;
+  if (actorId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(actorId)) filter.actorId = actorId;
   if (
     resultFilter &&
     resultFilter !== "todos" &&
@@ -119,9 +133,9 @@ async function AuditContent({ rawParams }: { rawParams: Record<string, string | 
   if (period === "hoje") {
     filter.startDate = toFortalezaDate(new Date());
   } else if (period === "7d") {
-    filter.startDate = new Date(Date.now() - 7 * 86_400_000).toISOString();
+    filter.startDate = new Date(new Date().getTime() - 7 * 86_400_000).toISOString();
   } else if (period === "30d") {
-    filter.startDate = new Date(Date.now() - 30 * 86_400_000).toISOString();
+    filter.startDate = new Date(new Date().getTime() - 30 * 86_400_000).toISOString();
   }
 
   const result = await loadScreen(async (ctx) => {
@@ -138,22 +152,36 @@ async function AuditContent({ rawParams }: { rawParams: Record<string, string | 
       lookups,
     });
   });
+  const sourceParams = new URLSearchParams();
+  if (councilId) sourceParams.set("councilId", councilId);
+  if (entity) sourceParams.set("entity", entity);
+  if (action) sourceParams.set("action", action);
+  if (actorId) sourceParams.set("actorId", actorId);
+  if (period) sourceParams.set("period", period);
+  if (resultFilter) sourceParams.set("result", resultFilter);
 
   return (
     <Screen result={result}>
       {({ entries, lookups }) => (
+        <div className="space-y-6">
+          <Suspense fallback={<ModuleInsightFallback />}>
+            <ReportAnalysisPanel sources={auditSources(entries, sourceParams.toString())} />
+          </Suspense>
         <AuditTrailTab
+          key={JSON.stringify([councilId, entity, action, actorId, period, resultFilter, entries[0]?.id])}
           entries={entries}
           councils={lookups.councils}
           councilLabel={lookups.councilLabel}
           initialFilters={{
             councilId,
             entity,
+            action,
             actorId,
             period,
             result: resultFilter,
           }}
         />
+        </div>
       )}
     </Screen>
   );

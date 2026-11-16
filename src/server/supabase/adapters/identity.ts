@@ -7,6 +7,7 @@ import { isUniqueViolation, selectAll, unwrap } from "../db";
 
 interface CouncilRow {
   id: string;
+  organization_type: Council["organizationType"];
   name: string;
   acronym: string;
   responsible_user_id: string | null;
@@ -17,6 +18,7 @@ interface CouncilRow {
 
 const toCouncil = (row: CouncilRow): Council => ({
   id: row.id,
+  organizationType: row.organization_type,
   name: row.name,
   acronym: row.acronym,
   responsibleUserId: row.responsible_user_id,
@@ -27,6 +29,7 @@ const toCouncil = (row: CouncilRow): Council => ({
 
 const toRow = (council: Council): CouncilRow => ({
   id: council.id,
+  organization_type: council.organizationType,
   name: council.name,
   acronym: council.acronym,
   responsible_user_id: council.responsibleUserId,
@@ -40,15 +43,15 @@ export class SupabaseCouncilRepository implements CouncilRepository {
 
   async insert(council: Council) {
     const { data, error } = await this.db.from("councils").insert(toRow(council)).select().single<CouncilRow>();
-    if (isUniqueViolation(error)) return fail("CONFLICT", "Já existe um conselho com esta sigla.");
+    if (isUniqueViolation(error)) return fail("CONFLICT", "Já existe uma organização com esta sigla.");
     return ok(toCouncil(unwrap("councils.insert", { data, error })));
   }
 
   async update(council: Council) {
     const { data, error } = await this.db.from("councils").update(toRow(council)).eq("id", council.id).select().maybeSingle<CouncilRow>();
-    if (isUniqueViolation(error)) return fail("CONFLICT", "Já existe um conselho com esta sigla.");
+    if (isUniqueViolation(error)) return fail("CONFLICT", "Já existe uma organização com esta sigla.");
     const row = unwrap("councils.update", { data, error });
-    return row ? ok(toCouncil(row)) : fail("NOT_FOUND", "Conselho não encontrado.");
+    return row ? ok(toCouncil(row)) : fail("NOT_FOUND", "Organização não encontrada.");
   }
 
   async findById(id: string) {

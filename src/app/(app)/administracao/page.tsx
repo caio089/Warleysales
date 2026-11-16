@@ -10,7 +10,7 @@ import { Screen } from "@/shared/ui/screen";
 export const metadata: Metadata = { title: "Administração" };
 
 const LINKS = [
-  { href: "/conselhos", title: "Conselhos", text: "Cadastro e consulta de conselhos." },
+  { href: "/conselhos", title: "Órgãos e empresas", text: "Cadastro e consulta das organizações atendidas." },
   { href: "/administracao/usuarios", title: "Usuários e vínculos", text: "Papel por conselho. Convite continua no Auth." },
   { href: "/administracao/auditoria", title: "Auditoria", text: "Trilha append-only de ações e negativas." },
   { href: "/administracao/retencao", title: "Retenção documental", text: "Elegibilidade de limpeza, autorizações e bloqueios." },

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
-import { CheckCircle2, Clock, PackageCheck, ShoppingCart, Truck } from "lucide-react";
+import { CheckCircle2, Clock, PackageCheck, Truck } from "lucide-react";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { ok } from "@/shared/lib/result";
@@ -9,6 +8,7 @@ import { KpiCard } from "@/shared/ui/kpi-card";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader, SectionLabel } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
+import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { SimpleTable } from "@/shared/ui/simple-table";
 
 export const metadata: Metadata = { title: "Central de Entregas" };
@@ -115,6 +115,14 @@ async function DeliveriesContent() {
         lookups,
       }) => (
         <div className="space-y-8">
+          <Suspense fallback={<ModuleInsightFallback />}>
+            <ModuleInsight moduleName="Entregas" sourceHref="/entregas" facts={[
+              { label: "Unidades entregues", value: totalDeliveredUnits },
+              { label: "Unidades pendentes", value: totalPendingUnits },
+              { label: "Pedidos em entrega", value: inProgressRequestsCount },
+              { label: "Pedidos concluídos", value: completedRequestsCount },
+            ]} />
+          </Suspense>
           {/* KPIs de Entregas */}
           <section aria-label="Métricas de Entregas" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <KpiCard

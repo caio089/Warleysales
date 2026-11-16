@@ -61,7 +61,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
             <PageHeader
               eyebrow="Solicitações"
               title={request.title}
-              description={`Conselho ${lookups.councilLabel[request.councilId] ?? "—"} · siga o próximo passo abaixo`}
+              description={`Órgão ${lookups.councilLabel[request.councilId] ?? "—"} · siga o próximo passo abaixo`}
               actions={<StatusBadge label={status.label} tone={status.tone} />}
             />
             <LifecycleRail steps={[...REQUEST_LIFECYCLE]} currentKey={requestRailKey(request.status)} />

@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import {
-  Building2,
-  CalendarDays,
   ExternalLink,
   MessageCircle,
   Package,
@@ -13,7 +11,7 @@ import {
   Truck,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { formatWhatsapp, whatsappHref } from "@/modules/identity/domain/whatsapp";
+import { whatsappHref } from "@/modules/identity/domain/whatsapp";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { can } from "@/shared/lib/authz/policy";
@@ -22,12 +20,10 @@ import { KpiCard } from "@/shared/ui/kpi-card";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader, SectionLabel } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
-import { StatusBadge } from "@/shared/ui/status-badge";
-import { presentationOf, REQUEST_STATUS, STOCK_LEVEL } from "@/shared/ui/status-presentation";
 import { SimpleTable } from "@/shared/ui/simple-table";
 import { EditCouncilForm } from "../new-council-form";
 
-export const metadata: Metadata = { title: "Visão 360° da Empresa" };
+export const metadata: Metadata = { title: "Visão 360° da Organização" };
 
 async function CouncilContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -94,9 +90,9 @@ async function CouncilContent({ params }: { params: Promise<{ id: string }> }) {
       }) => (
         <div className="space-y-8">
           <PageHeader
-            eyebrow="Visão 360° da Empresa"
+            eyebrow={`Visão 360° — ${council.organizationType === "private_company" ? "Empresa privada" : "Órgão público"}`}
             title={`${council.acronym} — ${council.name}`}
-            description={council.institutionalInfo || "Empresa conveniada na plataforma de gestão de Warley."}
+            description={council.institutionalInfo || (council.organizationType === "private_company" ? "Empresa privada atendida pela assessoria." : "Órgão parceiro na plataforma de gestão de Warley.")}
             actions={
               <div className="flex flex-wrap items-center gap-2">
                 {council.whatsappE164 ? (
@@ -149,7 +145,7 @@ async function CouncilContent({ params }: { params: Promise<{ id: string }> }) {
               icon={<Package className="size-4" aria-hidden />}
               label="Itens Vinculados"
               value={stock.length}
-              hint="No catálogo da empresa"
+              hint={council.organizationType === "private_company" ? "No catálogo da empresa" : "No catálogo do órgão"}
             />
             <KpiCard
               icon={<PackageX className="size-4" aria-hidden />}
@@ -245,7 +241,7 @@ async function CouncilContent({ params }: { params: Promise<{ id: string }> }) {
           {canManage ? (
             <section aria-labelledby="editar-conselho" className="surface-card max-w-lg p-6">
               <h2 id="editar-conselho" className="mb-4 font-heading text-lg font-medium tracking-tight text-primary">
-                Editar Dados da Empresa
+                Editar Dados da Organização
               </h2>
               <EditCouncilForm council={council} />
             </section>

@@ -18,6 +18,8 @@ import {
   formatEntityLabel,
 } from "./audit-trail-tab";
 
+const tableRows = (html: string) => html.match(/<tbody[^>]*>([\s\S]*?)<\/tbody>/)?.[1] ?? "";
+
 describe("AuditTrailTab", () => {
   const councils = [
     { id: "council-a", label: "CRF-SP" },
@@ -102,6 +104,8 @@ describe("AuditTrailTab", () => {
     expect(html).toContain("2"); // 1 denied + 1 error
     expect(html).toContain("Taxa de Conformidade");
     expect(html).toContain("50,00%"); // 2 de 4 = 50%
+    expect(html).toContain("Baixar auditoria em PDF");
+    expect(html).toContain("/api/reports/pdf?kind=audit");
   });
 
   it("renderiza a barra de filtros completa com todos os controles exigidos", () => {
@@ -123,6 +127,9 @@ describe("AuditTrailTab", () => {
     expect(html).toContain("Todos os módulos");
     expect(html).toContain("Processos Administrativos");
     expect(html).toContain("Pedidos de Materiais");
+
+    expect(html).toContain("Tipo de evento");
+    expect(html).toContain("Todos os eventos");
 
     expect(html).toContain("Usuário / Autor");
     expect(html).toContain("Buscar autor…");
@@ -205,7 +212,7 @@ describe("AuditTrailTab", () => {
     );
 
     expect(html).toContain("CRO-RJ");
-    expect(html).not.toContain("Encerramento Incompleto"); // pertence a council-a
+    expect(tableRows(html)).not.toContain("Encerramento Incompleto"); // pertence a council-a
     expect(html).toContain("Criação de Pedido de Material");
   });
 
@@ -221,8 +228,17 @@ describe("AuditTrailTab", () => {
 
     expect(html).toContain("Arquivamento de Processo");
     expect(html).toContain("Negado");
-    expect(html).not.toContain("Encerramento Incompleto"); // sucesso
+    expect(tableRows(html)).not.toContain("Encerramento Incompleto"); // sucesso
     expect(html).not.toContain("Saldo insuficiente"); // erro
+  });
+
+  it("filtra registros pelo tipo de evento", () => {
+    const html = renderToStaticMarkup(
+      <AuditTrailTab entries={sampleEntries} councils={councils} initialFilters={{ action: "order.create" }} />,
+    );
+    expect(html).toContain("Criação de Pedido de Material");
+    expect(tableRows(html)).not.toContain("Encerramento Incompleto");
+    expect(html).not.toContain("Saldo insuficiente para baixa imediata");
   });
 
   it("filtra registros por módulo/entidade quando informado em initialFilters", () => {
@@ -237,7 +253,7 @@ describe("AuditTrailTab", () => {
 
     expect(html).toContain("Pedidos de Materiais");
     expect(html).toContain("Criação de Pedido de Material");
-    expect(html).not.toContain("Encerramento Incompleto");
+    expect(tableRows(html)).not.toContain("Encerramento Incompleto");
   });
 
   it("renderiza estado vazio com mensagem amigável quando nenhum registro coincide", () => {
@@ -252,6 +268,13 @@ describe("AuditTrailTab", () => {
 
     expect(html).toContain("Nenhum registro de auditoria encontrado");
     expect(html).toContain("Limpar Filtros");
+  });
+
+  it("oferece carregar eventos anteriores após o primeiro lote", () => {
+    const manyEntries = Array.from({ length: 1000 }, (_, index) => ({ ...sampleEntries[0]!, id: String(1000 - index) }));
+    const html = renderToStaticMarkup(<AuditTrailTab entries={manyEntries} councils={councils} />);
+    expect(html).toContain("Carregar eventos anteriores");
+    expect(html).toContain("1000 evento(s) carregado(s)");
   });
 
   it("helpers extractJustificationOrDetails e formatação funcionam isoladamente", () => {

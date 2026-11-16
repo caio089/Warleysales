@@ -19,7 +19,7 @@ export class MeetingService {
     if (!parsed.ok) return parsed;
     const allowed = await guard(this.audit, actor, "meeting.manage", parsed.data.councilId, "meeting");
     if (!allowed.ok) return allowed;
-    const saved = await this.repository.insert({ id: this.runtime.newId(), ...parsed.data, status: "agendada", minutes: null, actionItems: [], createdBy: actor.userId });
+    const saved = await this.repository.insert({ id: this.runtime.newId(), ...parsed.data, status: "agendada", minutes: null, audioPath: null, transcript: null, actionItems: [], createdBy: actor.userId });
     await this.audit.record({ actorId: actor.userId, action: "meeting.schedule", entity: "meeting", entityId: saved.id, councilId: saved.councilId, result: "success", details: {} });
     return ok(saved);
   }

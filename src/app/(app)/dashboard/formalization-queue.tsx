@@ -93,7 +93,7 @@ export function FormalizationQueue({ items }: FormalizationQueueProps) {
           <caption className="sr-only">Processos aguardando homologação de Warley</caption>
           <thead>
             <tr className="border-b border-border/80 text-[0.7rem] font-semibold uppercase tracking-wider text-muted-foreground">
-              <th scope="col" className="pb-3 pr-4">Órgão / Conselho</th>
+              <th scope="col" className="pb-3 pr-4">Órgão</th>
               <th scope="col" className="pb-3 pr-4">Processo</th>
               <th scope="col" className="pb-3 pr-4">Fornecedor</th>
               <th scope="col" className="pb-3 pr-4">Instrumento</th>

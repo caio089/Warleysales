@@ -5,7 +5,7 @@ import type { Council, MembershipRecord } from "./schemas";
 export class InMemoryCouncilRepository implements CouncilRepository {
   private rows = new Map<string, Council>();
   async insert(c: Council): Promise<Result<Council>> {
-    if ([...this.rows.values()].some((o) => o.acronym.toLowerCase() === c.acronym.toLowerCase())) return fail("CONFLICT", "Já existe conselho com esta sigla.");
+    if ([...this.rows.values()].some((o) => o.acronym.toLowerCase() === c.acronym.toLowerCase())) return fail("CONFLICT", "Já existe uma organização com esta sigla.");
     this.rows.set(c.id, c);
     return ok(c);
   }

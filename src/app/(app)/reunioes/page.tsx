@@ -3,14 +3,16 @@ import { Suspense } from "react";
 import { CalendarClock, CalendarDays, FileCheck2, ListTodo } from "lucide-react";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
-import { canInAnyCouncil } from "@/shared/lib/authz/policy";
+import { can, canInAnyCouncil } from "@/shared/lib/authz/policy";
 import { ok } from "@/shared/lib/result";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { KpiCard } from "@/shared/ui/kpi-card";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
+import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { SimpleTable } from "@/shared/ui/simple-table";
 import { MeetingActions, NewMeetingForm } from "./meeting-forms";
+import { MeetingMediaPanel } from "./meeting-media-panel";
 
 export const metadata: Metadata = { title: "Reuniões" };
 
@@ -19,11 +21,11 @@ async function Content() {
     const [meetings, lookups] = await Promise.all([ctx.services.meetings.list(ctx.actor), loadLookups(ctx)]);
     if (!meetings.ok) return meetings;
     if (!lookups.ok) return lookups;
-    return ok({ meetings: meetings.data, lookups: lookups.data, canManage: canInAnyCouncil(ctx.actor, "meeting.manage") });
+    return ok({ meetings: meetings.data, lookups: lookups.data, canManage: canInAnyCouncil(ctx.actor, "meeting.manage"), manageableMeetingIds: meetings.data.filter((m) => can(ctx.actor, "meeting.manage", m.councilId)).map((m) => m.id) });
   });
   return (
     <Screen result={result}>
-      {({ meetings, lookups, canManage }) => {
+      {({ meetings, lookups, canManage, manageableMeetingIds }) => {
         const totalMeetings = meetings.length;
         const upcomingMeetings = meetings.filter((m) => m.status === "agendada").length;
         const completedWithMinutes = meetings.filter((m) => m.status === "realizada" && Boolean(m.minutes)).length;
@@ -31,6 +33,14 @@ async function Content() {
 
         return (
           <div className="space-y-8">
+            <Suspense fallback={<ModuleInsightFallback />}>
+              <ModuleInsight moduleName="Reuniões" sourceHref="/reunioes" facts={[
+                { label: "Total", value: totalMeetings },
+                { label: "Agendadas", value: upcomingMeetings },
+                { label: "Realizadas com ata", value: completedWithMinutes },
+                { label: "Ações em aberto", value: openActionItems },
+              ]} />
+            </Suspense>
             <section aria-label="Métricas de Reuniões" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <KpiCard
                 icon={<CalendarDays className="size-4" aria-hidden />}
@@ -81,6 +91,9 @@ async function Content() {
               filterKeys={[{ key: "status", label: "Status", dictionary: "meeting" }]}
               emptyTitle="Nenhuma reunião agendada"
             />
+            <MeetingMediaPanel meetings={meetings.map((m) => ({
+              id: m.id, title: m.title, status: m.status, audioPath: m.audioPath, transcript: m.transcript,
+            }))} manageableMeetingIds={manageableMeetingIds} />
             {meetings.some((m) => m.actionItems.length > 0) ? (
               <SimpleTable
                 caption="Pendências de reunião"
@@ -103,7 +116,9 @@ async function Content() {
               <>
                 <MeetingActions
                   meetings={meetings.filter((m) => m.status === "agendada").map((m) => ({ value: m.id, label: m.title }))}
-                  done={meetings.filter((m) => m.status === "realizada").map((m) => ({ value: m.id, label: m.title }))}
+                  done={meetings.filter((m) => m.status === "realizada").map((m) => ({
+                    value: m.id, label: m.title, transcript: m.transcript, minutesText: m.minutes?.text ?? null,
+                  }))}
                   actionable={meetings.filter((m) => m.status === "agendada" || m.status === "realizada").map((m) => ({ value: m.id, label: m.title }))}
                 />
                 <section aria-labelledby="novo" className="surface-card max-w-lg p-6">

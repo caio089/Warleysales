@@ -26,8 +26,8 @@ async function Content() {
               council: m.councilLabel,
               role: dir.roles.find((r) => r.value === m.role)?.label ?? m.role,
             }))}
-            columns={[{ key: "user", header: "Usuário" }, { key: "council", header: "Conselho" }, { key: "role", header: "Papel" }]}
-            filterKeys={[{ key: "council", label: "Conselho" }, { key: "role", label: "Papel" }]}
+            columns={[{ key: "user", header: "Usuário" }, { key: "council", header: "Órgão ou empresa" }, { key: "role", header: "Papel" }]}
+            filterKeys={[{ key: "council", label: "Órgão ou empresa" }, { key: "role", label: "Papel" }]}
             emptyTitle="Nenhum vínculo"
             emptyDescription="Sem vínculo, o usuário autenticado não opera nenhum conselho."
           />

@@ -14,10 +14,10 @@ export async function sha256Hex(file: Blob): Promise<string> {
  * Envia o arquivo direto ao bucket privado usando o token assinado emitido pelo servidor.
  * Usa só a chave publicável; o token autoriza apenas o caminho definido pelo servidor, uma única vez.
  */
-export async function uploadToSignedUrl(path: string, token: string, file: File, mime: string): Promise<Result<true>> {
+export async function uploadToSignedUrl(path: string, token: string, file: File, mime: string, bucket = BUCKET): Promise<Result<true>> {
   const config = getSupabaseConfig();
   if (!config) return fail("UNAVAILABLE", "Armazenamento não configurado.");
   const client = createClient(config.url, config.publishableKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { error } = await client.storage.from(BUCKET).uploadToSignedUrl(path, token, file, { contentType: mime });
+  const { error } = await client.storage.from(bucket).uploadToSignedUrl(path, token, file, { contentType: mime });
   return error ? fail("INTERNAL", "Falha ao enviar o arquivo ao armazenamento. Tente novamente.") : ok(true);
 }

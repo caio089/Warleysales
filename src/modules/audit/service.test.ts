@@ -32,6 +32,15 @@ describe("AuditService", () => {
     await expect(new AuditService(broken).record(makeEntry({ councilId: COUNCIL_A }))).resolves.toBeUndefined();
   });
 
+  it("cursor exclui eventos já carregados sem ampliar o acesso do gestor", async () => {
+    const service = new AuditService(new InMemoryAuditRepository());
+    await service.record(makeEntry({ councilId: COUNCIL_A }));
+    await service.record(makeEntry({ councilId: COUNCIL_B }));
+    await service.record(makeEntry({ councilId: COUNCIL_A }));
+    const result = await service.list(managerOf(COUNCIL_A), { beforeId: "3" });
+    expect(result.ok && result.data.map((entry) => entry.id)).toEqual(["1"]);
+  });
+
   describe("barreiras de segurança multi-tenant (R14)", () => {
     it("não-admin filtrando conselho alheio recebe FORBIDDEN", async () => {
       const service = new AuditService(new InMemoryAuditRepository());

@@ -3,17 +3,47 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { runAction } from "@/server/action-runner";
+import { can } from "@/shared/lib/authz/policy";
+import { diffInDays } from "@/shared/lib/time";
+import { createContractSchema } from "./schemas";
 import type { ActionState } from "@/shared/ui/forms/action-state";
 
 const optionalNumber = (v: FormDataEntryValue | null) => (String(v ?? "").trim() ? Number(String(v).replace(",", ".")) : undefined);
 const optionalText = (v: FormDataEntryValue | null) => (String(v ?? "").trim() ? String(v) : undefined);
 
 export async function createContractFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
-  const result = await runAction(({ services, actor }) => services.contracts.create(actor, {
+  const input = {
     councilId: formData.get("councilId"), number: formData.get("number"), object: formData.get("object"),
     processId: optionalText(formData.get("processId")) ?? null,
     startDate: formData.get("startDate"), endDate: formData.get("endDate"), value: optionalNumber(formData.get("value")) ?? 0,
-  }), "Contrato cadastrado.");
+  };
+  const result = await runAction(async ({ services, actor }) => {
+    const parsed = createContractSchema.safeParse(input);
+    if (!parsed.success) return { ok: false as const, code: "VALIDATION" as const, message: "Confira os campos do contrato." };
+    if (!can(actor, "contract.manage", parsed.data.councilId)) return { ok: false as const, code: "FORBIDDEN" as const, message: "Sem permissão para este órgão." };
+    if (diffInDays(parsed.data.startDate, parsed.data.endDate) < 0) return { ok: false as const, code: "VALIDATION" as const, message: "A data final não pode ser anterior ao início." };
+    if (parsed.data.processId) {
+      const process = await services.processes.get(actor, parsed.data.processId);
+      if (!process.ok) return process;
+      if (process.data.process.councilId !== parsed.data.councilId) return { ok: false as const, code: "VALIDATION" as const, message: "O processo precisa ser do mesmo órgão do contrato." };
+    }
+    let supplierId = optionalText(formData.get("supplierId")) ?? null;
+    const supplierName = optionalText(formData.get("supplierName"));
+    const supplierCnpj = optionalText(formData.get("supplierCnpj"));
+    if (!supplierId && supplierName) {
+      const existing = await services.suppliers.list(actor);
+      if (!existing.ok) return existing;
+      const matched = existing.data.find((supplier) => supplierCnpj && supplier.cnpj === supplierCnpj.replace(/\D/g, ""))
+        ?? existing.data.find((supplier) => supplier.name.toLocaleLowerCase("pt-BR") === supplierName.toLocaleLowerCase("pt-BR") && (!supplierCnpj || supplier.cnpj === supplierCnpj.replace(/\D/g, "")));
+      if (matched) supplierId = matched.id;
+      else {
+        const created = await services.suppliers.create(actor, { name: supplierName, cnpj: supplierCnpj ?? "", email: null, phone: null });
+        if (!created.ok) return created;
+        supplierId = created.data.id;
+      }
+    }
+    return services.contracts.create(actor, { ...parsed.data, supplierId });
+  }, "Contrato cadastrado.");
   if (result.status !== "success" || !result.data) return result.status === "success" ? result : result;
   revalidatePath("/contratos");
   redirect(`/contratos/${result.data.id}`);

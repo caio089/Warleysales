@@ -29,6 +29,7 @@ import { KpiCard } from "@/shared/ui/kpi-card";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader, SectionLabel } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
+import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { ActionHub, buildCouncilActions } from "./action-hub";
 import { CouncilPicker } from "./council-picker";
 import { type AvailableStockItem } from "./material-order-dialog";
@@ -283,6 +284,15 @@ async function Content({
 
         return (
           <div className="space-y-6">
+            <Suspense fallback={<ModuleInsightFallback />}>
+              <ModuleInsight moduleName="Meu painel" sourceHref="/meu-conselho" facts={[
+                { label: "Solicitações pendentes", value: pendingRequestsCount },
+                { label: "Solicitações em andamento", value: inProgressRequestsCount },
+                { label: "Unidades recebidas", value: totalReceivedUnits },
+                { label: "Unidades pendentes", value: totalPendingUnits },
+                { label: "Pedidos de material", value: orders.length },
+              ]} />
+            </Suspense>
             {/* 1. CABEÇALHO DO ÓRGÃO + BANNER DE ECONOMIA INTEGRADO */}
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
               {/* Faixa Superior: Identificação e Ações Principais */}

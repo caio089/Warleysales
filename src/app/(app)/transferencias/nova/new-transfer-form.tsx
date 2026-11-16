@@ -10,8 +10,8 @@ export function NewTransferForm({ councils, materials }: { councils: Option[]; m
   return (
     <ActionForm action={requestTransferFormAction} submitLabel="Solicitar transferência">
       {(e) => (<>
-        <SelectField name="originCouncilId" label="Conselho de origem (cede o material)" required options={councils} errors={e.originCouncilId} />
-        <SelectField name="destinationCouncilId" label="Conselho de destino (recebe)" required options={councils} errors={e.destinationCouncilId} />
+        <SelectField name="originCouncilId" label="Órgão de origem (cede o material)" required options={councils} errors={e.originCouncilId} />
+        <SelectField name="destinationCouncilId" label="Órgão de destino (recebe)" required options={councils} errors={e.destinationCouncilId} />
         <SelectField name="materialId" label="Material" required options={materials} errors={e["items.0.materialId"]} />
         <TextField name="quantity" label="Quantidade" type="number" step="0.001" min="0" required errors={e["items.0.quantity"]} />
         {e.items ? <p role="alert" className="text-xs text-destructive">{e.items.join(" ")}</p> : null}

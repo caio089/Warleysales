@@ -10,7 +10,8 @@ import type { Council, MembershipRecord, ProfileSummary } from "./schemas";
 import type { CouncilRole } from "@/shared/lib/authz/navigation";
 
 const councilFields = {
-  name: z.string().trim().min(3, "Informe o nome do conselho.").max(200),
+  organizationType: z.enum(["public_body", "private_company"]).default("public_body"),
+  name: z.string().trim().min(3, "Informe o nome da organização.").max(200),
   acronym: z.string().trim().min(2).max(20),
   institutionalInfo: z.string().trim().max(2000).nullish().transform((v) => v ?? null),
   whatsappE164: z
@@ -43,7 +44,7 @@ export class CouncilService {
     const allowed = await guard(this.audit, actor, "council.manage", undefined, "council");
     if (!allowed.ok) return allowed;
     const saved = await this.repository.insert({ id: this.runtime.newId(), ...parsed.data, responsibleUserId: null, active: true });
-    if (saved.ok) await this.audit.record({ actorId: actor.userId, action: "council.create", entity: "council", entityId: saved.data.id, councilId: saved.data.id, result: "success", details: {} });
+    if (saved.ok) await this.audit.record({ actorId: actor.userId, action: "council.create", entity: "council", entityId: saved.data.id, councilId: saved.data.id, result: "success", details: { organizationType: saved.data.organizationType } });
     return saved;
   }
 
@@ -53,10 +54,10 @@ export class CouncilService {
     const allowed = await guard(this.audit, actor, "council.manage", undefined, "council", parsed.data.councilId);
     if (!allowed.ok) return allowed;
     const current = await this.repository.findById(parsed.data.councilId);
-    if (!current) return fail("NOT_FOUND", "Conselho não encontrado.");
+    if (!current) return fail("NOT_FOUND", "Organização não encontrada.");
     const { councilId, active, ...fields } = parsed.data;
     const saved = await this.repository.update({ ...current, ...fields, id: councilId, active: active ?? current.active });
-    if (saved.ok) await this.audit.record({ actorId: actor.userId, action: "council.update", entity: "council", entityId: councilId, councilId, result: "success", details: {} });
+    if (saved.ok) await this.audit.record({ actorId: actor.userId, action: "council.update", entity: "council", entityId: councilId, councilId, result: "success", details: { organizationType: saved.data.organizationType } });
     return saved;
   }
 
@@ -68,7 +69,7 @@ export class CouncilService {
 
   async get(actor: Actor, id: string): Promise<Result<Council>> {
     const council = await this.repository.findById(id);
-    if (!council || !can(actor, "council.read", id)) return fail("NOT_FOUND", "Conselho não encontrado.");
+    if (!council || !can(actor, "council.read", id)) return fail("NOT_FOUND", "Organização não encontrada.");
     return ok(council);
   }
 }
@@ -129,7 +130,7 @@ export class MembershipService {
     const allowed = await guard(this.audit, actor, "user.manage", parsed.data.councilId, "council_membership", parsed.data.userId);
     if (!allowed.ok) return allowed;
     const council = await this.councils.findById(parsed.data.councilId);
-    if (!council) return fail("NOT_FOUND", "Conselho não encontrado.");
+    if (!council) return fail("NOT_FOUND", "Organização não encontrada.");
     const profiles = await this.memberships.listProfiles();
     if (!profiles.some((p) => p.id === parsed.data.userId)) return fail("NOT_FOUND", "Usuário não encontrado. Convide-o primeiro no Auth.");
     await this.memberships.upsert(parsed.data);

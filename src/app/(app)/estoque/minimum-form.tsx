@@ -17,7 +17,7 @@ export function MinimumForm({ councils, materials }: { councils: Option[]; mater
       <ActionForm action={setMinimumFormAction} submitLabel="Definir mínimo" resetOnSuccess={false}>
         {(e) => (
           <>
-            <SelectField name="councilId" label="Conselho" required options={councils} defaultValue={defaultCouncilId} errors={e.councilId} />
+            <SelectField name="councilId" label="Órgão" required options={councils} defaultValue={defaultCouncilId} errors={e.councilId} />
             <SelectField name="materialId" label="Material" required options={materials} defaultValue={defaultMaterialId} errors={e.materialId} />
             <TextField name="minimum" label="Quantidade mínima" type="text" inputMode="decimal" placeholder="Ex.: 5" required errors={e.minimum} />
           </>

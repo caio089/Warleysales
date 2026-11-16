@@ -11,6 +11,7 @@ import { FlowGuide } from "@/shared/ui/flow-guide";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
+import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { SimpleTable } from "@/shared/ui/simple-table";
 
 export const metadata: Metadata = { title: "Solicitações" };
@@ -46,6 +47,14 @@ async function Content() {
               )
             }
           />
+          <Suspense fallback={<ModuleInsightFallback />}>
+            <ModuleInsight moduleName="Solicitações" sourceHref="/solicitacoes" facts={[
+              { label: "Total", value: requests.length },
+              { label: "Aguardando análise", value: requests.filter((r) => ["enviada", "em_analise", "aguardando_correcao"].includes(r.status)).length },
+              { label: "Em atendimento", value: requests.filter((r) => ["aprovada", "em_atendimento", "parcialmente_atendida"].includes(r.status)).length },
+              { label: "Atendidas", value: requests.filter((r) => r.status === "atendida").length },
+            ]} />
+          </Suspense>
           <FlowGuide title="Fluxo em 4 passos" steps={REQUEST_FLOW_STEPS} />
           <SimpleTable
             caption="Solicitações de compra"

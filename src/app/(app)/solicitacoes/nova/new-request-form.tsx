@@ -15,7 +15,7 @@ export function NewRequestForm({ councils }: { councils: Option[] }) {
       <ActionForm action={createRequestFormAction} submitLabel="Salvar rascunho">
         {(e) => (
           <>
-            <SelectField name="councilId" label="Conselho" required options={councils} errors={e.councilId} />
+            <SelectField name="councilId" label="Órgão" required options={councils} errors={e.councilId} />
             <TextField name="title" label="Título" required errors={e.title} />
             <label className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 p-3.5 transition-colors hover:bg-muted/30 cursor-pointer">
               <input

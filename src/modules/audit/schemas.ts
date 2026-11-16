@@ -25,4 +25,6 @@ export interface AuditFilter {
   result?: AuditResult;
   startDate?: string | Date;
   endDate?: string | Date;
+  /** Cursor exclusivo para carregar eventos mais antigos. */
+  beforeId?: string;
 }

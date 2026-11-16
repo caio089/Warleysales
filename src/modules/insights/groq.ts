@@ -4,6 +4,7 @@ import { groq } from "@ai-sdk/groq";
 import { connection } from "next/server";
 import { fail, ok, type Result } from "@/shared/lib/result";
 import { BRIEFING_SYSTEM_PROMPT, parseBriefingText, type BriefingFacts, type OperationalBriefing } from "./briefing";
+import type { ModuleFact } from "./module-insight";
 
 const GROQ_MODEL = "openai/gpt-oss-20b";
 
@@ -32,6 +33,35 @@ export async function generateOperationalBriefing(facts: BriefingFacts): Promise
     });
     const briefing = parseBriefingText(collectModelText(result));
     if (!briefing) return fail("INTERNAL", "Não foi possível gerar o resumo agora.");
+    return ok(briefing);
+  } catch {
+    return fail("UNAVAILABLE", "O resumo de IA está temporariamente indisponível.");
+  }
+}
+
+/** Interpreta somente indicadores agregados já autorizados para a visão do módulo. */
+export async function generateModuleBriefing(moduleName: string, facts: ModuleFact[]): Promise<Result<OperationalBriefing>> {
+  await connection();
+  if (!isGroqConfigured()) return fail("UNAVAILABLE", "Resumo de IA não configurado.");
+  try {
+    const result = await generateText({
+      model: groq(GROQ_MODEL),
+      temperature: 0,
+      abortSignal: AbortSignal.timeout(8_000),
+      providerOptions: { groq: { reasoningFormat: "hidden", reasoningEffort: "low" } },
+      system: [
+        "Você analisa indicadores de um módulo do sistema Warley em português do Brasil.",
+        "Use somente os fatos fornecidos. Não invente quantidades, prazos ou eventos.",
+        "Dê uma prioridade operacional prática. Não inclua números no texto gerado; os números serão exibidos à parte a partir da fonte.",
+        'Responda apenas JSON válido: {"headline": string, "bullets": string[], "tone": "ok"|"atencao"|"critico"}.',
+        "Título com até 140 caracteres, no máximo 3 tópicos, cada um com até 200 caracteres.",
+      ].join(" "),
+      prompt: JSON.stringify({ module: moduleName, facts }),
+    });
+    const briefing = parseBriefingText(collectModelText(result));
+    if (!briefing || /\d/.test([briefing.headline, ...briefing.bullets].join(" "))) {
+      return fail("INTERNAL", "Resumo inválido.");
+    }
     return ok(briefing);
   } catch {
     return fail("UNAVAILABLE", "O resumo de IA está temporariamente indisponível.");

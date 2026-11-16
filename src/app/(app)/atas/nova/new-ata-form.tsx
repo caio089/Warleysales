@@ -22,7 +22,7 @@ export function NewAtaForm({
   return (
     <ActionForm action={createAtaFormAction} submitLabel="Criar ata">
       {(e) => (<>
-        <SelectField name="councilId" label="Conselho gerenciador" required options={councils} errors={e.councilId} onChange={setCouncilId} />
+        <SelectField name="councilId" label="Órgão gerenciador" required options={councils} errors={e.councilId} onChange={setCouncilId} />
         <SelectField key={councilId || "todos"} name="processId" label="Processo" options={visibleProcesses} optional placeholder="Sem processo" hint="A ata fica ligada a este processo. O contrato do mesmo processo aparece aqui." errors={e.processId} />
         <TextField name="number" label="Número da ata" required errors={e.number} />
         <TextField name="startDate" label="Início da vigência" type="date" required hint="A vigência inicial é de 1 ano (art. 84, Lei 14.133/2021). Não há prorrogação automática." errors={e.startDate} />

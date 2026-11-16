@@ -13,6 +13,8 @@ interface MeetingRow {
   minutes_text: string | null;
   minutes_registered_by: string | null;
   minutes_registered_at: string | null;
+  audio_path: string | null;
+  transcript_text: string | null;
   created_by: string;
   meeting_action_items: { id: string; seq: number; description: string; responsible_id: string | null; due_date: string | null; done: boolean }[];
 }
@@ -28,6 +30,8 @@ const toMeeting = (row: MeetingRow): Meeting => ({
   minutes: row.minutes_text && row.minutes_registered_by && row.minutes_registered_at
     ? { text: row.minutes_text, registeredBy: row.minutes_registered_by, registeredAt: toDateOrNull(row.minutes_registered_at) as Date }
     : null,
+  audioPath: row.audio_path,
+  transcript: row.transcript_text,
   actionItems: [...row.meeting_action_items].sort((a, b) => a.seq - b.seq).map((i) => ({
     id: i.id, description: i.description, responsibleId: i.responsible_id, dueDate: i.due_date, done: i.done,
   })),
