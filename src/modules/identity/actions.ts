@@ -3,8 +3,17 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { authUnavailable, getAuthGateway } from "@/server/auth-gateway";
+import { getSession } from "@/server/session";
 import { parseInput } from "@/shared/lib/service-support";
 import type { ActionState } from "@/shared/ui/forms/action-state";
+
+async function homeForCurrentUser(): Promise<string> {
+  const session = await getSession();
+  if (session.status === "authenticated" && !session.actor.isCentralAdmin && session.actor.memberships.length > 0) {
+    return "/meu-conselho";
+  }
+  return "/dashboard";
+}
 
 const credentialsSchema = z.object({
   email: z.string().trim().email("Informe um e-mail válido."),
@@ -20,7 +29,7 @@ export async function signInAction(_previous: ActionState, formData: FormData): 
   const gateway = getAuthGateway();
   const result = gateway ? await gateway.signIn(parsed.data.email, parsed.data.password) : authUnavailable();
   if (!result.ok) return { status: "error", message: result.message };
-  redirect("/dashboard");
+  redirect(await homeForCurrentUser());
 }
 
 /** Resposta neutra: não revela se o e-mail existe (evita enumeração de usuários). */
@@ -47,7 +56,7 @@ export async function updatePasswordAction(_previous: ActionState, formData: For
   const gateway = getAuthGateway();
   const result = gateway ? await gateway.updatePassword(parsed.data.password) : authUnavailable();
   if (!result.ok) return { status: "error", message: result.message };
-  redirect("/dashboard");
+  redirect(await homeForCurrentUser());
 }
 
 export async function signOutAction(): Promise<void> {

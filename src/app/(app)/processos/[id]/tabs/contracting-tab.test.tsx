@@ -18,6 +18,15 @@ vi.mock("@/modules/formalizations/actions", () => ({
   rejectFormalizationAction: vi.fn(),
 }));
 
+vi.mock("@/modules/atas/actions", () => ({
+  linkAtaProcessFormAction: vi.fn(),
+  ataStepFormAction: vi.fn(),
+}));
+
+vi.mock("@/modules/contracts/actions", () => ({
+  linkContractProcessFormAction: vi.fn(),
+}));
+
 import {
   ContractingTab,
   type LinkedAtaItem,
@@ -104,6 +113,30 @@ describe("ContractingTab", () => {
 
     expect(html).toContain("Nenhuma ata de registro de preços vinculada");
     expect(html).toContain("Nenhum contrato administrativo vinculado");
+    expect(html).toContain("Vincule uma ata e um contrato para concluir a contratação.");
+  });
+
+  it("permite vincular ata e contrato livres ou criar um novo já neste processo", () => {
+    const html = renderToStaticMarkup(
+      <ContractingTab
+        processId="proc-1"
+        councilId="council-a"
+        documentalComplete={true}
+        formalization={null}
+        suppliers={MOCK_SUPPLIERS}
+        isWarley={false}
+        canLink
+        availableAtas={[{ value: "ata-9", label: "ARP 099/2026" }]}
+        availableContracts={[{ value: "ctr-9", label: "CT 099/2026" }]}
+      />,
+    );
+
+    expect(html).toContain("Vincular ata");
+    expect(html).toContain("ARP 099/2026");
+    expect(html).toContain("Vincular contrato");
+    expect(html).toContain("CT 099/2026");
+    expect(html).toContain("/atas/novo?processId=proc-1");
+    expect(html).toContain("/contratos/novo?processId=proc-1");
   });
 
   it("renderiza cards elegantes com links, vigência e valores para atas e contratos vinculados", () => {
@@ -162,6 +195,8 @@ describe("ContractingTab", () => {
         isWarley={false}
         defaultEstimatedValue={90000}
         requestItems={[{ materialId: "mat-1", name: "Papel Sulfite A4", quantity: 500 }]}
+        linkedAtas={MOCK_ATAS}
+        linkedContracts={MOCK_CONTRACTS}
       />,
     );
 

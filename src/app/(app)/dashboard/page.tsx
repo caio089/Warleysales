@@ -10,6 +10,7 @@ import { buildBriefingFacts } from "@/modules/insights/briefing";
 import { parseDashboardQuery } from "@/modules/reports/dashboard-query";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
+import { getSession } from "@/server/session";
 import { formatCurrency, formatPercent } from "@/shared/lib/format";
 import { ok } from "@/shared/lib/result";
 import { KpiCard } from "@/shared/ui/kpi-card";
@@ -371,6 +372,22 @@ async function DashboardContent({
   );
 }
 
+async function DashboardHeading() {
+  const session = await getSession();
+  const central = session.status === "authenticated" && session.actor.isCentralAdmin;
+  return (
+    <PageHeader
+      eyebrow={central ? "Central do Warley" : "Visão do órgão"}
+      title={central ? "Painel de Controle Operacional" : "Visão geral"}
+      description={
+        central
+          ? "Acompanhamento integrado de órgãos parceiros, demandas de materiais, entregas pendentes e estoque em tempo real."
+          : "Solicitações, estoque e prazos do seu órgão. As ações do dia ficam em Meu painel."
+      }
+    />
+  );
+}
+
 export default function DashboardPage({
   searchParams,
 }: {
@@ -378,11 +395,9 @@ export default function DashboardPage({
 }) {
   return (
     <>
-      <PageHeader
-        eyebrow="Central do Warley"
-        title="Painel de Controle Operacional"
-        description="Acompanhamento integrado de órgãos parceiros, demandas de materiais, entregas pendentes e estoque em tempo real."
-      />
+      <Suspense fallback={<LoadingState />}>
+        <DashboardHeading />
+      </Suspense>
       <Suspense fallback={<LoadingState />}>
         <DashboardContent searchParams={searchParams} />
       </Suspense>

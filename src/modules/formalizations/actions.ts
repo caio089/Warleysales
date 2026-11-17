@@ -1,9 +1,31 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { Services } from "@/server/container";
 import { runAction } from "@/server/action-runner";
-import { fail } from "@/shared/lib/result";
+import type { Actor } from "@/shared/lib/authz/policy";
+import { fail, ok, type Result } from "@/shared/lib/result";
 import type { ActionState } from "@/shared/ui/forms/action-state";
+
+const INSTRUMENTS_REQUIRED =
+  "Vincule uma ata e um contrato a este processo antes de concluir a contratação.";
+
+async function assertInstrumentsLinked(
+  services: Services,
+  actor: Actor,
+  processId: string,
+): Promise<Result<true>> {
+  const [atas, contracts] = await Promise.all([
+    services.atas.list(actor),
+    services.contracts.list(actor),
+  ]);
+  if (!atas.ok) return atas;
+  if (!contracts.ok) return contracts;
+  const hasAta = atas.data.some((item) => item.ata.processId === processId);
+  const hasContract = contracts.data.some((item) => item.contract.processId === processId);
+  if (!hasAta || !hasContract) return fail("VALIDATION", INSTRUMENTS_REQUIRED);
+  return ok(true);
+}
 
 function parseMoney(value: FormDataEntryValue | null): number {
   if (!value) return 0;
@@ -51,6 +73,8 @@ export async function submitFormalizationFormAction(
 
   const result = await runAction(
     async ({ services, actor }) => {
+      const instruments = await assertInstrumentsLinked(services, actor, processId);
+      if (!instruments.ok) return instruments;
       if (auctionDate && !/^\d{4}-\d{2}-\d{2}$/.test(auctionDate)) {
         return fail("VALIDATION", "Informe a data do pregão.");
       }
@@ -123,11 +147,14 @@ export async function homologateFormalizationAction(
   const note = noteRaw && String(noteRaw).trim() !== "" ? String(noteRaw).trim() : undefined;
 
   const result = await runAction(
-    ({ services, actor }) =>
-      services.formalizations.homologate(actor, {
+    async ({ services, actor }) => {
+      const instruments = await assertInstrumentsLinked(services, actor, processId);
+      if (!instruments.ok) return instruments;
+      return services.formalizations.homologate(actor, {
         processId,
         note,
-      }),
+      });
+    },
     "Formalização homologada e estoque liberado com sucesso.",
   );
 

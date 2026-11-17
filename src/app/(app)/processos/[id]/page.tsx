@@ -67,6 +67,16 @@ async function ProcessContent({ params }: { params: Promise<{ id: string }> }) {
               endDate: item.terms.endDate,
             }))
         : [],
+      availableAtas: atas.ok
+        ? atas.data
+            .filter((item) => item.ata.councilId === councilId && !item.ata.processId)
+            .map((item) => ({ value: item.ata.id, label: item.ata.number }))
+        : [],
+      availableContracts: contracts.ok
+        ? contracts.data
+            .filter((item) => item.contract.councilId === councilId && !item.contract.processId)
+            .map((item) => ({ value: item.contract.id, label: item.contract.number }))
+        : [],
     });
   });
 

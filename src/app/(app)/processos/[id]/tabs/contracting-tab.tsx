@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { ExternalLink, FileCheck2, ScrollText } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { formatCurrency } from "@/shared/lib/format";
 import { formatDateOnly } from "@/shared/lib/time";
+import { LinkAtaToProcessForm, LinkContractToProcessForm } from "@/shared/ui/forms/link-process-form";
 import { StatusBadge } from "@/shared/ui/status-badge";
 import {
   FormalizationCard,
@@ -39,6 +41,9 @@ export interface ContractingTabProps {
   requestItems?: FormalizationCardProps["requestItems"];
   linkedAtas?: LinkedAtaItem[];
   linkedContracts?: LinkedContractItem[];
+  availableAtas?: { value: string; label: string }[];
+  availableContracts?: { value: string; label: string }[];
+  canLink?: boolean;
 }
 
 /** Aba 2 — Contratação: Instrumentos contratuais vinculados (Atas e Contratos) + Formulário de Formalização. */
@@ -54,7 +59,11 @@ export function ContractingTab({
   requestItems = [],
   linkedAtas = [],
   linkedContracts = [],
+  availableAtas = [],
+  availableContracts = [],
+  canLink = false,
 }: ContractingTabProps) {
+  const instrumentsReady = linkedAtas.length > 0 && linkedContracts.length > 0;
   return (
     <div className="space-y-6">
       {/* Seção Superior: Instrumentos Contratuais Vinculados */}
@@ -72,7 +81,7 @@ export function ContractingTab({
                 Instrumentos Contratuais Vinculados
               </h2>
               <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-                Atas de Registro de Preços e Contratos Administrativos que formalizam a execução deste processo.
+                Anexe uma ata e um contrato deste processo. A contratação só conclui com os dois vinculados.
               </p>
             </div>
           </div>
@@ -129,6 +138,18 @@ export function ContractingTab({
                 </p>
               </div>
             )}
+            {canLink ? (
+              <div className="space-y-3">
+                {availableAtas.length > 0 ? (
+                  <LinkAtaToProcessForm processId={processId} atas={availableAtas} />
+                ) : (
+                  <p className="text-xs text-muted-foreground">Nenhuma ata livre deste órgão para vincular.</p>
+                )}
+                <Link href={`/atas/novo?processId=${processId}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                  Criar ata deste processo
+                </Link>
+              </div>
+            ) : null}
           </div>
 
           {/* Bloco 2: Contratos Administrativos */}
@@ -190,6 +211,18 @@ export function ContractingTab({
                 </p>
               </div>
             )}
+            {canLink ? (
+              <div className="space-y-3">
+                {availableContracts.length > 0 ? (
+                  <LinkContractToProcessForm processId={processId} contracts={availableContracts} />
+                ) : (
+                  <p className="text-xs text-muted-foreground">Nenhum contrato livre deste órgão para vincular.</p>
+                )}
+                <Link href={`/contratos/novo?processId=${processId}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                  Criar contrato deste processo
+                </Link>
+              </div>
+            ) : null}
           </div>
         </div>
       </section>
@@ -205,6 +238,7 @@ export function ContractingTab({
         defaultEstimatedValue={defaultEstimatedValue}
         requestId={requestId}
         requestItems={requestItems}
+        instrumentsReady={instrumentsReady}
       />
     </div>
   );

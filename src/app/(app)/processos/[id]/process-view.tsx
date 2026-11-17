@@ -42,6 +42,8 @@ export interface ProcessViewProps {
   requestItems: Array<{ materialId: string; name: string; quantity: number }>;
   linkedAtas: LinkedAtaItem[];
   linkedContracts: LinkedContractItem[];
+  availableAtas?: { value: string; label: string }[];
+  availableContracts?: { value: string; label: string }[];
   initialTab?: ProcessTabId;
 }
 
@@ -74,6 +76,8 @@ export function ProcessView({
   requestItems,
   linkedAtas,
   linkedContracts,
+  availableAtas = [],
+  availableContracts = [],
   initialTab = "documentos",
 }: ProcessViewProps) {
   const [activeTab, setActiveTab] = useState<ProcessTabId>(initialTab);
@@ -242,6 +246,9 @@ export function ProcessView({
               requestItems={requestItems}
               linkedAtas={linkedAtas}
               linkedContracts={linkedContracts}
+              availableAtas={availableAtas}
+              availableContracts={availableContracts}
+              canLink={canManage}
             />
           )}
         </div>

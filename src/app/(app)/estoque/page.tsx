@@ -134,6 +134,43 @@ async function Content() {
               />
             </section>
 
+            {canMove ? (
+              <section id="movimentar" aria-labelledby="informar-quantidade" className="surface-card scroll-mt-24 p-6">
+                <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="grid size-9 place-items-center rounded-xl bg-secondary text-primary">
+                      <PackagePlus className="size-4" aria-hidden />
+                    </span>
+                    <div>
+                      <h2 id="informar-quantidade" className="font-heading text-base font-semibold tracking-tight text-primary">
+                        Movimentar estoque
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        Escolha entrada ou saída, o produto e a quantidade. O saldo muda na hora.
+                      </p>
+                    </div>
+                  </div>
+                  <Link href="/estoque/movimentacoes" className="text-xs font-medium text-primary underline-offset-4 hover:underline">
+                    Ver histórico
+                  </Link>
+                </div>
+
+                {materials.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Cadastre um material em{" "}
+                    <Link href="/estoque/materiais" className="font-medium text-primary underline-offset-4 hover:underline">
+                      Materiais
+                    </Link>{" "}
+                    antes de lançar quantidade.
+                  </p>
+                ) : councils.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Cadastre uma empresa antes de lançar estoque.</p>
+                ) : (
+                  <MovementForm councils={councils} materials={materials} defaultType="entry" allowAdjust={canAdjust} />
+                )}
+              </section>
+            ) : null}
+
             <section aria-label="Solicitações no estoque" className="space-y-3">
               <div>
                 <SectionLabel>Solicitações no estoque</SectionLabel>
@@ -182,6 +219,8 @@ async function Content() {
                   total: l.physical + l.blocked,
                   minimum: l.minimum,
                   level: l.level,
+                  move: canMove ? "Movimentar" : "",
+                  moveHref: canMove ? `/estoque?council=${l.councilId}&material=${l.materialId}#movimentar` : "",
                 };
                 })}
                 columns={[
@@ -193,68 +232,34 @@ async function Content() {
                   { key: "total", header: "Total", kind: "number" },
                   { key: "minimum", header: "Mínimo", kind: "number" },
                   { key: "level", header: "Nível", kind: "status", dictionary: "stock" },
+                  ...(canMove ? [{ key: "move", header: "Ação", kind: "link" as const, hrefKey: "moveHref" }] : []),
                 ]}
                 filterKeys={[
                   { key: "council", label: "Órgão" },
                   { key: "level", label: "Nível", dictionary: "stock" },
                 ]}
                 emptyTitle="Nenhum saldo registrado"
-                emptyDescription="Lance a primeira entrada de material abaixo para alimentar o estoque."
+                emptyDescription="Use Movimentar estoque acima para lançar a primeira entrada."
               />
             </section>
 
-            {/* Painéis Operacionais: Lançar Movimentação & Ajustar Estoque Mínimo */}
-            {canMove ? (
-              <div className="grid gap-6 lg:grid-cols-2">
-                <section aria-labelledby="informar-quantidade" className="surface-card p-6">
-                  <div className="mb-4 flex items-center gap-2">
-                    <span className="grid size-9 place-items-center rounded-xl bg-secondary text-primary">
-                      <PackagePlus className="size-4" aria-hidden />
-                    </span>
-                    <div>
-                      <h2 id="informar-quantidade" className="font-heading text-base font-semibold tracking-tight text-primary">
-                        Registrar Movimentação de Estoque
-                      </h2>
-                      <p className="text-xs text-muted-foreground">
-                        Lança entradas, consumos ou ajustes permanentemente no ledger.
-                      </p>
-                    </div>
-                  </div>
-
-                  {materials.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      Cadastre um material em{" "}
-                      <Link href="/estoque/materiais" className="font-medium text-primary underline-offset-4 hover:text-highlight hover:underline">
-                        Materiais
-                      </Link>{" "}
-                      antes de lançar quantidade.
+            {canAdjust && materials.length > 0 && councils.length > 0 ? (
+              <section aria-labelledby="estoque-minimo" className="surface-card p-6">
+                <div className="mb-4 flex items-center gap-2">
+                  <span className="grid size-9 place-items-center rounded-xl bg-secondary text-primary">
+                    <AlertTriangle className="size-4" aria-hidden />
+                  </span>
+                  <div>
+                    <h2 id="estoque-minimo" className="font-heading text-base font-semibold tracking-tight text-primary">
+                      Estoque mínimo
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      Linha de alerta para avisar quando o saldo pronto para uso ficar baixo.
                     </p>
-                  ) : councils.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Cadastre uma empresa antes de lançar estoque.</p>
-                  ) : (
-                    <MovementForm councils={councils} materials={materials} defaultType="entry" allowAdjust={canAdjust} />
-                  )}
-                </section>
-
-                {canAdjust && materials.length > 0 && councils.length > 0 ? (
-                  <section aria-labelledby="estoque-minimo" className="surface-card p-6">
-                    <div className="mb-4 flex items-center gap-2">
-                      <span className="grid size-9 place-items-center rounded-xl bg-secondary text-primary">
-                        <AlertTriangle className="size-4" aria-hidden />
-                      </span>
-                      <div>
-                        <h2 id="estoque-minimo" className="font-heading text-base font-semibold tracking-tight text-primary">
-                          Configurar Estoque Mínimo de Segurança
-                        </h2>
-                        <p className="text-xs text-muted-foreground">
-                          Define a linha de alerta para disparo automático de avisos de reposição.
-                        </p>
-                      </div>
-                    </div>
-                    <MinimumForm councils={councils} materials={materials} />
-                  </section>
-                ) : null}
-              </div>
+                  </div>
+                </div>
+                <MinimumForm councils={councils} materials={materials} />
+              </section>
             ) : null}
           </div>
         );
@@ -269,15 +274,19 @@ export default function StockPage() {
       <PageHeader
         eyebrow="Operação & Armazenagem"
         title="Gestão de Estoque"
-        description="Controle de estoque bloqueado em formalização, saldo pronto para uso e reservas por órgão conveniado, alimentado por ledger imutável."
+        description="Lance entrada ou saída no topo. O saldo pronto para uso muda na hora."
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            <Link href="#movimentar" className={buttonVariants()}>
+              <PackagePlus className="mr-1.5 size-4" aria-hidden />
+              Movimentar estoque
+            </Link>
             <Link href="/estoque/materiais" className={buttonVariants({ variant: "outline" })}>
               Catálogo de Produtos
             </Link>
             <Link href="/estoque/movimentacoes" className={buttonVariants({ variant: "outline" })}>
-              <History className="mr-1.5 size-4" />
-              Histórico do Ledger
+              <History className="mr-1.5 size-4" aria-hidden />
+              Histórico
             </Link>
           </div>
         }

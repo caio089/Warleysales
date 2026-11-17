@@ -10,7 +10,7 @@ import { NewAtaForm } from "./new-ata-form";
 
 export const metadata: Metadata = { title: "Nova ata" };
 
-async function Content() {
+async function Content({ processId }: { processId?: string }) {
   const result = await loadScreen(async (ctx) => {
     const lookups = await loadLookups(ctx);
     if (!lookups.ok) return lookups;
@@ -33,6 +33,7 @@ async function Content() {
             councils={data.lookups.councils.map((c) => ({ value: c.id, label: c.label }))}
             materials={data.lookups.materials.map((m) => ({ value: m.id, label: m.label }))}
             processes={data.processes}
+            defaultProcessId={processId}
           />
         </div>
       )}
@@ -40,6 +41,7 @@ async function Content() {
   );
 }
 
-export default function NewAtaPage() {
-  return (<><PageHeader eyebrow="Acompanhamento · Atas" backHref="/atas" backLabel="Todas as atas" title="Nova ata" description="A ata começa como rascunho. Ative-a depois de revisar os dados para permitir comprometimentos." /><Suspense fallback={<LoadingState />}><Content /></Suspense></>);
+export default async function NewAtaPage({ searchParams }: { searchParams: Promise<{ processId?: string }> }) {
+  const { processId } = await searchParams;
+  return (<><PageHeader eyebrow="Acompanhamento · Atas" backHref="/atas" backLabel="Todas as atas" title="Nova ata" description="A ata começa como rascunho. Ative-a depois de revisar os dados para permitir comprometimentos." /><Suspense fallback={<LoadingState />}><Content processId={processId} /></Suspense></>);
 }

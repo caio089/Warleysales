@@ -32,6 +32,15 @@ vi.mock("@/modules/processes/actions", () => ({
   registerClosingReportFormAction: vi.fn(),
 }));
 
+vi.mock("@/modules/atas/actions", () => ({
+  linkAtaProcessFormAction: vi.fn(),
+  ataStepFormAction: vi.fn(),
+}));
+
+vi.mock("@/modules/contracts/actions", () => ({
+  linkContractProcessFormAction: vi.fn(),
+}));
+
 import { ProcessView, type ProcessViewProps } from "./process-view";
 
 const BASE_PROPS: ProcessViewProps = {

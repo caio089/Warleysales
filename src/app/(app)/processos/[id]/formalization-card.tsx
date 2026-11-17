@@ -39,6 +39,8 @@ export interface FormalizationCardProps {
   defaultEstimatedValue?: number | null;
   requestId?: string | null;
   requestItems?: { materialId: string; name: string; quantity: number }[];
+  /** Ata e contrato já vinculados. Sem os dois, a conclusão fica bloqueada. */
+  instrumentsReady?: boolean;
 }
 
 const INSTRUMENT_LABELS: Record<InstrumentType, string> = {
@@ -81,6 +83,7 @@ export function FormalizationCard({
   defaultEstimatedValue,
   requestId,
   requestItems = [],
+  instrumentsReady = true,
 }: FormalizationCardProps) {
   const [estimatedInput, setEstimatedInput] = useState<string>(
     defaultEstimatedValue != null && defaultEstimatedValue > 0
@@ -136,6 +139,35 @@ export function FormalizationCard({
           <p className="mt-1 text-xs text-muted-foreground">
             O formulário de formalização e a apuração de economia em tempo real serão desbloqueados
             assim que todos os 7 documentos obrigatórios forem anexados e validados no processo.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  if (!instrumentsReady && formalization?.status !== "homologado") {
+    return (
+      <section aria-labelledby="formalizacao-heading" className="surface-card mb-6 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <div>
+            <h2
+              id="formalizacao-heading"
+              className="font-heading text-lg font-medium tracking-tight text-primary"
+            >
+              Formalização da Contratação
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              A conclusão só libera depois da ata e do contrato deste processo.
+            </p>
+          </div>
+          <StatusBadge label="Falta anexar instrumentos" tone="warning" />
+        </div>
+        <div className="rounded-xl border border-dashed border-border/80 bg-secondary/30 p-4">
+          <p className="text-sm font-medium text-foreground">
+            Vincule uma ata e um contrato para concluir a contratação.
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Use os campos acima para anexar os instrumentos. O fornecedor, o pregão e a liberação do estoque ficam disponíveis depois disso.
           </p>
         </div>
       </section>
