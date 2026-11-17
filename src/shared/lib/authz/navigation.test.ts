@@ -60,9 +60,13 @@ describe("NAV_ITEMS — integridade de grupos", () => {
 
   it("Processos, Contratos, Atas e Fornecedores pertencem ao grupo acompanhamento", () => {
     const acompanhamentoLabels = NAV_ITEMS.filter((i) => i.group === "acompanhamento").map((i) => i.label);
+    expect(acompanhamentoLabels).toContain("Visão geral");
+    expect(acompanhamentoLabels).not.toContain("Meu painel");
     expect(acompanhamentoLabels).toContain("Processos");
-    expect(acompanhamentoLabels).toContain("Contratos");
-    expect(acompanhamentoLabels).toContain("Atas");
+    expect(acompanhamentoLabels.indexOf("Atas")).toBeGreaterThan(acompanhamentoLabels.indexOf("Processos"));
+    expect(acompanhamentoLabels.indexOf("Contratos")).toBeGreaterThan(acompanhamentoLabels.indexOf("Atas"));
     expect(acompanhamentoLabels).toContain("Fornecedores");
+    expect(acompanhamentoLabels).toContain("Calendário");
+    expect(acompanhamentoLabels.indexOf("Calendário")).toBeGreaterThan(acompanhamentoLabels.indexOf("Contratos"));
   });
 });

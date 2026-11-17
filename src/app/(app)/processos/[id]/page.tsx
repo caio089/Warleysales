@@ -10,7 +10,7 @@ import { ProcessView } from "./process-view";
 
 export const metadata: Metadata = { title: "Processo" };
 
-async function ProcessContent({ params }: { params: Promise<{ id: string }> }) {
+async function ProcessContent({ params, initialTab }: { params: Promise<{ id: string }>; initialTab: "documentos" | "contratacao" | "governanca" }) {
   const { id } = await params;
   const result = await loadScreen(async ({ services, actor }) => {
     const view = await services.processes.get(actor, id);
@@ -46,6 +46,7 @@ async function ProcessContent({ params }: { params: Promise<{ id: string }> }) {
         name: materialName[item.materialId] ?? "Item",
         quantity: item.quantity,
       })),
+      requestNotes: (linkedRequest?.events ?? []).map((event) => event.note ?? ""),
       linkedAtas: atas.ok
         ? atas.data
             .filter((item) => item.ata.processId === id)
@@ -77,20 +78,38 @@ async function ProcessContent({ params }: { params: Promise<{ id: string }> }) {
             .filter((item) => item.contract.councilId === councilId && !item.contract.processId)
             .map((item) => ({ value: item.contract.id, label: item.contract.number }))
         : [],
+      instrumentDraft: {
+        councilLabel: lookups.ok ? lookups.data.councilLabel[councilId] ?? "Órgão" : "Órgão",
+        processLabel: `${view.data.process.number} — ${view.data.process.title}`,
+        materials: lookups.ok ? lookups.data.materials.map((material) => ({ value: material.id, label: material.label })) : [],
+        suppliers: suppliers.ok
+          ? suppliers.data
+              .filter((supplier) => supplier.active)
+              .map((supplier) => ({ value: supplier.id, label: supplier.name, cnpj: supplier.cnpj }))
+          : [],
+      },
     });
   });
 
   return (
     <Screen result={result}>
-      {(data) => <ProcessView {...data} />}
+      {(data) => <ProcessView {...data} initialTab={initialTab} />}
     </Screen>
   );
 }
 
-export default function ProcessPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ProcessPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ aba?: string }>;
+}) {
+  const { aba } = await searchParams;
+  const initialTab = aba === "contratacao" || aba === "governanca" ? aba : "documentos";
   return (
     <Suspense fallback={<LoadingState />}>
-      <ProcessContent params={params} />
+      <ProcessContent params={params} initialTab={initialTab} />
     </Suspense>
   );
 }

@@ -13,20 +13,35 @@ export function NewAtaForm({
   materials,
   processes,
   defaultProcessId = "",
+  lockedProcess,
 }: {
   councils: Option[];
   materials: Option[];
   processes: ProcessOption[];
   defaultProcessId?: string;
+  /** Dentro do processo, órgão e pasta já estão definidos. */
+  lockedProcess?: { councilId: string; councilLabel: string; processId: string; processLabel: string };
 }) {
   const initial = processes.find((process) => process.value === defaultProcessId);
-  const [councilId, setCouncilId] = useState(initial?.councilId ?? "");
+  const [councilId, setCouncilId] = useState(lockedProcess?.councilId ?? initial?.councilId ?? "");
   const visibleProcesses = processes.filter((process) => !councilId || process.councilId === councilId);
   return (
-    <ActionForm action={createAtaFormAction} submitLabel="Criar ata">
+    <ActionForm
+      action={createAtaFormAction}
+      submitLabel="Criar ata"
+      hiddenFields={lockedProcess ? {
+        councilId: lockedProcess.councilId,
+        processId: lockedProcess.processId,
+        returnTo: `/processos/${lockedProcess.processId}`,
+      } : undefined}
+    >
       {(e) => (<>
-        <SelectField name="councilId" label="Órgão gerenciador" required options={councils} defaultValue={councilId} errors={e.councilId} onChange={setCouncilId} />
-        <SelectField key={`${councilId || "todos"}-${defaultProcessId}`} name="processId" label="Processo" options={visibleProcesses} optional placeholder="Sem processo" defaultValue={visibleProcesses.some((process) => process.value === defaultProcessId) ? defaultProcessId : ""} hint="A ata fica ligada a este processo. O contrato do mesmo processo aparece aqui." errors={e.processId} />
+        {lockedProcess ? (
+          <p className="text-sm text-muted-foreground">Órgão {lockedProcess.councilLabel}. Processo {lockedProcess.processLabel}. A ata fica nesta pasta.</p>
+        ) : (<>
+          <SelectField name="councilId" label="Órgão gerenciador" required options={councils} defaultValue={councilId} errors={e.councilId} onChange={setCouncilId} />
+          <SelectField key={`${councilId || "todos"}-${defaultProcessId}`} name="processId" label="Processo" options={visibleProcesses} optional placeholder="Sem processo" defaultValue={visibleProcesses.some((process) => process.value === defaultProcessId) ? defaultProcessId : ""} hint="A ata fica ligada a este processo. O contrato do mesmo processo aparece aqui." errors={e.processId} />
+        </>)}
         <TextField name="number" label="Número da ata" required errors={e.number} />
         <TextField name="startDate" label="Início da vigência" type="date" required hint="A vigência inicial é de 1 ano (art. 84, Lei 14.133/2021). Não há prorrogação automática." errors={e.startDate} />
         <TextField name="description" label="Descrição do item" required errors={e["items.0.description"]} />

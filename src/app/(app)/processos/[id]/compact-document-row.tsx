@@ -70,38 +70,47 @@ export function CompactDocumentRow({
     }
   }
 
+  async function uploadOne(file: File): Promise<boolean> {
+    const sha256 = await sha256Hex(file);
+    const prepared = await prepareDocumentUploadAction(processId, typeCode, {
+      fileName: file.name,
+      size: file.size,
+      sha256,
+    });
+    if (!prepared.ok) {
+      toast.error(prepared.message);
+      return false;
+    }
+    const sent = await uploadToSignedUrl(
+      prepared.data.storagePath,
+      prepared.data.token,
+      file,
+      prepared.data.mime,
+    );
+    if (!sent.ok) {
+      toast.error(sent.message);
+      return false;
+    }
+    const confirmed = await confirmDocumentUploadAction(processId, prepared.data.attachmentId);
+    if (!confirmed.ok) {
+      toast.error(confirmed.message);
+      return false;
+    }
+    return true;
+  }
+
   async function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const selected = Array.from(e.target.files ?? []);
+    if (selected.length === 0) return;
     setUploading(true);
+    let sentCount = 0;
     try {
-      const sha256 = await sha256Hex(file);
-      const prepared = await prepareDocumentUploadAction(processId, typeCode, {
-        fileName: file.name,
-        size: file.size,
-        sha256,
-      });
-      if (!prepared.ok) {
-        toast.error(prepared.message);
-        return;
+      for (const file of selected) {
+        if (await uploadOne(file)) sentCount += 1;
       }
-      const sent = await uploadToSignedUrl(
-        prepared.data.storagePath,
-        prepared.data.token,
-        file,
-        prepared.data.mime,
-      );
-      if (!sent.ok) {
-        toast.error(sent.message);
-        return;
-      }
-      const confirmed = await confirmDocumentUploadAction(processId, prepared.data.attachmentId);
-      if (confirmed.ok) {
-        toast.success(`${file.name} anexado com sucesso!`);
-        router.refresh();
-      } else {
-        toast.error(confirmed.message);
-      }
+      if (sentCount === 1) toast.success(`${selected[0]?.name ?? "Arquivo"} anexado com sucesso!`);
+      else if (sentCount > 1) toast.success(`${sentCount} arquivos anexados.`);
+      if (sentCount > 0) router.refresh();
     } catch {
       toast.error("Falha ao enviar arquivo. Tente novamente.");
     } finally {
@@ -122,6 +131,7 @@ export function CompactDocumentRow({
       <input
         ref={fileInputRef}
         type="file"
+        multiple
         className="sr-only"
         onChange={handleFileSelected}
         aria-hidden="true"
@@ -271,75 +281,74 @@ export function CompactDocumentRow({
         </div>
       </div>
 
-      {/* Lado Direito: Ações quando houver 1 arquivo ou quando estiver pendente */}
-      {files.length === 1 ? (
-        <div className="flex shrink-0 items-center gap-1.5 md:self-center">
-          <Button
-            type="button"
-            variant="outline"
-            size="xs"
-            onClick={() => handleDownload(files[0].id)}
-            className="h-8 px-2.5 text-xs font-medium"
-          >
-            <Download className="mr-1 size-3.5" aria-hidden="true" />
-            Baixar
-          </Button>
-          {canUnlink ? (
-            <ActionForm
-              action={unlinkDocumentFormAction}
-              submitLabel="Desvincular"
-              submitVariant="outline"
-              submitClassName="h-8 px-2.5 text-xs font-medium min-w-0"
-              hiddenFields={{ attachmentId: files[0].id, processId }}
+      {(files.length === 1 || canUpload) ? (
+        <div className="flex shrink-0 flex-wrap items-center gap-1.5 md:self-center">
+          {files.length === 1 ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                onClick={() => handleDownload(files[0].id)}
+                className="h-8 px-2.5 text-xs font-medium"
+              >
+                <Download className="mr-1 size-3.5" aria-hidden="true" />
+                Baixar
+              </Button>
+              {canUnlink ? (
+                <ActionForm
+                  action={unlinkDocumentFormAction}
+                  submitLabel="Desvincular"
+                  submitVariant="outline"
+                  submitClassName="h-8 px-2.5 text-xs font-medium min-w-0"
+                  hiddenFields={{ attachmentId: files[0].id, processId }}
+                >
+                  {() => null}
+                </ActionForm>
+              ) : null}
+              {canManualDelete ? (
+                <ConfirmDialog
+                  trigger={
+                    <Button variant="destructive" size="xs" className="h-8 px-2.5 text-xs font-medium">
+                      Excluir
+                    </Button>
+                  }
+                  title="Excluir definitivamente?"
+                  description="Esta ação remove o arquivo do armazenamento e não pode ser desfeita. Ficará registrada na auditoria."
+                  confirmLabel="Excluir definitivamente"
+                  destructive
+                  onConfirm={async () => {
+                    const body = new FormData();
+                    body.set("attachmentId", files[0].id);
+                    body.set("processId", processId);
+                    const state = await manualDeleteFormAction({ status: "idle" }, body);
+                    if (state.status === "error") toast.error(state.message);
+                    else {
+                      toast.success("Documento excluído.");
+                      router.refresh();
+                    }
+                  }}
+                />
+              ) : null}
+            </>
+          ) : null}
+          {canUpload ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleUploadTrigger}
+              disabled={uploading}
+              className="h-8 text-xs font-medium"
             >
-              {() => null}
-            </ActionForm>
+              {uploading ? (
+                <Loader2 className="mr-1.5 size-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <Plus className="mr-1.5 size-3.5" aria-hidden="true" />
+              )}
+              {uploading ? "Enviando..." : hasFiles ? "Anexar outro" : "+ Anexar arquivo"}
+            </Button>
           ) : null}
-          {canManualDelete ? (
-            <ConfirmDialog
-              trigger={
-                <Button variant="destructive" size="xs" className="h-8 px-2.5 text-xs font-medium">
-                  Excluir
-                </Button>
-              }
-              title="Excluir definitivamente?"
-              description="Esta ação remove o arquivo do armazenamento e não pode ser desfeita. Ficará registrada na auditoria."
-              confirmLabel="Excluir definitivamente"
-              destructive
-              onConfirm={async () => {
-                const body = new FormData();
-                body.set("attachmentId", files[0].id);
-                body.set("processId", processId);
-                const state = await manualDeleteFormAction({ status: "idle" }, body);
-                if (state.status === "error") toast.error(state.message);
-                else {
-                  toast.success("Documento excluído.");
-                  router.refresh();
-                }
-              }}
-            />
-          ) : null}
-        </div>
-      ) : null}
-
-      {/* Botão + Anexar arquivo quando pendente */}
-      {isPending && canUpload ? (
-        <div className="flex shrink-0 items-center gap-1.5 md:self-center">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleUploadTrigger}
-            disabled={uploading}
-            className="h-8 text-xs font-medium"
-          >
-            {uploading ? (
-              <Loader2 className="mr-1.5 size-3.5 animate-spin" aria-hidden="true" />
-            ) : (
-              <Plus className="mr-1.5 size-3.5" aria-hidden="true" />
-            )}
-            {uploading ? "Enviando..." : "+ Anexar arquivo"}
-          </Button>
         </div>
       ) : null}
     </article>

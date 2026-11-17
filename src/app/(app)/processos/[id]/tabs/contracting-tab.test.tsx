@@ -21,10 +21,12 @@ vi.mock("@/modules/formalizations/actions", () => ({
 vi.mock("@/modules/atas/actions", () => ({
   linkAtaProcessFormAction: vi.fn(),
   ataStepFormAction: vi.fn(),
+  createAtaFormAction: vi.fn(),
 }));
 
 vi.mock("@/modules/contracts/actions", () => ({
   linkContractProcessFormAction: vi.fn(),
+  createContractFormAction: vi.fn(),
 }));
 
 import {
@@ -113,7 +115,11 @@ describe("ContractingTab", () => {
 
     expect(html).toContain("Nenhuma ata de registro de preços vinculada");
     expect(html).toContain("Nenhum contrato administrativo vinculado");
-    expect(html).toContain("Vincule uma ata e um contrato para concluir a contratação.");
+    const ataStep = html.indexOf("1. Ata de registro de preços");
+    const contractStep = html.indexOf("2. Contrato");
+    expect(ataStep).toBeGreaterThan(-1);
+    expect(contractStep).toBeGreaterThan(ataStep);
+    expect(html).toContain("Primeiro anexe ou crie a ata. Depois anexe ou crie o contrato.");
   });
 
   it("permite vincular ata e contrato livres ou criar um novo já neste processo", () => {
@@ -128,15 +134,23 @@ describe("ContractingTab", () => {
         canLink
         availableAtas={[{ value: "ata-9", label: "ARP 099/2026" }]}
         availableContracts={[{ value: "ctr-9", label: "CT 099/2026" }]}
+        draft={{
+          councilLabel: "CRQ18",
+          processLabel: "12/2027 — Material de expediente",
+          materials: [{ value: "mat-1", label: "Papel A4" }],
+          suppliers: [{ value: "sup-1", label: "Papelaria Central Ltda", cnpj: null }],
+        }}
       />,
     );
 
-    expect(html).toContain("Vincular ata");
+    expect(html).toContain("Anexar ata");
     expect(html).toContain("ARP 099/2026");
-    expect(html).toContain("Vincular contrato");
+    expect(html).toContain("Anexar contrato");
     expect(html).toContain("CT 099/2026");
-    expect(html).toContain("/atas/novo?processId=proc-1");
-    expect(html).toContain("/contratos/novo?processId=proc-1");
+    expect(html).toContain("Número da ata");
+    expect(html).toContain("Confirmar e cadastrar contrato");
+    expect(html).toContain("12/2027 — Material de expediente");
+    expect(html.indexOf("1. Ata de registro de preços")).toBeLessThan(html.indexOf("2. Contrato"));
   });
 
   it("renderiza cards elegantes com links, vigência e valores para atas e contratos vinculados", () => {

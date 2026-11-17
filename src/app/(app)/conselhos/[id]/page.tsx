@@ -109,7 +109,7 @@ async function CouncilContent({ params }: { params: Promise<{ id: string }> }) {
                   </a>
                 ) : null}
                 <Link
-                  href={`/meu-conselho?councilId=${council.id}`}
+                  href={`/dashboard?councilId=${council.id}`}
                   className={buttonVariants({ variant: "outline" })}
                 >
                   <ExternalLink className="mr-1.5 size-4" />

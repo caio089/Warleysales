@@ -35,10 +35,12 @@ vi.mock("@/modules/processes/actions", () => ({
 vi.mock("@/modules/atas/actions", () => ({
   linkAtaProcessFormAction: vi.fn(),
   ataStepFormAction: vi.fn(),
+  createAtaFormAction: vi.fn(),
 }));
 
 vi.mock("@/modules/contracts/actions", () => ({
   linkContractProcessFormAction: vi.fn(),
+  createContractFormAction: vi.fn(),
 }));
 
 import { ProcessView, type ProcessViewProps } from "./process-view";
@@ -124,7 +126,7 @@ describe("ProcessView", () => {
 
     expect(html).toContain('role="tablist"');
     expect(html).toContain("Documentação (7+N)");
-    expect(html).toContain("Contratação &amp; Atas");
+    expect(html).toContain("Atas e contratos");
     expect(html).toContain("Governança &amp; Histórico");
   });
 

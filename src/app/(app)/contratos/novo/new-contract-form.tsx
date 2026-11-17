@@ -16,14 +16,17 @@ export function NewContractForm({
   processes,
   suppliers,
   defaultProcessId = "",
+  lockedProcess,
 }: {
   councils: Option[];
   processes: ProcessOption[];
   suppliers: SupplierOption[];
   defaultProcessId?: string;
+  /** Dentro do processo, órgão e pasta já estão definidos. */
+  lockedProcess?: { councilId: string; councilLabel: string; processId: string; processLabel: string };
 }) {
   const initial = processes.find((process) => process.value === defaultProcessId);
-  const [councilId, setCouncilId] = useState(initial?.councilId ?? "");
+  const [councilId, setCouncilId] = useState(lockedProcess?.councilId ?? initial?.councilId ?? "");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [extracted, setExtracted] = useState<ExtractedContract | null>(null);
   const [supplierId, setSupplierId] = useState("");
@@ -65,10 +68,22 @@ export function NewContractForm({
         <Button type="button" variant="outline" disabled={!pdfFile || reading} onClick={readPdf}>{reading ? "Lendo PDF…" : "Ler PDF"}</Button>
         {message ? <p role="status" className="text-sm text-muted-foreground">{message}</p> : null}
       </section>
-      <ActionForm action={createContractFormAction} submitLabel="Confirmar e cadastrar contrato">
+      <ActionForm
+        action={createContractFormAction}
+        submitLabel="Confirmar e cadastrar contrato"
+        hiddenFields={lockedProcess ? {
+          councilId: lockedProcess.councilId,
+          processId: lockedProcess.processId,
+          returnTo: `/processos/${lockedProcess.processId}`,
+        } : undefined}
+      >
       {(e) => (<>
-        <SelectField name="councilId" label="Órgão" required options={councils} defaultValue={councilId} errors={e.councilId} onChange={setCouncilId} />
-        <SelectField key={`${councilId || "todos"}-${defaultProcessId}`} name="processId" label="Processo" options={visibleProcesses} optional placeholder="Sem processo" defaultValue={visibleProcesses.some((process) => process.value === defaultProcessId) ? defaultProcessId : ""} hint="Use o mesmo processo da ata para os dois ficarem ligados." errors={e.processId} />
+        {lockedProcess ? (
+          <p className="text-sm text-muted-foreground">Órgão {lockedProcess.councilLabel}. Processo {lockedProcess.processLabel}. O contrato fica nesta pasta, depois da ata.</p>
+        ) : (<>
+          <SelectField name="councilId" label="Órgão" required options={councils} defaultValue={councilId} errors={e.councilId} onChange={setCouncilId} />
+          <SelectField key={`${councilId || "todos"}-${defaultProcessId}`} name="processId" label="Processo" options={visibleProcesses} optional placeholder="Sem processo" defaultValue={visibleProcesses.some((process) => process.value === defaultProcessId) ? defaultProcessId : ""} hint="Use o mesmo processo da ata para os dois ficarem ligados." errors={e.processId} />
+        </>)}
         <SelectField key={`supplier-${supplierId}`} name="supplierId" label="Fornecedor existente" options={suppliers} optional placeholder="Cadastrar pelo nome abaixo" defaultValue={supplierId} onChange={setSupplierId} errors={e.supplierId} />
         <TextField key={`name-${extracted?.supplierName ?? ""}`} name="supplierName" label="Empresa/fornecedor (se novo)" defaultValue={extracted?.supplierName ?? ""} hint="Se não selecionar um fornecedor existente, este nome será cadastrado ao confirmar." errors={e.supplierName} />
         <TextField key={`cnpj-${extracted?.supplierCnpj ?? ""}`} name="supplierCnpj" label="CNPJ (se novo)" defaultValue={extracted?.supplierCnpj ?? ""} errors={e.supplierCnpj} />

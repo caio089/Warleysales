@@ -157,14 +157,14 @@ export function FormalizationCard({
               Formalização da Contratação
             </h2>
             <p className="text-sm text-muted-foreground">
-              A conclusão só libera depois da ata e do contrato deste processo.
+              A conclusão só libera depois da ata e, em seguida, do contrato deste processo.
             </p>
           </div>
           <StatusBadge label="Falta anexar instrumentos" tone="warning" />
         </div>
         <div className="rounded-xl border border-dashed border-border/80 bg-secondary/30 p-4">
           <p className="text-sm font-medium text-foreground">
-            Vincule uma ata e um contrato para concluir a contratação.
+            Primeiro anexe ou crie a ata. Depois anexe ou crie o contrato.
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             Use os campos acima para anexar os instrumentos. O fornecedor, o pregão e a liberação do estoque ficam disponíveis depois disso.

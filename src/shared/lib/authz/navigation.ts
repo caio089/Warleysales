@@ -3,11 +3,11 @@ import {
   ArrowLeftRight,
   BarChart3,
   Building2,
+  Calendar,
   CalendarDays,
   FileSignature,
   FileText,
   History,
-  Home,
   LayoutDashboard,
   Package,
   ScrollText,
@@ -55,12 +55,12 @@ const ALL_ROLES: CouncilRole[] = ["council_manager", "council_operator", "viewer
 export const NAV_ITEMS: NavItem[] = [
   // ── Acompanhamento Geral ──────────────────────────────────────────────
   { label: "Visão geral",   href: "/dashboard",    icon: LayoutDashboard, allowedRoles: ALL_ROLES, group: "acompanhamento" },
-  { label: "Meu painel",    href: "/meu-conselho", icon: Home,            allowedRoles: ALL_ROLES, group: "acompanhamento" },
   { label: "Órgãos e empresas", href: "/conselhos", icon: Building2,      allowedRoles: [], centralOnly: true, group: "acompanhamento" },
   { label: "Solicitações",  href: "/solicitacoes", icon: ShoppingCart,    allowedRoles: ALL_ROLES, group: "acompanhamento" },
   { label: "Processos",     href: "/processos",    icon: FileText,        allowedRoles: ALL_ROLES, group: "acompanhamento" },
-  { label: "Contratos",     href: "/contratos",    icon: FileSignature,   allowedRoles: ALL_ROLES, group: "acompanhamento" },
   { label: "Atas",          href: "/atas",         icon: ScrollText,      allowedRoles: ALL_ROLES, group: "acompanhamento" },
+  { label: "Contratos",     href: "/contratos",    icon: FileSignature,   allowedRoles: ALL_ROLES, group: "acompanhamento" },
+  { label: "Calendário",    href: "/calendario",   icon: Calendar,        allowedRoles: ALL_ROLES, group: "acompanhamento" },
   { label: "Fornecedores",  href: "/fornecedores", icon: Truck,           allowedRoles: ALL_ROLES, group: "acompanhamento" },
   { label: "Reuniões",      href: "/reunioes",     icon: CalendarDays,    allowedRoles: ALL_ROLES, group: "acompanhamento" },
 

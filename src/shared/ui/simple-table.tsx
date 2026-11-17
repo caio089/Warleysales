@@ -47,15 +47,35 @@ export interface SimpleColumn {
   sortable?: boolean;
 }
 
+interface SimpleFilter {
+  key: string;
+  label: string;
+  dictionary?: StatusDictionary;
+  /** Ordem preferida. O que não estiver na lista vai para o fim, em ordem alfabética. */
+  optionOrder?: readonly string[];
+}
+
 interface SimpleTableProps {
   caption: string;
   rows: SimpleRow[];
   columns: SimpleColumn[];
-  /** Filtros por valor exato de uma coluna. */
-  filterKeys?: { key: string; label: string; dictionary?: StatusDictionary }[];
+  /** Filtros por valor exato de uma coluna. A coluna não precisa aparecer na tabela. */
+  filterKeys?: SimpleFilter[];
+  pageSize?: number;
   emptyTitle?: string;
   emptyDescription?: string;
   emptyAction?: ReactNode;
+}
+
+function orderedFilterValues(values: string[], optionOrder?: readonly string[]): string[] {
+  if (!optionOrder?.length) return [...values].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  const rank = new Map(optionOrder.map((value, index) => [value, index]));
+  return [...values].sort((a, b) => {
+    const left = rank.get(a) ?? optionOrder.length;
+    const right = rank.get(b) ?? optionOrder.length;
+    if (left !== right) return left - right;
+    return a.localeCompare(b, "pt-BR");
+  });
 }
 
 function renderCell(column: SimpleColumn, row: SimpleRow) {
@@ -81,7 +101,7 @@ function renderCell(column: SimpleColumn, row: SimpleRow) {
 }
 
 /** Tabela de leitura com busca/ordenação/paginação, configurada apenas por dados serializáveis. */
-export function SimpleTable({ caption, rows, columns, filterKeys = [], emptyTitle, emptyDescription, emptyAction }: SimpleTableProps) {
+export function SimpleTable({ caption, rows, columns, filterKeys = [], pageSize, emptyTitle, emptyDescription, emptyAction }: SimpleTableProps) {
   const tableColumns: DataTableColumn<SimpleRow>[] = columns.map((c) => ({
     key: c.key,
     header: c.header,
@@ -91,7 +111,10 @@ export function SimpleTable({ caption, rows, columns, filterKeys = [], emptyTitl
   }));
 
   const filters: FilterDefinition<SimpleRow>[] = filterKeys.map((f) => {
-    const values = [...new Set(rows.map((r) => String(r[f.key] ?? "")).filter(Boolean))].sort();
+    const values = orderedFilterValues(
+      [...new Set(rows.map((r) => String(r[f.key] ?? "")).filter(Boolean))],
+      f.optionOrder,
+    );
     return {
       id: f.key,
       label: f.label,
@@ -100,5 +123,5 @@ export function SimpleTable({ caption, rows, columns, filterKeys = [], emptyTitl
     };
   });
 
-  return <DataTable caption={caption} data={rows} columns={tableColumns} getRowId={(r) => r.id} filters={filters} emptyTitle={emptyTitle} emptyDescription={emptyDescription} emptyAction={emptyAction} />;
+  return <DataTable caption={caption} data={rows} columns={tableColumns} getRowId={(r) => r.id} filters={filters} pageSize={pageSize} emptyTitle={emptyTitle} emptyDescription={emptyDescription} emptyAction={emptyAction} />;
 }

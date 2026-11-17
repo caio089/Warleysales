@@ -12,11 +12,13 @@ import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { getSession } from "@/server/session";
 import { formatCurrency, formatPercent } from "@/shared/lib/format";
+import { can } from "@/shared/lib/authz/policy";
 import { ok } from "@/shared/lib/result";
 import { KpiCard } from "@/shared/ui/kpi-card";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader, SectionLabel } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
+import { CouncilWorkspace } from "./council-workspace";
 import { BriefingCard, BriefingFallback } from "./briefing-card";
 import { DashboardFilters } from "./filters";
 import { FormalizationQueue, type PendingFormalizationItem } from "./formalization-queue";
@@ -60,6 +62,7 @@ async function DashboardContent({
       suppliersRes,
       processesRes,
       pendingOrdersRes,
+      councilOrdersRes,
     ] = await Promise.all([
       ctx.services.reports.dashboard(ctx.actor, { councilId }),
       ctx.services.notifications.listMine(ctx.actor),
@@ -74,6 +77,7 @@ async function DashboardContent({
       ctx.actor.isCentralAdmin
         ? ctx.services.orders.list(ctx.actor, { status: "pendente", ...(councilId ? { councilId } : {}) })
         : Promise.resolve(ok([])),
+      ctx.services.orders.list(ctx.actor, councilId ? { councilId } : {}),
     ]);
     if (!dash.ok) return dash;
     if (!alerts.ok) return alerts;
@@ -84,6 +88,9 @@ async function DashboardContent({
     if (!pendingFormalizations.ok) return pendingFormalizations;
     if (!savingsSummary.ok) return savingsSummary;
     if (!pendingOrdersRes.ok) return pendingOrdersRes;
+    if (!councilOrdersRes.ok) return councilOrdersRes;
+
+    const actionCouncilId = councilId ?? (lookups.data.councils.length === 1 ? lookups.data.councils[0]!.id : null);
 
     const suppliers = suppliersRes.ok ? suppliersRes.data : [];
     const processes = processesRes.ok ? processesRes.data : [];
@@ -123,6 +130,13 @@ async function DashboardContent({
       })),
     }));
 
+    const workspaceOrders = actionCouncilId
+      ? councilOrdersRes.data.filter((order) => order.councilId === actionCouncilId)
+      : [];
+    const workspaceStock = actionCouncilId
+      ? stockLevels.data.filter((level) => level.councilId === actionCouncilId)
+      : [];
+
     return ok({
       dash: dash.data,
       alerts: alerts.data,
@@ -134,6 +148,25 @@ async function DashboardContent({
       pendingOrderQueue,
       savingsSummary: savingsSummary.data,
       isWarley: ctx.actor.isCentralAdmin,
+      workspace: actionCouncilId
+        ? {
+            councilId: actionCouncilId,
+            councilLabel: lookups.data.councilLabel[actionCouncilId] ?? "Órgão",
+            stockLevels: workspaceStock,
+            orders: workspaceOrders,
+            availableStock: workspaceStock
+              .filter((level) => level.available > 0)
+              .map((level) => ({
+                materialId: level.materialId,
+                materialName: lookups.data.materialLabel[level.materialId] ?? level.materialId,
+                available: level.available,
+              })),
+            canCreateRequest: can(ctx.actor, "request.create", actionCouncilId),
+            canCreateProcess: can(ctx.actor, "process.create", actionCouncilId),
+            canManageMeeting: can(ctx.actor, "meeting.manage", actionCouncilId),
+            canCreateOrder: can(ctx.actor, "stock.move", actionCouncilId),
+          }
+        : null,
     });
   });
 
@@ -153,6 +186,7 @@ async function DashboardContent({
         pendingOrderQueue,
         savingsSummary,
         isWarley,
+        workspace,
       }) => {
         const councilLabel = councilId ? (lookups.councilLabel[councilId] ?? null) : null;
 
@@ -275,6 +309,26 @@ async function DashboardContent({
               <BriefingCard facts={facts} />
             </Suspense>
 
+            {workspace ? (
+              <CouncilWorkspace
+                councilId={workspace.councilId}
+                councilLabel={workspace.councilLabel}
+                stockLevels={workspace.stockLevels}
+                orders={workspace.orders}
+                availableStock={workspace.availableStock}
+                materialLabelMap={lookups.materialLabel}
+                materialNameMap={lookups.materialName}
+                canCreateRequest={workspace.canCreateRequest}
+                canCreateProcess={workspace.canCreateProcess}
+                canManageMeeting={workspace.canManageMeeting}
+                canCreateOrder={workspace.canCreateOrder}
+              />
+            ) : (
+              <p className="rounded-xl border border-dashed border-border/80 bg-secondary/40 px-4 py-3 text-sm text-muted-foreground">
+                Escolha um órgão no filtro para criar solicitação, abrir processo e pedir material.
+              </p>
+            )}
+
             {/* Grid Estratégico de Indicadores-Chave (4 KPIs Mestres) */}
             <section aria-label="Indicadores Prioritários" className="space-y-3">
               <SectionLabel>Indicadores Estratégicos da Operação</SectionLabel>
@@ -378,11 +432,11 @@ async function DashboardHeading() {
   return (
     <PageHeader
       eyebrow={central ? "Central do Warley" : "Visão do órgão"}
-      title={central ? "Painel de Controle Operacional" : "Visão geral"}
+      title="Visão geral"
       description={
         central
-          ? "Acompanhamento integrado de órgãos parceiros, demandas de materiais, entregas pendentes e estoque em tempo real."
-          : "Solicitações, estoque e prazos do seu órgão. As ações do dia ficam em Meu painel."
+          ? "Acompanhamento dos órgãos, filas da central e as ações do órgão escolhido no filtro."
+          : "Solicitações, estoque, prazos e as ações do seu órgão no mesmo lugar."
       }
     />
   );

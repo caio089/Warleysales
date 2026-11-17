@@ -8,7 +8,7 @@ import { fail, ok, type Result } from "@/shared/lib/result";
 import type { ActionState } from "@/shared/ui/forms/action-state";
 
 const INSTRUMENTS_REQUIRED =
-  "Vincule uma ata e um contrato a este processo antes de concluir a contratação.";
+  "Crie ou anexe primeiro a ata e depois o contrato deste processo antes de concluir a contratação.";
 
 async function assertInstrumentsLinked(
   services: Services,

@@ -146,7 +146,7 @@ export function buildCouncilActions(input: {
       disabled: !input.canCreateProcess,
     },
     {
-      href: `/meu-conselho${q}#agendar-reuniao`,
+      href: `/dashboard${q}#agendar-reuniao`,
       title: "Agendar reunião",
       detail: "Marcar alinhamento com Warley",
       icon: Calendar,

@@ -15,6 +15,7 @@ import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { SimpleTable } from "@/shared/ui/simple-table";
+import { MONTH_ORDER, NATUREZA_ORDER, ORIGIN_ORDER, PRIORITY_ORDER, requestFacets, VALUE_BAND_ORDER } from "./request-facets";
 
 export const metadata: Metadata = { title: "Solicitações" };
 
@@ -65,23 +66,45 @@ async function Content() {
           <FlowGuide title="Fluxo em 4 passos" steps={REQUEST_FLOW_STEPS} />
           <SimpleTable
             caption="Solicitações de compra"
-            rows={requests.map((r) => ({
-              id: r.id,
-              title: r.title,
-              council: lookups.councilLabel[r.councilId] ?? "—",
-              status: r.status,
-              items: r.items.length,
-              createdAt: r.createdAt.toISOString(),
-              href: `/solicitacoes/${r.id}`,
-            }))}
+            pageSize={20}
+            rows={requests.map((r) => {
+              const facets = requestFacets(r.events.map((event) => event.note), r.estimatedValue);
+              return {
+                id: r.id,
+                title: r.title,
+                council: lookups.councilLabel[r.councilId] ?? "—",
+                status: r.status,
+                priority: facets.priority,
+                group: facets.group,
+                plannedMonth: facets.plannedMonth,
+                valueBand: facets.valueBand,
+                origin: facets.origin,
+                natureza: facets.natureza,
+                estimatedValue: r.estimatedValue ?? null,
+                items: r.items.length,
+                createdAt: r.createdAt.toISOString(),
+                href: `/solicitacoes/${r.id}`,
+              };
+            })}
             columns={[
               { key: "title", header: "Solicitação", kind: "link", hrefKey: "href" },
               { key: "council", header: "Órgão" },
               { key: "status", header: "Status", kind: "status", dictionary: "request" },
-              { key: "items", header: "Itens", kind: "number" },
+              { key: "priority", header: "Prioridade" },
+              { key: "plannedMonth", header: "Mês previsto" },
+              { key: "estimatedValue", header: "Valor estimado", kind: "currency" },
               { key: "createdAt", header: "Criada em", kind: "datetime" },
             ]}
-            filterKeys={[{ key: "status", label: "Status", dictionary: "request" }]}
+            filterKeys={[
+              { key: "council", label: "Órgão" },
+              { key: "natureza", label: "O que é", optionOrder: NATUREZA_ORDER },
+              { key: "status", label: "Status", dictionary: "request" },
+              { key: "origin", label: "Origem", optionOrder: ORIGIN_ORDER },
+              { key: "priority", label: "Prioridade", optionOrder: PRIORITY_ORDER },
+              { key: "group", label: "Grupo do plano" },
+              { key: "plannedMonth", label: "Mês previsto", optionOrder: MONTH_ORDER },
+              { key: "valueBand", label: "Faixa de valor", optionOrder: VALUE_BAND_ORDER },
+            ]}
             emptyTitle="Nenhuma solicitação ainda"
             emptyDescription="Comece criando uma solicitação. Depois é só enviar → aprovar → receber no estoque."
             emptyAction={

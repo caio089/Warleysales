@@ -13,6 +13,8 @@ import {
   presentationOf,
 } from "@/shared/ui/status-presentation";
 import type { FormalizationSupplier } from "./formalization-card";
+import { PlanDossierCard } from "@/app/(app)/solicitacoes/plan-dossier-card";
+import { planDossier } from "@/app/(app)/solicitacoes/request-facets";
 import { ProcessHeader } from "./process-header";
 import {
   ContractingTab,
@@ -40,10 +42,17 @@ export interface ProcessViewProps {
   defaultEstimatedValue: number | null;
   requestId: string | null;
   requestItems: Array<{ materialId: string; name: string; quantity: number }>;
+  requestNotes?: string[];
   linkedAtas: LinkedAtaItem[];
   linkedContracts: LinkedContractItem[];
   availableAtas?: { value: string; label: string }[];
   availableContracts?: { value: string; label: string }[];
+  instrumentDraft?: {
+    councilLabel: string;
+    processLabel: string;
+    materials: { value: string; label: string }[];
+    suppliers: { value: string; label: string; cnpj: string | null }[];
+  };
   initialTab?: ProcessTabId;
 }
 
@@ -58,7 +67,7 @@ interface TabDefinition {
  * Componente principal da visualização de processos em abas executivas.
  * Unifica cabeçalho com 4 métricas rápidas e 3 abas focadas:
  * 1. Documentação (7+N)
- * 2. Contratação & Atas
+ * 2. Atas e contratos
  * 3. Governança & Histórico
  */
 export function ProcessView({
@@ -74,10 +83,12 @@ export function ProcessView({
   defaultEstimatedValue,
   requestId,
   requestItems,
+  requestNotes = [],
   linkedAtas,
   linkedContracts,
   availableAtas = [],
   availableContracts = [],
+  instrumentDraft,
   initialTab = "documentos",
 }: ProcessViewProps) {
   const [activeTab, setActiveTab] = useState<ProcessTabId>(initialTab);
@@ -94,6 +105,10 @@ export function ProcessView({
   const quantity = requestItems.reduce((total, item) => total + item.quantity, 0);
   const initialValue =
     defaultEstimatedValue ?? formalization?.estimatedValue ?? null;
+  const dossier = planDossier(requestNotes, initialValue, productName);
+  const planSummary = dossier.itemNumber
+    ? `Item ${dossier.itemNumber} do PCA. ${dossier.contractingForm}. Concluir em ${dossier.plannedMonth}. Vencimento atual: ${dossier.expiry?.raw ?? "não informado"}.`
+    : "";
   const documentsReady = view.progress.isComplete;
   const readyToRelease =
     documentsReady &&
@@ -118,7 +133,7 @@ export function ProcessView({
     },
     {
       id: "contratacao",
-      label: "Contratação & Atas",
+      label: "Atas e contratos",
       icon: Handshake,
       badge: totalLinkedInstruments > 0 ? String(totalLinkedInstruments) : undefined,
     },
@@ -135,7 +150,7 @@ export function ProcessView({
       <ProcessHeader
         processNumber={view.process.number}
         productName={productName}
-        description={productName !== view.process.title ? view.process.title : ""}
+        description={planSummary || (productName !== view.process.title ? view.process.title : "")}
         statusLabel={status.label}
         statusTone={status.tone}
         completionLabel={completion.label}
@@ -147,6 +162,8 @@ export function ProcessView({
         displayPercent={view.displayPercent}
         releaseStatusText={releaseStatusText}
       />
+
+      <PlanDossierCard dossier={dossier} objectText={productName} />
 
       {/* 2. Barra de Navegação por Abas */}
       <nav
@@ -225,7 +242,7 @@ export function ProcessView({
           )}
         </div>
 
-        {/* Aba 2: Contratação & Atas */}
+        {/* Aba 2: Atas e, em seguida, contratos */}
         <div
           role="tabpanel"
           id="panel-contratacao"
@@ -249,6 +266,7 @@ export function ProcessView({
               availableAtas={availableAtas}
               availableContracts={availableContracts}
               canLink={canManage}
+              draft={instrumentDraft}
             />
           )}
         </div>

@@ -12,6 +12,13 @@ const optionalId = (value: FormDataEntryValue | null) => {
   return text || null;
 };
 
+/** Só aceita voltar para a pasta do processo que originou o cadastro. */
+function processReturnPath(formData: FormData): string | null {
+  const raw = String(formData.get("returnTo") ?? "").trim();
+  if (!/^\/processos\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) return null;
+  return `${raw}?aba=contratacao`;
+}
+
 export async function createAtaFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
   const materialId = String(formData.get("materialId") ?? "");
   const result = await runAction(({ services, actor }) => services.atas.create(actor, {
@@ -26,6 +33,11 @@ export async function createAtaFormAction(_previous: ActionState, formData: Form
   }), "Ata criada como rascunho.");
   if (result.status !== "success" || !result.data) return result.status === "success" ? result : result;
   revalidatePath("/atas");
+  const backToProcess = processReturnPath(formData);
+  if (backToProcess) {
+    revalidatePath(backToProcess.split("?")[0] ?? backToProcess);
+    redirect(backToProcess);
+  }
   redirect(`/atas/${result.data.id}`);
 }
 

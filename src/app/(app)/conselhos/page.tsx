@@ -195,7 +195,7 @@ async function CouncilsContent() {
                         Visão 360°
                       </Link>
                       <Link
-                        href={`/meu-conselho?councilId=${c.id}`}
+                        href={`/dashboard?councilId=${c.id}`}
                         className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary"
                         title="Ver como a organização enxerga o painel"
                       >

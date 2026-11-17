@@ -15,7 +15,9 @@ import { StatusBadge } from "@/shared/ui/status-badge";
 import { REQUEST_STATUS, presentationOf } from "@/shared/ui/status-presentation";
 import { SimpleTable } from "@/shared/ui/simple-table";
 import { LinkedProcessCard } from "./linked-process-card";
+import { PlanDossierCard } from "../plan-dossier-card";
 import { RequestActions } from "./request-actions";
+import { planDossier } from "../request-facets";
 
 export const metadata: Metadata = { title: "Solicitação" };
 
@@ -49,6 +51,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
       {({ request, lookups, linkedProcess, canDecide, canCreate, canReceive }) => {
         const status = presentationOf(REQUEST_STATUS, request.status);
         const next = requestNextStep(request.status, { canCreate, canDecide, canReceive });
+        const dossier = planDossier(request.events.map((event) => event.note), request.estimatedValue, request.title);
         const pendingItems = request.items
           .filter((i) => i.quantity - i.receivedTotal > 0)
           .map((i) => ({
@@ -63,12 +66,17 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
               backHref="/solicitacoes"
               backLabel="Todas as solicitações"
               title={request.title}
-              description={`Órgão ${lookups.councilLabel[request.councilId] ?? "—"} · siga o próximo passo abaixo`}
+              description={
+                dossier.itemNumber
+                  ? `${lookups.councilLabel[request.councilId] ?? "Órgão"} · item ${dossier.itemNumber} do PCA · concluir em ${dossier.plannedMonth} · vencimento ${dossier.expiry?.raw ?? "não informado"}`
+                  : `Órgão ${lookups.councilLabel[request.councilId] ?? "—"} · siga o próximo passo abaixo`
+              }
               actions={<StatusBadge label={status.label} tone={status.tone} />}
             />
             <LifecycleRail steps={[...REQUEST_LIFECYCLE]} currentKey={requestRailKey(request.status)} />
             <NextStepCallout {...next} />
             <div className="space-y-8">
+              <PlanDossierCard dossier={dossier} objectText={request.title} />
               {linkedProcess ? <LinkedProcessCard processView={linkedProcess} /> : null}
               <SimpleTable
                 caption="Itens da solicitação"

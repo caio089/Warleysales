@@ -11,6 +11,13 @@ import type { ActionState } from "@/shared/ui/forms/action-state";
 const optionalNumber = (v: FormDataEntryValue | null) => (String(v ?? "").trim() ? Number(String(v).replace(",", ".")) : undefined);
 const optionalText = (v: FormDataEntryValue | null) => (String(v ?? "").trim() ? String(v) : undefined);
 
+/** Só aceita voltar para a pasta do processo que originou o cadastro. */
+function processReturnPath(formData: FormData): string | null {
+  const raw = String(formData.get("returnTo") ?? "").trim();
+  if (!/^\/processos\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) return null;
+  return `${raw}?aba=contratacao`;
+}
+
 export async function createContractFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
   const input = {
     councilId: formData.get("councilId"), number: formData.get("number"), object: formData.get("object"),
@@ -46,6 +53,11 @@ export async function createContractFormAction(_previous: ActionState, formData:
   }, "Contrato cadastrado.");
   if (result.status !== "success" || !result.data) return result.status === "success" ? result : result;
   revalidatePath("/contratos");
+  const backToProcess = processReturnPath(formData);
+  if (backToProcess) {
+    revalidatePath(backToProcess.split("?")[0] ?? backToProcess);
+    redirect(backToProcess);
+  }
   redirect(`/contratos/${result.data.id}`);
 }
 

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { ExternalLink, FileCheck2, ScrollText } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
+import { NewAtaForm } from "@/app/(app)/atas/nova/new-ata-form";
+import { NewContractForm } from "@/app/(app)/contratos/novo/new-contract-form";
 import { formatCurrency } from "@/shared/lib/format";
 import { formatDateOnly } from "@/shared/lib/time";
 import { LinkAtaToProcessForm, LinkContractToProcessForm } from "@/shared/ui/forms/link-process-form";
@@ -44,6 +45,13 @@ export interface ContractingTabProps {
   availableAtas?: { value: string; label: string }[];
   availableContracts?: { value: string; label: string }[];
   canLink?: boolean;
+  /** Dados para criar ata e contrato sem sair deste processo. */
+  draft?: {
+    councilLabel: string;
+    processLabel: string;
+    materials: { value: string; label: string }[];
+    suppliers: { value: string; label: string; cnpj: string | null }[];
+  };
 }
 
 /** Aba 2 — Contratação: Instrumentos contratuais vinculados (Atas e Contratos) + Formulário de Formalização. */
@@ -62,6 +70,7 @@ export function ContractingTab({
   availableAtas = [],
   availableContracts = [],
   canLink = false,
+  draft,
 }: ContractingTabProps) {
   const instrumentsReady = linkedAtas.length > 0 && linkedContracts.length > 0;
   return (
@@ -81,21 +90,18 @@ export function ContractingTab({
                 Instrumentos Contratuais Vinculados
               </h2>
               <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-                Anexe uma ata e um contrato deste processo. A contratação só conclui com os dois vinculados.
+                Primeiro a ata. Depois o contrato. Os dois podem ser criados aqui ou anexados se já existirem no órgão.
               </p>
             </div>
           </div>
         </header>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* Bloco 1: Atas de Registro de Preços */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <ScrollText className="size-3.5 text-primary" aria-hidden="true" />
-                Atas de Registro de Preços ({linkedAtas.length})
-              </h3>
-            </div>
+        <ol className="space-y-8">
+          <li className="space-y-3">
+            <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              <ScrollText className="size-4 text-primary" aria-hidden="true" />
+              1. Ata de registro de preços ({linkedAtas.length})
+            </h3>
             {linkedAtas.length > 0 ? (
               <div className="space-y-2.5">
                 {linkedAtas.map((ata) => (
@@ -139,27 +145,38 @@ export function ContractingTab({
               </div>
             )}
             {canLink ? (
-              <div className="space-y-3">
+              <div className="space-y-4 rounded-xl border border-border/70 bg-muted/10 p-4">
                 {availableAtas.length > 0 ? (
-                  <LinkAtaToProcessForm processId={processId} atas={availableAtas} />
+                  <LinkAtaToProcessForm processId={processId} atas={availableAtas} submitLabel="Anexar ata" />
                 ) : (
-                  <p className="text-xs text-muted-foreground">Nenhuma ata livre deste órgão para vincular.</p>
+                  <p className="text-xs text-muted-foreground">Não há ata livre deste órgão para anexar.</p>
                 )}
-                <Link href={`/atas/novo?processId=${processId}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  Criar ata deste processo
-                </Link>
+                {draft ? (
+                  <NewAtaForm
+                    councils={[]}
+                    materials={draft.materials}
+                    processes={[]}
+                    lockedProcess={{
+                      councilId,
+                      councilLabel: draft.councilLabel,
+                      processId,
+                      processLabel: draft.processLabel,
+                    }}
+                  />
+                ) : (
+                  <Link href={`/atas/novo?processId=${processId}`} className="text-sm font-medium text-primary hover:underline">
+                    Criar ata deste processo
+                  </Link>
+                )}
               </div>
             ) : null}
-          </div>
+          </li>
 
-          {/* Bloco 2: Contratos Administrativos */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <FileCheck2 className="size-3.5 text-primary" aria-hidden="true" />
-                Contratos Administrativos ({linkedContracts.length})
-              </h3>
-            </div>
+          <li className="space-y-3">
+            <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              <FileCheck2 className="size-4 text-primary" aria-hidden="true" />
+              2. Contrato ({linkedContracts.length})
+            </h3>
             {linkedContracts.length > 0 ? (
               <div className="space-y-2.5">
                 {linkedContracts.map((contract) => (
@@ -212,19 +229,33 @@ export function ContractingTab({
               </div>
             )}
             {canLink ? (
-              <div className="space-y-3">
+              <div className="space-y-4 rounded-xl border border-border/70 bg-muted/10 p-4">
                 {availableContracts.length > 0 ? (
-                  <LinkContractToProcessForm processId={processId} contracts={availableContracts} />
+                  <LinkContractToProcessForm processId={processId} contracts={availableContracts} submitLabel="Anexar contrato" />
                 ) : (
-                  <p className="text-xs text-muted-foreground">Nenhum contrato livre deste órgão para vincular.</p>
+                  <p className="text-xs text-muted-foreground">Não há contrato livre deste órgão para anexar.</p>
                 )}
-                <Link href={`/contratos/novo?processId=${processId}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  Criar contrato deste processo
-                </Link>
+                {draft ? (
+                  <NewContractForm
+                    councils={[]}
+                    processes={[]}
+                    suppliers={draft.suppliers}
+                    lockedProcess={{
+                      councilId,
+                      councilLabel: draft.councilLabel,
+                      processId,
+                      processLabel: draft.processLabel,
+                    }}
+                  />
+                ) : (
+                  <Link href={`/contratos/novo?processId=${processId}`} className="text-sm font-medium text-primary hover:underline">
+                    Criar contrato deste processo
+                  </Link>
+                )}
               </div>
             ) : null}
-          </div>
-        </div>
+          </li>
+        </ol>
       </section>
 
       {/* Seção Principal: Formalização da Contratação */}

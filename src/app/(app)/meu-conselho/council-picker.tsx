@@ -18,7 +18,7 @@ export function CouncilPicker({ councils, councilId }: CouncilPickerProps) {
       <select
         className="h-11 rounded-xl border border-input bg-card px-3 text-sm font-medium text-foreground shadow-sm focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
         value={councilId}
-        onChange={(event) => router.push(`/meu-conselho?councilId=${event.target.value}`)}
+        onChange={(event) => router.push(`/dashboard?councilId=${event.target.value}`)}
       >
         {councils.map((c) => (
           <option key={c.id} value={c.id}>

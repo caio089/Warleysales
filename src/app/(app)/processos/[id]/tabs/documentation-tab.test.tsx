@@ -57,7 +57,7 @@ describe("DocumentationTab", () => {
     it("renderiza o cabeçalho do card com título e texto contextual", () => {
       const html = renderToStaticMarkup(<DocumentationTab {...BASE_PROPS} />);
       expect(html).toContain("Documentos Obrigatórios (Lei 14.133 / PNCP)");
-      expect(html).toContain("Itens necessários para alcançar 100% de conformidade e habilitar a contratação.");
+      expect(html).toContain("Cada etapa aceita mais de um arquivo. Um arquivo válido de cada tipo já conta para a conformidade.");
     });
 
     it("renderiza todos os 7 documentos obrigatórios na ordem legal", () => {

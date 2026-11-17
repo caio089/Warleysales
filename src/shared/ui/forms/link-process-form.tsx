@@ -59,18 +59,18 @@ export function AtaStepButton({ ataId, step }: { ataId: string; step: "activate"
 }
 
 /** Na ata, escolhe um contrato e grava nele o processo já vinculado. */
-export function LinkContractToProcessForm({ processId, contracts }: { processId: string; contracts: { value: string; label: string }[] }) {
+export function LinkContractToProcessForm({ processId, contracts, submitLabel = "Vincular contrato" }: { processId: string; contracts: { value: string; label: string }[]; submitLabel?: string }) {
   return (
-    <ActionForm action={linkContractProcessFormAction} submitLabel="Vincular contrato" hiddenFields={{ processId }}>
+    <ActionForm action={linkContractProcessFormAction} submitLabel={submitLabel} hiddenFields={{ processId }}>
       {(errors) => <SelectField name="contractId" label="Contrato" required options={contracts} placeholder="Selecione o contrato…" errors={errors.contractId} />}
     </ActionForm>
   );
 }
 
 /** No contrato, escolhe uma ata e grava nela o processo já vinculado. */
-export function LinkAtaToProcessForm({ processId, atas }: { processId: string; atas: { value: string; label: string }[] }) {
+export function LinkAtaToProcessForm({ processId, atas, submitLabel = "Vincular ata" }: { processId: string; atas: { value: string; label: string }[]; submitLabel?: string }) {
   return (
-    <ActionForm action={linkAtaProcessFormAction} submitLabel="Vincular ata" hiddenFields={{ processId }}>
+    <ActionForm action={linkAtaProcessFormAction} submitLabel={submitLabel} hiddenFields={{ processId }}>
       {(errors) => <SelectField name="ataId" label="Ata" required options={atas} placeholder="Selecione a ata…" errors={errors.ataId} />}
     </ActionForm>
   );

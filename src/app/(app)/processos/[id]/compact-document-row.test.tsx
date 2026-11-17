@@ -93,6 +93,12 @@ describe("CompactDocumentRow", () => {
       expect(html).not.toContain("Desvincular");
     });
 
+    it("mantém o botão para anexar outro arquivo do mesmo tipo", () => {
+      const html = renderToStaticMarkup(<CompactDocumentRow {...VALID_ROW_PROPS} />);
+      expect(html).toContain("Anexar outro");
+      expect(html).toContain("multiple");
+    });
+
     it("não exibe a mensagem de pendência nem o dropzone gigante", () => {
       const html = renderToStaticMarkup(<CompactDocumentRow {...VALID_ROW_PROPS} />);
       expect(html).not.toContain("Nenhum arquivo anexado para esta etapa legal.");

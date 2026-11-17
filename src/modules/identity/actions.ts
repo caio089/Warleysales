@@ -3,15 +3,10 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { authUnavailable, getAuthGateway } from "@/server/auth-gateway";
-import { getSession } from "@/server/session";
 import { parseInput } from "@/shared/lib/service-support";
 import type { ActionState } from "@/shared/ui/forms/action-state";
 
 async function homeForCurrentUser(): Promise<string> {
-  const session = await getSession();
-  if (session.status === "authenticated" && !session.actor.isCentralAdmin && session.actor.memberships.length > 0) {
-    return "/meu-conselho";
-  }
   return "/dashboard";
 }
 

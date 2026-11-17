@@ -139,7 +139,7 @@ export function DocumentationTab({
             Documentos Obrigatórios (Lei 14.133 / PNCP)
           </h2>
           <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-            Itens necessários para alcançar 100% de conformidade e habilitar a contratação.
+            Cada etapa aceita mais de um arquivo. Um arquivo válido de cada tipo já conta para a conformidade.
           </p>
         </header>
 
