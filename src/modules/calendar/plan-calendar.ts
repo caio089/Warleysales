@@ -147,6 +147,15 @@ export function marksInMonth(marks: readonly CalendarMark[], year: number, month
   return marks.filter((mark) => mark.year === year && mark.month === month);
 }
 
+/** Quantidade de contratações em cada mês (0–11) de um ano. */
+export function countsByMonth(marks: readonly CalendarMark[], year: number): number[] {
+  const counts = Array.from({ length: 12 }, () => 0);
+  for (const mark of marks) {
+    if (mark.year === year) counts[mark.month] = (counts[mark.month] ?? 0) + 1;
+  }
+  return counts;
+}
+
 /** Grade do mês começando na segunda-feira. Null é dia de outro mês. */
 export function monthWeeks(year: number, month: number): (number | null)[][] {
   const startWeekday = (new Date(Date.UTC(year, month, 1)).getUTCDay() + 6) % 7;

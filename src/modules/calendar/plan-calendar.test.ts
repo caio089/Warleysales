@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calendarMarks, monthWeeks, plannedMonthIndexes, resolveCalendarCouncil } from "./plan-calendar";
+import { calendarMarks, countsByMonth, monthWeeks, plannedMonthIndexes, resolveCalendarCouncil } from "./plan-calendar";
 
 const note = [
   "PCA 2027, item 3.",
@@ -33,6 +33,13 @@ describe("calendário do plano", () => {
     expect(resolveCalendarCouncil(["sfapi"], "outro-orgao")).toBe("sfapi");
     expect(resolveCalendarCouncil(["sfapi", "crcpi"], "crcpi")).toBe("crcpi");
     expect(resolveCalendarCouncil(["sfapi", "crcpi"], "alheio")).toBeNull();
+  });
+
+  it("conta as contratações de cada mês do ano", () => {
+    const marks = calendarMarks([{ id: "req-1", councilId: "org-1", title: "Locação", notes: [note] }]);
+    const counts = countsByMonth(marks, 2027);
+    expect(counts[9]).toBe(1);
+    expect(counts.reduce((total, count) => total + count, 0)).toBe(1);
   });
 
   it("começa a semana na segunda-feira", () => {
