@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { Building2, ChevronLeft, ChevronRight } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { buildCalendarReport } from "@/modules/calendar/calendar-report";
 import {
   MONTH_TITLE,
   PLAN_YEAR,
@@ -24,6 +25,7 @@ import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { CalendarOrgFilter } from "./calendar-org-filter";
+import { CalendarReportPanel } from "./calendar-report-panel";
 
 export const metadata: Metadata = { title: "Calendário" };
 
@@ -145,15 +147,16 @@ async function Content({ searchParams }: { searchParams: Promise<{ mes?: string;
       {({ lookups, councilId, locked, isCentralAdmin, marks }) => {
         const councilName = councilId ? lookups.councilLabel[councilId] : null;
         const counts = countsByMonth(marks, year);
+        const report = buildCalendarReport(marks, year);
         const years = [...new Set([2026, PLAN_YEAR, ...marks.map((mark) => mark.year)])].sort((left, right) => left - right);
         const monthMarks = monthView ? sortMarks(marksInMonth(marks, monthView.year, monthView.month)) : [];
         const dayMarks = monthMarks.filter((mark) => mark.day);
         const concludeCount = monthView
           ? monthMarks.filter((mark) => mark.kind === "concluir").length
-          : marks.filter((mark) => mark.year === year && mark.kind === "concluir").length;
+          : report.conclude;
         const expiryCount = monthView
           ? monthMarks.filter((mark) => mark.kind === "vencimento").length
-          : marks.filter((mark) => mark.year === year && mark.kind === "vencimento").length;
+          : report.expiry;
         const previous = monthView ? shiftMonth(monthView.year, monthView.month, -1) : null;
         const next = monthView ? shiftMonth(monthView.year, monthView.month, 1) : null;
         const weeks = monthView ? monthWeeks(monthView.year, monthView.month) : [];
@@ -172,6 +175,11 @@ async function Content({ searchParams }: { searchParams: Promise<{ mes?: string;
               description={locked
                 ? "Só as contratações do seu órgão. Cada cartão é uma data do plano: mês para concluir ou vencimento."
                 : "Cada cartão é uma contratação do plano, no mês em que ela deve ser concluída ou vence. O filtro mostra apenas órgãos que você pode acompanhar."}
+              actions={
+                <Link href="#relatorio" className={`${buttonVariants({ variant: "outline", size: "sm" })} print:hidden`}>
+                  Ver relatório
+                </Link>
+              }
             />
 
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-2.5 shadow-sm">
@@ -290,7 +298,7 @@ async function Content({ searchParams }: { searchParams: Promise<{ mes?: string;
             )}
 
             {monthView && dayMarks.length > 0 ? (
-              <section className="mt-6" aria-labelledby="dias-fechados">
+              <section className="mt-6 print:hidden" aria-labelledby="dias-fechados">
                 <h2 id="dias-fechados" className="mb-3 text-sm font-semibold text-slate-800">Dias com data fechada</h2>
                 <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
                   <div className="min-w-[720px]">
@@ -321,6 +329,12 @@ async function Content({ searchParams }: { searchParams: Promise<{ mes?: string;
                 </div>
               </section>
             ) : null}
+
+            <CalendarReportPanel
+              report={report}
+              councilLabel={lookups.councilLabel}
+              scopeLabel={councilName ?? (isCentralAdmin ? "Todos os órgãos" : "Meus órgãos")}
+            />
           </>
         );
       }}

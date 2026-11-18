@@ -15,6 +15,7 @@ import { PageHeader, SectionLabel } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { SimpleTable } from "@/shared/ui/simple-table";
+import { buildHoldRows } from "./hold-rows";
 import { MovementForm } from "./movimentacoes/movement-form";
 import { MinimumForm } from "./minimum-form";
 
@@ -54,31 +55,31 @@ async function Content() {
         }
       }
     }
-    const holds = requests.data
-      .filter((request) => request.processId)
-      .map((request) => {
-        const processId = request.processId!;
-        const view = processById.get(processId);
-        const formalization = formalizationByProcess.get(processId);
-        const status = formalization?.status === "homologado"
-          ? "disponivel"
-          : formalization?.status === "aguardando_homologacao"
-            ? "aguardando_homologacao"
-            : view?.progress.isComplete
-              ? "apto"
-              : "bloqueado";
-        const itemName = request.items.length === 1
-          ? lookups.data.materialName[request.items[0]!.materialId] ?? request.title
-          : request.title;
-        return {
-          id: request.id,
-          name: itemName,
-          council: lookups.data.councilLabel[request.councilId] ?? "—",
-          quantity: request.items.reduce((total, item) => total + item.quantity, 0),
-          status,
-          href: `/processos/${processId}`,
-        };
-      });
+    const holds = buildHoldRows(
+      requests.data
+        .filter((request) => request.processId)
+        .map((request) => {
+          const processId = request.processId!;
+          const view = processById.get(processId);
+          const formalization = formalizationByProcess.get(processId);
+          const status = formalization?.status === "homologado"
+            ? "disponivel"
+            : formalization?.status === "aguardando_homologacao"
+              ? "aguardando_homologacao"
+              : view?.progress.isComplete
+                ? "apto"
+                : "bloqueado";
+          return {
+            id: request.id,
+            title: request.title,
+            councilId: request.councilId,
+            processId,
+            status,
+            items: request.items,
+          };
+        }),
+      { council: lookups.data.councilLabel, material: lookups.data.materialName },
+    );
     return ok({
       levels: levels.data,
       lookups: lookups.data,
@@ -175,7 +176,7 @@ async function Content() {
               <div>
                 <SectionLabel>Solicitações no estoque</SectionLabel>
                 <p className="text-xs text-muted-foreground">
-                  Clique no produto para abrir a página do processo: documentos, valor inicial, atas, contratos e a liberação do estoque.
+                  Cada produto da demanda aparece em uma linha. Clique para abrir o processo: documentos, atas, contratos e a liberação do estoque.
                 </p>
               </div>
               <SimpleTable
@@ -183,8 +184,9 @@ async function Content() {
                 rows={holds}
                 columns={[
                   { key: "name", header: "Produto", kind: "link", hrefKey: "href" },
+                  { key: "quantityLabel", header: "Quantidade" },
+                  { key: "demand", header: "Demanda" },
                   { key: "council", header: "Órgão" },
-                  { key: "quantity", header: "Quantidade", kind: "number" },
                   { key: "status", header: "Status", kind: "status", dictionary: "hold" },
                 ]}
                 filterKeys={[{ key: "status", label: "Status", dictionary: "hold" }, { key: "council", label: "Órgão" }]}

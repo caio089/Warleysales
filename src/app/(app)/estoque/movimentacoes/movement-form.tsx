@@ -6,6 +6,7 @@ import { registerMovementFormAction } from "@/modules/inventory/actions";
 import { cn } from "@/lib/utils";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { SelectField, TextField } from "@/shared/ui/forms/fields";
+import { ProductField } from "./product-field";
 
 const MOVE_TYPES = [
   { value: "entry", label: "Entrada", hint: "Soma no pronto para uso" },
@@ -86,11 +87,8 @@ export function MovementForm({ councils, materials, defaultType = "entry", allow
               defaultValue={councilId}
               errors={errors.councilId}
             />
-            <SelectField
+            <ProductField
               key={`material-${materialId}`}
-              name="materialId"
-              label="Produto"
-              required
               options={materials}
               defaultValue={materialId}
               errors={errors.materialId}
