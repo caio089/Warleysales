@@ -65,7 +65,7 @@ describe("Dashboard Panels", () => {
   it("ReplenishmentPanel renderiza lista e empty state", () => {
     const emptyHtml = renderToStaticMarkup(<ReplenishmentPanel items={[]} />);
     expect(emptyHtml).toContain("Órgãos com Necessidade de Reposição");
-    expect(emptyHtml).toContain("níveis de estoque regulares");
+    expect(emptyHtml).toContain("Sem necessidade de reposição neste recorte");
 
     const filledHtml = renderToStaticMarkup(
       <ReplenishmentPanel
@@ -92,6 +92,7 @@ describe("Dashboard Panels", () => {
 
     const filledHtml = renderToStaticMarkup(
       <RecentRequestsPanel
+        pendingCount={8}
         items={[
           {
             id: "req-1",
@@ -106,6 +107,7 @@ describe("Dashboard Panels", () => {
     );
     expect(filledHtml).toContain("Aquisição de cadeiras");
     expect(filledHtml).toContain("CRM");
+    expect(filledHtml).toContain("Mostrando 1 de 8 pendentes");
   });
 
   it("AgendaAndDeadlinesPanel renderiza reunião e prazo unificados", () => {

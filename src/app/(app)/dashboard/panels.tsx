@@ -8,11 +8,9 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronRight,
-  ClipboardList,
   Inbox,
   ShoppingCart,
   Truck,
-  type LucideIcon,
 } from "lucide-react";
 import type { DashboardDeadline } from "@/modules/reports/service";
 import { formatDateTimeFortaleza } from "@/shared/lib/time";
@@ -67,9 +65,9 @@ export function ReplenishmentPanel({
         </div>
 
         {items.length === 0 ? (
-          <div className="p-8 text-center text-xs text-slate-500 flex flex-col items-center gap-2">
-            <CheckCircle2 className="size-6 text-emerald-500" />
-            <p>Todos os órgãos estão com níveis de estoque regulares acima do mínimo.</p>
+          <div className="flex items-center gap-2 px-5 py-4 text-xs text-slate-600">
+            <CheckCircle2 className="size-4 shrink-0 text-emerald-600" aria-hidden />
+            <p>Sem necessidade de reposição neste recorte.</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100 px-5">
@@ -113,8 +111,10 @@ export function ReplenishmentPanel({
 /** Painel de solicitações recentes aguardando ou em andamento */
 export function RecentRequestsPanel({
   items,
+  pendingCount = 0,
 }: {
   items: { id: string; title: string; company: string; status: string; createdAt: string; itemsCount: number }[];
+  pendingCount?: number;
 }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col justify-between h-full" aria-label="Solicitações operacionais">
@@ -126,7 +126,9 @@ export function RecentRequestsPanel({
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-900">Solicitações Operacionais</h2>
-              <p className="text-xs text-slate-500">{items.length} recentes registradas</p>
+              <p className="text-xs text-slate-500">
+                {pendingCount > 0 ? `Mostrando ${items.length} de ${pendingCount} pendentes` : `${items.length} recentes registradas`}
+              </p>
             </div>
           </div>
           <Link href="/solicitacoes" className="text-xs font-semibold text-[#0F2942] hover:underline flex items-center gap-1">
@@ -135,8 +137,8 @@ export function RecentRequestsPanel({
         </div>
 
         {items.length === 0 ? (
-          <div className="p-8 text-center text-xs text-slate-500 flex flex-col items-center gap-2">
-            <Inbox className="size-6 text-slate-400" />
+          <div className="flex items-center gap-2 px-5 py-4 text-xs text-slate-600">
+            <Inbox className="size-4 shrink-0 text-slate-500" aria-hidden />
             <p>Nenhuma solicitação operacional registrada no momento.</p>
           </div>
         ) : (
@@ -147,14 +149,14 @@ export function RecentRequestsPanel({
                 <Link
                   key={sol.id}
                   href={`/solicitacoes/${sol.id}`}
-                  className="py-3.5 flex items-center justify-between gap-4 hover:bg-slate-50/60 -mx-5 px-5 transition-colors block"
+                  className="-mx-5 flex flex-wrap items-start justify-between gap-x-3 gap-y-2 px-5 py-3 transition-colors hover:bg-slate-50/60"
                 >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                  <div className="min-w-0 flex-1 basis-48">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                      <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
                         {sol.company}
                       </span>
-                      <p className="text-sm font-semibold text-slate-800 truncate">{sol.title}</p>
+                      <p className="min-w-0 flex-1 basis-32 break-words text-sm font-semibold text-slate-800">{sol.title}</p>
                     </div>
                     <p className="text-xs text-slate-400 mt-0.5">
                       {formatDateTimeFortaleza(sol.createdAt)} · {sol.itemsCount} item(ns)
@@ -194,9 +196,9 @@ export function AlertsPanel({ items, unread }: { items: DashboardAlertItem[]; un
         </div>
 
         {items.length === 0 ? (
-          <div className="p-8 text-center text-xs text-slate-500 flex flex-col items-center gap-2">
-            <Inbox className="size-6 text-slate-400" />
-            <p>Nenhum alerta gerado. Prazos e avisos importantes aparecem aqui.</p>
+          <div className="flex items-center gap-2 px-5 py-4 text-xs text-slate-600">
+            <Inbox className="size-4 shrink-0 text-slate-500" aria-hidden />
+            <p>Nenhum alerta registrado.</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100 px-5 max-h-[380px] overflow-y-auto">

@@ -4,6 +4,7 @@ export interface BriefingInsight {
   headline: string;
   bullets: string[];
   hasBlockers: boolean;
+  source: "ia" | "alternativo";
 }
 
 export async function generateBriefing(facts: BriefingFacts): Promise<BriefingInsight> {
@@ -16,6 +17,7 @@ export async function generateBriefing(facts: BriefingFacts): Promise<BriefingIn
           headline: result.data.headline,
           bullets: result.data.bullets,
           hasBlockers: result.data.tone !== "ok",
+          source: "ia",
         };
       }
     } catch {
@@ -71,5 +73,6 @@ export async function generateBriefing(facts: BriefingFacts): Promise<BriefingIn
     headline,
     bullets: bullets.slice(0, 4),
     hasBlockers,
+    source: "alternativo",
   };
 }

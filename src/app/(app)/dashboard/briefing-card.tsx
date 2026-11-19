@@ -1,122 +1,81 @@
-import { Sparkles, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, ChevronDown, Package, ShoppingCart, Sparkles } from "lucide-react";
 import { generateBriefing } from "@/modules/insights/service";
 import type { BriefingFacts } from "@/modules/insights/briefing";
 import { cn } from "@/lib/utils";
 
-function buildBriefingCards(facts: BriefingFacts, bullets: string[]) {
-  const stockCount = (facts.stockAttention?.length || facts.stock.critical) || 0;
-  const pendingRequests = facts.requestsSummary?.pending ?? 0;
-  const pendingDeliveries = facts.pendingDeliveriesCount ?? 0;
-  const expiringContracts = facts.contracts.expiring30 ?? 0;
-  const meetingsCount = facts.upcomingMeetings?.length ?? 0;
-  const unreadAlerts = facts.unreadAlerts ?? 0;
-
-  return [
-    {
-      num: "01",
-      titulo: "Estoque Crítico e Zerado",
-      prazo: stockCount > 0 ? "Repor Urgente" : "Estável",
-      corPrazo: stockCount > 0 ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-50 text-emerald-700 border-emerald-200",
-      desc: bullets[0] ?? (stockCount > 0 ? `${stockCount} item(ns) com estoque crítico ou zerado exigem reposição.` : "Níveis de estoque regulares acima do mínimo de segurança."),
-    },
-    {
-      num: "02",
-      titulo: "Priorização de Logística",
-      prazo: (pendingRequests + pendingDeliveries) > 0 ? `${pendingRequests + pendingDeliveries} demandas` : "Em dia",
-      corPrazo: (pendingRequests + pendingDeliveries) > 0 ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-emerald-50 text-emerald-700 border-emerald-200",
-      desc: bullets[1] ?? `${pendingDeliveries} entregas pendentes e ${pendingRequests} solicitações aguardando atendimento.`,
-    },
-    {
-      num: "03",
-      titulo: "Renovação Contratual",
-      prazo: expiringContracts > 0 ? `${expiringContracts} a vencer` : "Em dia",
-      corPrazo: expiringContracts > 0 ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-50 text-emerald-700 border-emerald-200",
-      desc: bullets[2] ?? (expiringContracts > 0 ? `${expiringContracts} contrato(s) com vencimento em até 30 dias.` : "Fluxo de contratos e atas dentro do cronograma normal."),
-    },
-    {
-      num: "04",
-      titulo: meetingsCount > 0 ? "Pauta de Reuniões" : "Alertas & Notificações",
-      prazo: meetingsCount > 0 ? `${meetingsCount} agendada(s)` : (unreadAlerts > 0 ? `${unreadAlerts} alertas` : "Sem avisos"),
-      corPrazo: "bg-blue-50 text-blue-700 border-blue-200",
-      desc: bullets[3] ?? (meetingsCount > 0 ? `${meetingsCount} reunião(ões) confirmada(s) para os próximos dias.` : `${unreadAlerts} alertas operacionais registrados.`),
-    },
-  ];
-}
+const surface = "rounded-2xl border border-highlight/30 bg-linear-to-br from-highlight/10 via-card to-card p-5 shadow-xs sm:p-6";
 
 export async function BriefingCard({ facts }: { facts: BriefingFacts }) {
   const insight = await generateBriefing(facts);
-  const cards = buildBriefingCards(facts, insight.bullets);
+  const StatusIcon = insight.hasBlockers ? AlertTriangle : CheckCircle2;
+  const highlights = [
+    { icon: ShoppingCart, label: "Solicitações pendentes", value: facts.requestsSummary?.pending },
+    { icon: Package, label: "Itens com estoque crítico", value: facts.stock.critical },
+    { icon: CalendarClock, label: "Contratos a vencer em 30 dias", value: facts.contracts.expiring30 },
+  ];
 
   return (
-    <section
-      aria-label="Briefing Operacional"
-      className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/70 via-white to-white p-5 shadow-sm"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-600">
-            <Sparkles className="w-4 h-4" />
-          </div>
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
-            Briefing Operacional
+    <section aria-labelledby="briefing-heading" className={surface}>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-highlight/20 text-highlight-foreground">
+            <Sparkles className="size-5" aria-hidden />
           </span>
-          <span
-            className={cn(
-              "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border",
-              insight.hasBlockers
-                ? "bg-amber-100 text-amber-800 border-amber-200"
-                : "bg-emerald-100 text-emerald-800 border-emerald-200",
-            )}
-          >
-            {insight.hasBlockers ? (
-              <>
-                <AlertTriangle className="w-3 h-3" /> Pontos de atenção
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="w-3 h-3" /> Operação estável
-              </>
-            )}
+          <h2 id="briefing-heading" className="font-heading text-xl font-semibold text-primary">Resumo inteligente da operação</h2>
+          <span className="rounded-full bg-highlight/15 px-2.5 py-1 text-xs font-semibold text-highlight-foreground">
+            {insight.source === "alternativo" ? "Resumo alternativo" : "IA"}
           </span>
         </div>
-        <span className="text-xs font-medium text-slate-500">
-          {insight.headline}
+        <span className={cn(
+          "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold",
+          insight.hasBlockers ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900",
+        )}>
+          <StatusIcon className="size-3.5" aria-hidden />
+          {insight.hasBlockers ? "Pontos de atenção" : "Operação estável"}
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        {cards.map((item) => (
-          <div
-            key={item.num}
-            className="bg-white rounded-xl p-3.5 border border-slate-200/70 shadow-2xs flex flex-col justify-between hover:border-amber-300 transition-colors"
-          >
+      <p className="mt-3 text-xs text-muted-foreground">
+        {facts.councilLabel ? `Órgão: ${facts.councilLabel}` : "Visão consolidada"}
+        {insight.source === "alternativo" ? " · IA indisponível nesta consulta" : null}
+      </p>
+      <p className="mt-1 max-w-3xl text-base font-semibold leading-relaxed text-foreground">{insight.headline}</p>
+      {insight.bullets[0] ? <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">{insight.bullets[0]}</p> : null}
+
+      <dl className="mt-4 grid gap-2 sm:grid-cols-3">
+        {highlights.filter(({ value }) => value !== undefined).map(({ icon: Icon, label, value }) => (
+          <div key={label} className="flex items-center gap-2.5 rounded-xl border border-border bg-card/80 px-3 py-2.5">
+            <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
             <div>
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="text-[11px] font-bold font-mono text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
-                  #{item.num}
-                </span>
-                <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full border", item.corPrazo)}>
-                  {item.prazo}
-                </span>
-              </div>
-              <h3 className="text-xs font-bold text-slate-800 mb-1">{item.titulo}</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+              <dt className="text-xs text-muted-foreground">{label}</dt>
+              <dd className="text-sm font-semibold tabular-nums text-primary">{value}</dd>
             </div>
           </div>
         ))}
-      </div>
+      </dl>
+
+      <details className="group mt-4">
+        <summary className="inline-flex cursor-pointer list-none items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
+          Ver análise completa <ChevronDown className="size-4 transition-transform group-open:rotate-180" aria-hidden />
+        </summary>
+        <ul className="mt-4 space-y-2 border-t border-border pt-4 text-sm leading-relaxed text-foreground">
+          {(insight.bullets.length ? insight.bullets : [insight.headline]).map((bullet, index) => (
+            <li key={index} className="flex gap-2.5">
+              <span className="mt-2 size-1.5 shrink-0 rounded-full bg-highlight" aria-hidden />
+              <span>{bullet}</span>
+            </li>
+          ))}
+        </ul>
+      </details>
     </section>
   );
 }
 
 export function BriefingFallback() {
   return (
-    <div
-      aria-label="Carregando Briefing Operacional"
-      className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/70 via-white to-white p-5 shadow-sm flex items-center gap-2 text-xs text-slate-600"
-    >
-      <Sparkles className="size-4 animate-spin text-amber-500" />
-      <span>Carregando Briefing Operacional...</span>
+    <div role="status" className={cn(surface, "flex items-center gap-3 text-sm text-muted-foreground")}>
+      <Sparkles className="size-5 text-highlight motion-safe:animate-pulse" aria-hidden />
+      <span>Carregando resumo inteligente da operação...</span>
     </div>
   );
 }
