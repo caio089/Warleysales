@@ -301,6 +301,12 @@ export function ProcessView({
               councilId={view.process.councilId}
               documentalComplete={view.progress.isComplete}
               formalization={formalization}
+              evidenceOptions={documents.flatMap((document) =>
+                "id" in document && document.id && "fileName" in document && document.fileName &&
+                  document.uploadStatus === "confirmed" && document.linkStatus === "active"
+                  ? [{ id: document.id, name: document.fileName }]
+                  : [],
+              )}
               suppliers={suppliers}
               isWarley={isWarley}
               defaultEstimatedValue={initialValue}

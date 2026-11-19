@@ -211,6 +211,7 @@ export class InventoryService {
     councilId: string,
     items: { materialId: string; quantity: number }[],
     idempotencyKeyPrefix?: string,
+    requireBlockedBalance = false,
   ): Promise<Result<void>> {
     for (const item of items) {
       if (!item.materialId || typeof item.materialId !== "string") {
@@ -222,8 +223,13 @@ export class InventoryService {
     }
 
     for (const item of items) {
+      const idempotencyKey = idempotencyKeyPrefix
+        ? `release:${idempotencyKeyPrefix}:${item.materialId}`
+        : `release:${councilId}:${item.materialId}:${this.runtime.now().getTime()}`;
       const result = await this.repository.transact({ councilId, materialId: item.materialId }, (state) => {
-        if ((state.balance.blocked ?? 0) === 0) return ok({ balance: state.balance, value: undefined });
+        if (state.processedKeys.has(idempotencyKey) || (!requireBlockedBalance && (state.balance.blocked ?? 0) === 0)) {
+          return ok({ balance: state.balance, value: undefined });
+        }
         const next = releaseBlocked(state.balance, item.quantity);
         if (!next.ok) return next;
         return ok({
@@ -234,9 +240,7 @@ export class InventoryService {
             materialId: item.materialId,
             type: "entry",
             quantity: item.quantity,
-            idempotencyKey: idempotencyKeyPrefix
-              ? `release:${idempotencyKeyPrefix}:${item.materialId}`
-              : `release:${councilId}:${item.materialId}:${this.runtime.now().getTime()}`,
+            idempotencyKey,
             reason: "Homologação de formalização (liberação de saldo)",
             reference: null,
             actorId: null,

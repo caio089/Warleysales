@@ -7,7 +7,7 @@ import { KpiCard } from "@/shared/ui/kpi-card";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { SimpleTable } from "@/shared/ui/simple-table";
-import { MembershipForms } from "./membership-forms";
+import { MembershipForms, ProvisionCouncilForm } from "./membership-forms";
 
 export const metadata: Metadata = { title: "Usuários e vínculos" };
 
@@ -22,9 +22,7 @@ async function Content() {
             <KpiCard icon={<Building2 className="size-4" aria-hidden />} label="Órgãos e empresas" value={dir.councils.length} />
             <KpiCard icon={<Link2 className="size-4" aria-hidden />} label="Vínculos ativos" value={dir.memberships.length} />
           </div>
-          <p className="rounded-lg border bg-info p-3 text-sm text-info-foreground">
-            O acesso começa com um convite no Supabase Auth. Depois, vincule a pessoa ao órgão ou empresa e escolha seu papel.
-          </p>
+          <ProvisionCouncilForm councils={dir.councils.filter((c) => c.active).map((c) => ({ value: c.id, label: c.acronym }))} />
           <SimpleTable
             caption="Vínculos de conselho"
             rows={dir.memberships.map((m) => ({

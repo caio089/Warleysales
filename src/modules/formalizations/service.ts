@@ -59,7 +59,11 @@ export class FormalizationService {
       return fail("VALIDATION", "O conselho informado não coincide com o conselho do processo.");
     }
 
-    if (!processView.data.progress.isComplete) {
+    if (data.exceptionalReleaseReason && !actor.isCentralAdmin) {
+      return fail("FORBIDDEN", "A liberação excepcional é exclusiva da administração central.");
+    }
+
+    if (!processView.data.progress.isComplete && !data.exceptionalReleaseReason) {
       return fail(
         "VALIDATION",
         "O processo deve possuir 100% dos documentos obrigatórios para formalização.",
@@ -79,7 +83,21 @@ export class FormalizationService {
     }
 
     const items = data.items ?? [];
-    if (items.length > 0) {
+    if (data.exceptionalReleaseReason) {
+      const request = data.requestId && this.purchases
+        ? await this.purchases.findById(data.requestId)
+        : null;
+      const requestedMaterials = new Map(request?.items.map((item) => [item.materialId, item.quantity]));
+      const submittedMaterials = new Set(items.map((item) => item.materialId));
+      if (!request || request.councilId !== data.councilId || request.processId !== data.processId ||
+        items.length === 0 || submittedMaterials.size !== items.length ||
+        submittedMaterials.size !== requestedMaterials.size ||
+        requestedMaterials.size !== request.items.length ||
+        items.some((item) => requestedMaterials.get(item.materialId) !== item.quantity)) {
+        return fail("VALIDATION", "A liberação excepcional usa as quantidades já bloqueadas da solicitação vinculada.");
+      }
+    }
+    if (!data.exceptionalReleaseReason && items.length > 0) {
       const applied = await this.applyContractedQuantities(data.councilId, data.requestId ?? null, data.processId, items);
       if (!applied.ok) return applied;
     }
@@ -105,7 +123,7 @@ export class FormalizationService {
       status: "aguardando_homologacao",
       homologatedBy: null,
       homologatedAt: null,
-      homologationNote: null,
+      homologationNote: data.exceptionalReleaseReason ?? null,
       createdBy: actor.userId,
       createdAt: this.runtime.now(),
     };
@@ -126,6 +144,8 @@ export class FormalizationService {
         contractedValue: data.contractedValue,
         savingsValue,
         savingsPercent,
+        exceptionalReleaseReason: data.exceptionalReleaseReason,
+        evidenceId: data.evidenceId,
       },
     });
 
@@ -182,6 +202,7 @@ export class FormalizationService {
         formalization.councilId,
         items,
         formalization.id,
+        Boolean(formalization.homologationNote),
       );
       if (!released.ok) return released;
     }
@@ -190,7 +211,7 @@ export class FormalizationService {
       status: "homologado",
       homologatedBy: actor.userId,
       homologatedAt: this.runtime.now(),
-      homologationNote: data.note ?? null,
+      homologationNote: formalization.homologationNote ?? data.note ?? null,
     });
 
     await this.audit.record({
@@ -204,7 +225,7 @@ export class FormalizationService {
         processId: formalization.processId,
         homologatedBy: actor.userId,
         itemsReleased: items.length,
-        note: data.note ?? null,
+        note: updated.homologationNote,
       },
     });
 

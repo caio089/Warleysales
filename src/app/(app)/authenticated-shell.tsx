@@ -72,6 +72,9 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
                 </span>
                 {displayName}
               </span>
+              <Link href="/redefinir-senha" className="text-sm text-muted-foreground hover:underline">
+                Alterar senha
+              </Link>
               <form action={signOutAction}>
                 <Button type="submit" variant="outline" size="sm">
                   Sair

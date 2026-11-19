@@ -40,6 +40,7 @@ export interface ContractingTabProps {
   defaultEstimatedValue?: number | null;
   requestId?: string | null;
   requestItems?: FormalizationCardProps["requestItems"];
+  evidenceOptions?: FormalizationCardProps["evidenceOptions"];
   linkedAtas?: LinkedAtaItem[];
   linkedContracts?: LinkedContractItem[];
   availableAtas?: { value: string; label: string }[];
@@ -65,6 +66,7 @@ export function ContractingTab({
   defaultEstimatedValue,
   requestId,
   requestItems = [],
+  evidenceOptions,
   linkedAtas = [],
   linkedContracts = [],
   availableAtas = [],
@@ -263,6 +265,7 @@ export function ContractingTab({
         processId={processId}
         councilId={councilId}
         documentalComplete={documentalComplete}
+        evidenceOptions={evidenceOptions}
         formalization={formalization}
         suppliers={suppliers}
         isWarley={isWarley}

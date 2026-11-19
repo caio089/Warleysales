@@ -51,6 +51,9 @@ export async function submitFormalizationFormAction(
   const processId = String(formData.get("processId") ?? "");
   const councilId = String(formData.get("councilId") ?? "");
   const supplierName = String(formData.get("supplierName") ?? "").trim();
+  const exceptional = formData.get("exceptionalRelease") === "true";
+  const reason = String(formData.get("exceptionalReleaseReason") ?? "").trim();
+  const evidenceId = String(formData.get("evidenceId") ?? "").trim();
   const supplierIdField = String(formData.get("supplierId") ?? "").trim();
   const auctionDate = String(formData.get("auctionDate") ?? "").trim();
   const instrumentType = String(formData.get("instrumentType") ?? "").trim() || "ata";
@@ -73,8 +76,20 @@ export async function submitFormalizationFormAction(
 
   const result = await runAction(
     async ({ services, actor }) => {
-      const instruments = await assertInstrumentsLinked(services, actor, processId);
-      if (!instruments.ok) return instruments;
+      if (exceptional) {
+        if (!actor.isCentralAdmin) return fail("FORBIDDEN", "A liberação excepcional é exclusiva da administração central.");
+        if (!reason || reason.length > 850) return fail("VALIDATION", "Informe uma justificativa de até 850 caracteres.");
+        if (evidenceId) {
+          const documents = await services.documents.listByProcess(actor, processId);
+          if (!documents.ok) return documents;
+          if (!documents.data.some((document) => document.id === evidenceId && document.linkStatus === "active")) {
+            return fail("VALIDATION", "Selecione um anexo confirmado do processo.");
+          }
+        }
+      } else {
+        const instruments = await assertInstrumentsLinked(services, actor, processId);
+        if (!instruments.ok) return instruments;
+      }
       if (auctionDate && !/^\d{4}-\d{2}-\d{2}$/.test(auctionDate)) {
         return fail("VALIDATION", "Informe a data do pregão.");
       }
@@ -83,6 +98,9 @@ export async function submitFormalizationFormAction(
       }
       if (loneQuantity !== undefined && (!Number.isFinite(loneQuantity) || loneQuantity <= 0)) {
         return fail("VALIDATION", "Informe a quantidade contratada.");
+      }
+      if (exceptional && items.length === 0) {
+        return fail("VALIDATION", "Vincule uma solicitação com materiais a este processo para liberar o estoque.");
       }
 
       let supplierId = supplierIdField;
@@ -104,6 +122,8 @@ export async function submitFormalizationFormAction(
         estimatedValue,
         contractedValue,
         requestId,
+        exceptionalReleaseReason: exceptional ? reason : undefined,
+        evidenceId: exceptional && evidenceId ? evidenceId : undefined,
       });
       if (!submitted.ok || !actor.isCentralAdmin) return submitted;
       return services.formalizations.homologate(actor, {
@@ -148,8 +168,12 @@ export async function homologateFormalizationAction(
 
   const result = await runAction(
     async ({ services, actor }) => {
-      const instruments = await assertInstrumentsLinked(services, actor, processId);
-      if (!instruments.ok) return instruments;
+      const existing = await services.formalizations.getByProcess(actor, processId);
+      if (!existing.ok) return existing;
+      if (!existing.data?.homologationNote || existing.data.status !== "aguardando_homologacao") {
+        const instruments = await assertInstrumentsLinked(services, actor, processId);
+        if (!instruments.ok) return instruments;
+      }
       return services.formalizations.homologate(actor, {
         processId,
         note,

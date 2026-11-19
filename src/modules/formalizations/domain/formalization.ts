@@ -50,6 +50,8 @@ export const submitFormalizationSchema = z.object({
   contractedQuantity: z.number().positive("A quantidade deve ser maior que zero").optional(),
   items: z.array(contractedItemSchema).optional(),
   estimatedValue: z.number().min(0, "Valor estimado deve ser não-negativo"),
+  exceptionalReleaseReason: z.string().trim().min(1).max(850).optional(),
+  evidenceId: idSchema.optional(),
   contractedValue: z.number().min(0, "Valor contratado deve ser não-negativo"),
 });
 

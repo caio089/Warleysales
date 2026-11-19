@@ -41,6 +41,7 @@ export interface FormalizationCardProps {
   requestItems?: { materialId: string; name: string; quantity: number }[];
   /** Ata e contrato já vinculados. Sem os dois, a conclusão fica bloqueada. */
   instrumentsReady?: boolean;
+  evidenceOptions?: { id: string; name: string }[];
 }
 
 const INSTRUMENT_LABELS: Record<InstrumentType, string> = {
@@ -84,6 +85,7 @@ export function FormalizationCard({
   requestId,
   requestItems = [],
   instrumentsReady = true,
+  evidenceOptions = [],
 }: FormalizationCardProps) {
   const [estimatedInput, setEstimatedInput] = useState<string>(
     defaultEstimatedValue != null && defaultEstimatedValue > 0
@@ -92,6 +94,15 @@ export function FormalizationCard({
   );
   const [contractedInput, setContractedInput] = useState<string>("");
   const [showRejectForm, setShowRejectForm] = useState(false);
+  const [exceptionalRelease, setExceptionalRelease] = useState(false);
+  const requiresException = !documentalComplete || !instrumentsReady;
+  const canUseException = isWarley && requiresException && !formalization;
+  const releasingExceptionally = canUseException && exceptionalRelease;
+  const exceptionButton = canUseException && (
+    <Button type="button" variant="outline" className="mt-4" onClick={() => setExceptionalRelease(true)}>
+      Liberar estoque com justificativa
+    </Button>
+  );
 
   const currentSupplier = useMemo(
     () => suppliers.find((s) => s.id === formalization?.supplierId),
@@ -115,7 +126,7 @@ export function FormalizationCard({
   }, [estimatedNum, contractedNum]);
 
   // 1. Estado de Espera: Documentos incompletos (<100%)
-  if (!documentalComplete && !formalization) {
+  if (!documentalComplete && !formalization && !releasingExceptionally) {
     return (
       <section aria-labelledby="formalizacao-heading" className="surface-card mb-6 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
@@ -141,11 +152,12 @@ export function FormalizationCard({
             assim que todos os 7 documentos obrigatórios forem anexados e validados no processo.
           </p>
         </div>
+        {exceptionButton}
       </section>
     );
   }
 
-  if (!instrumentsReady && formalization?.status !== "homologado") {
+  if (!instrumentsReady && !releasingExceptionally && !formalization?.homologationNote && formalization?.status !== "homologado") {
     return (
       <section aria-labelledby="formalizacao-heading" className="surface-card mb-6 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
@@ -170,6 +182,7 @@ export function FormalizationCard({
             Use os campos acima para anexar os instrumentos. O fornecedor, o pregão e a liberação do estoque ficam disponíveis depois disso.
           </p>
         </div>
+        {exceptionButton}
       </section>
     );
   }
@@ -468,10 +481,12 @@ export function FormalizationCard({
             Formalização da Contratação
           </h2>
           <p className="text-sm text-muted-foreground">
-            Documentos prontos. Informe o fornecedor, a data do pregão, o valor de referência, a quantidade e o valor comprado. A economia é gravada e o estoque é liberado.
+            {releasingExceptionally
+              ? "Registre a justificativa e os dados da contratação para liberar o estoque com pendências."
+              : "Documentos prontos. Informe o fornecedor, a data do pregão, o valor de referência, a quantidade e o valor comprado. A economia é gravada e o estoque é liberado."}
           </p>
         </div>
-        <StatusBadge label="Apto para Formalização" tone="info" />
+        <StatusBadge label={releasingExceptionally ? "Liberação excepcional" : "Apto para Formalização"} tone="info" />
       </div>
 
       <ActionForm
@@ -483,11 +498,28 @@ export function FormalizationCard({
         hiddenFields={{
           processId,
           councilId,
+          ...(releasingExceptionally ? { exceptionalRelease: "true" } : {}),
           ...(requestId ? { requestId } : {}),
         }}
       >
         {(fieldErrors) => (
           <div className="space-y-5">
+            {releasingExceptionally && (
+              <div className="space-y-3">
+                <label className="block text-sm">
+                  Justificativa da liberação
+                  <textarea className="mt-1 block w-full rounded-md border p-2" name="exceptionalReleaseReason" required maxLength={850} />
+                </label>
+                <label className="block text-sm">
+                  Evidência (opcional)
+                  <select className="mt-1 block w-full rounded-md border p-2" name="evidenceId">
+                    <option value="">Sem evidência</option>
+                    {evidenceOptions.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
+                  </select>
+                </label>
+                <p className="text-xs text-muted-foreground">Para incluir um novo arquivo como evidência, anexe-o primeiro na aba Documentação.</p>
+              </div>
+            )}
             {/* Linha 1: Fornecedor * */}
             <div>
               <FormField
@@ -579,7 +611,9 @@ export function FormalizationCard({
                       </div>
                       <input type="hidden" name="itemMaterialId" value={item.materialId} />
                       <div className="w-full sm:w-44 shrink-0">
-                        <TextField
+                        {releasingExceptionally ? (
+                          <input type="hidden" name="itemQuantity" value={item.quantity} />
+                        ) : <TextField
                           name="itemQuantity"
                           label="Quantidade"
                           type="number"
@@ -587,7 +621,7 @@ export function FormalizationCard({
                           step="0.001"
                           required
                           defaultValue={String(item.quantity)}
-                        />
+                        />}
                       </div>
                     </div>
                   ))}
