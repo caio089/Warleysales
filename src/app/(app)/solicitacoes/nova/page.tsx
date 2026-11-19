@@ -33,7 +33,7 @@ export default function NewRequestPage() {
         backHref="/solicitacoes"
         backLabel="Todas as solicitações"
         title="Nova solicitação"
-        description="1) Preencha e salve o rascunho · 2) Na tela seguinte, clique em Enviar · 3) O gestor aprova · 4) No recebimento o estoque sobe."
+        description="Importe Excel/Word com IA ou preencha à mão · salve o rascunho · envie · o gestor aprova · no recebimento o estoque sobe."
       />
       <Suspense fallback={<LoadingState />}><Content /></Suspense>
     </>
