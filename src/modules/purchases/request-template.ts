@@ -111,20 +111,49 @@ export function parseRequestTemplateMatrix(rows: unknown[][]): ExtractedPurchase
 
 /** Gera o modelo Excel oficial (várias linhas de item de uma vez). */
 export function buildRequestExcelTemplate(): Uint8Array {
+  const emptyItemRows = Array.from({ length: 20 }, () => ["", "", ""]);
   const sheet = XLSX.utils.aoa_to_sheet([
-    [TEMPLATE_HEADERS.title, ""],
-    [TEMPLATE_HEADERS.estimatedValue, ""],
+    ["MODELO DE SOLICITAÇÃO — Warley"],
+    ["Preencha a coluna B (Título e Valor) e as linhas da tabela. Não renomeie Item / Quantidade / Unidade. Depois importe em Nova solicitação."],
     [],
+    [TEMPLATE_HEADERS.title, "", "← escreva o título aqui"],
+    [TEMPLATE_HEADERS.estimatedValue, "", "← opcional, só números (ex.: 1500.50)"],
+    [],
+    [TEMPLATE_HEADERS.item, TEMPLATE_HEADERS.quantity, TEMPLATE_HEADERS.unit],
+    ...emptyItemRows,
+  ]);
+
+  sheet["!cols"] = [{ wch: 28 }, { wch: 36 }, { wch: 42 }];
+  sheet["!merges"] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } },
+  ];
+  // Células vazias prontas para digitar (B4 título, B5 valor).
+  sheet["B4"] = { t: "s", v: "" };
+  sheet["B5"] = { t: "s", v: "" };
+
+  const guide = XLSX.utils.aoa_to_sheet([
+    ["Como preencher este modelo"],
+    [],
+    ["1. Na aba Solicitação, escreva o Título e o Valor estimado (R$)."],
+    ["2. Na tabela, coloque um item por linha: Item, Quantidade e Unidade."],
+    ["3. Pode cadastrar quantas linhas quiser (deixe linhas vazias sem preencher)."],
+    ["4. Salve o arquivo e importe em Nova solicitação → Importar e preencher."],
+    ["5. Não apague nem renomeie os cabeçalhos Item, Quantidade e Unidade."],
+    [],
+    ["Exemplos (não copie esta aba — use só como referência)"],
     [TEMPLATE_HEADERS.item, TEMPLATE_HEADERS.quantity, TEMPLATE_HEADERS.unit],
     ["Papel A4", 100, "resma"],
     ["Caneta azul", 50, "un"],
-    ["", "", ""],
-    ["", "", ""],
-    ["", "", ""],
+    ["Álcool 70%", 10, "L"],
+    [],
+    ["Unidades comuns: un, resma, cx, pct, kg, L, m, pacote."],
   ]);
-  sheet["!cols"] = [{ wch: 40 }, { wch: 14 }, { wch: 12 }];
+  guide["!cols"] = [{ wch: 72 }, { wch: 14 }, { wch: 12 }];
+
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, sheet, "Solicitacao");
+  XLSX.utils.book_append_sheet(workbook, sheet, "Solicitação");
+  XLSX.utils.book_append_sheet(workbook, guide, "Instruções");
   return new Uint8Array(XLSX.write(workbook, { type: "array", bookType: "xlsx" }));
 }
 
@@ -173,28 +202,24 @@ export function htmlTablesToMatrices(html: string): unknown[][][] {
 export async function buildRequestWordTemplate(): Promise<Uint8Array> {
   const JSZip = (await import("jszip")).default;
   const zip = new JSZip();
-  const rows = [
-    ["Papel A4", "100", "resma"],
-    ["Caneta azul", "50", "un"],
-    ["", "", ""],
-    ["", "", ""],
-  ];
+  const emptyRows = Array.from({ length: 12 }, () => ["", "", ""]);
   const tableRowsXml = [
     tableRowXml([TEMPLATE_HEADERS.item, TEMPLATE_HEADERS.quantity, TEMPLATE_HEADERS.unit], true),
-    ...rows.map((row) => tableRowXml(row, false)),
+    ...emptyRows.map((row) => tableRowXml(row, false)),
   ].join("");
 
   const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:body>
-    <w:p><w:r><w:t>Modelo de solicitação — preencha vários itens na tabela</w:t></w:r></w:p>
-    <w:p><w:r><w:t>${TEMPLATE_HEADERS.title}: </w:t></w:r><w:r><w:t></w:t></w:r></w:p>
-    <w:p><w:r><w:t>${TEMPLATE_HEADERS.estimatedValue}: </w:t></w:r><w:r><w:t></w:t></w:r></w:p>
+    <w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Modelo de solicitação — Warley</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Preencha o título, o valor (opcional) e a tabela abaixo. Não renomeie as colunas. Depois importe em Nova solicitação.</w:t></w:r></w:p>
+    <w:p><w:r><w:t>${TEMPLATE_HEADERS.title}: </w:t></w:r></w:p>
+    <w:p><w:r><w:t>${TEMPLATE_HEADERS.estimatedValue}: </w:t></w:r></w:p>
     <w:tbl>
       <w:tblPr><w:tblW w:w="5000" w:type="pct"/></w:tblPr>
       ${tableRowsXml}
     </w:tbl>
-    <w:p><w:r><w:t>Apague as linhas de exemplo e inclua quantos itens precisar. Depois importe o arquivo na tela Nova solicitação.</w:t></w:r></w:p>
+    <w:p><w:r><w:t>Exemplo de linhas: Papel A4 | 100 | resma — Caneta azul | 50 | un. Unidades comuns: un, resma, cx, pct, kg, L.</w:t></w:r></w:p>
   </w:body>
 </w:document>`;
 

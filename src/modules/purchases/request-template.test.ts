@@ -8,7 +8,7 @@ import {
 import { tryParseExcelTemplate } from "./request-template-parse";
 
 describe("modelo de solicitação multi-itens", () => {
-  it("gera Excel com cabeçalhos oficiais e exemplos", () => {
+  it("gera Excel com cabeçalhos oficiais, aba de instruções e sem itens de exemplo na aba principal", () => {
     const bytes = buildRequestExcelTemplate();
     const matrix = spreadsheetToMatrix(bytes);
     const flat = matrix.flat().map(String);
@@ -16,15 +16,24 @@ describe("modelo de solicitação multi-itens", () => {
     expect(flat).toContain(TEMPLATE_HEADERS.item);
     expect(flat).toContain(TEMPLATE_HEADERS.quantity);
     expect(flat).toContain(TEMPLATE_HEADERS.unit);
+    expect(flat.join(" ")).toMatch(/MODELO DE SOLICITAÇÃO/);
+    // Modelo vazio não importa lixo: sem linhas preenchidas na aba Solicitação.
+    expect(tryParseExcelTemplate(bytes)).toBeNull();
   });
 
-  it("compara a tabela do modelo e preenche vários itens de uma vez", () => {
-    const bytes = buildRequestExcelTemplate();
-    const parsed = tryParseExcelTemplate(bytes);
+  it("compara a tabela preenchida e importa vários itens de uma vez", () => {
+    const parsed = parseRequestTemplateMatrix([
+      ["MODELO DE SOLICITAÇÃO — Warley"],
+      [TEMPLATE_HEADERS.title, "Material de escritório"],
+      [TEMPLATE_HEADERS.estimatedValue, "1500"],
+      [TEMPLATE_HEADERS.item, TEMPLATE_HEADERS.quantity, TEMPLATE_HEADERS.unit],
+      ["Papel A4", 100, "resma"],
+      ["Caneta azul", 50, "un"],
+    ]);
+    expect(parsed?.title).toBe("Material de escritório");
+    expect(parsed?.estimatedValue).toBe(1500);
     expect(parsed?.items).toHaveLength(2);
     expect(parsed?.items.map((item) => item.quantity)).toEqual([100, 50]);
-    expect(parsed?.items[0]?.description).toBe("Papel A4");
-    expect(parsed?.items[1]?.description).toBe("Caneta azul");
   });
 
   it("aceita aliases de coluna e metadados Título/Valor", () => {

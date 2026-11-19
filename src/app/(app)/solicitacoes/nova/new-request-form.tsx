@@ -59,8 +59,8 @@ export function NewRequestForm({ councils }: { councils: Option[] }) {
       <section className="space-y-3 rounded-lg border border-border p-4" aria-label="Importar solicitação">
         <h2 className="font-medium">Cadastrar vários itens de uma vez</h2>
         <p className="text-sm text-muted-foreground">
-          Baixe o modelo Excel ou Word, preencha a tabela (Item, Quantidade, Unidade) com quantas linhas quiser e envie de volta.
-          O sistema compara as colunas do modelo e preenche o formulário. O cadastro só grava depois da sua conferência.
+          Baixe o modelo Excel (aba Solicitação + Instruções) ou Word, preencha Título, Valor e a tabela Item / Quantidade / Unidade
+          com quantas linhas quiser e envie de volta. O sistema compara as colunas e preenche o formulário. Nada é gravado antes da sua conferência.
         </p>
         <div className="flex flex-wrap gap-2">
           <a
