@@ -16,7 +16,8 @@ export async function loadLookups({ services, actor }: ScreenContext): Promise<R
   const councils = await services.councils.list(actor);
   if (!councils.ok) return councils;
   const materials = await services.inventory.listMaterials(actor);
-  const materialRows = materials.ok ? materials.data : [];
+  if (!materials.ok) return materials;
+  const materialRows = materials.data;
   const councilRows = councils.data.map((c) => ({ id: c.id, label: c.acronym }));
   return ok({
     councils: councilRows,

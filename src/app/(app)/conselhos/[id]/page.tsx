@@ -25,7 +25,7 @@ import { EditCouncilForm } from "../new-council-form";
 
 export const metadata: Metadata = { title: "Visão 360° da Organização" };
 
-async function CouncilContent({ params }: { params: Promise<{ id: string }> }) {
+export async function CouncilContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const result = await loadScreen(async (ctx) => {
     const { services, actor } = ctx;
@@ -38,12 +38,15 @@ async function CouncilContent({ params }: { params: Promise<{ id: string }> }) {
     ]);
 
     if (!councilRes.ok) return councilRes;
+    if (!requestsRes.ok) return requestsRes;
+    if (!stockRes.ok) return stockRes;
+    if (!meetingsRes.ok) return meetingsRes;
     if (!lookupsRes.ok) return lookupsRes;
 
     const council = councilRes.data;
-    const requests = requestsRes.ok ? requestsRes.data.filter((r) => r.councilId === id) : [];
-    const stock = stockRes.ok ? stockRes.data : [];
-    const meetings = meetingsRes.ok ? meetingsRes.data.filter((m) => m.councilId === id) : [];
+    const requests = requestsRes.data.filter((r) => r.councilId === id);
+    const stock = stockRes.data;
+    const meetings = meetingsRes.data.filter((m) => m.councilId === id);
 
     const pendingRequests = requests.filter((r) =>
       ["enviada", "em_analise", "aguardando_correcao", "aprovada", "em_atendimento", "parcialmente_atendida"].includes(r.status),

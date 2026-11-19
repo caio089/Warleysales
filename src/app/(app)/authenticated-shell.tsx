@@ -49,7 +49,7 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
               className="hidden items-center gap-1.5 rounded-full border border-success-foreground/15 bg-success px-2.5 py-1 text-[0.7rem] font-semibold tracking-wide text-success-foreground sm:inline-flex"
             >
               <Database className="size-3" aria-hidden />
-              Banco conectado
+              Banco configurado
             </span>
           ) : null}
           <Link

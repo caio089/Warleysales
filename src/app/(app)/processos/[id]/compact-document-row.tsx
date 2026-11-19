@@ -265,11 +265,13 @@ export function CompactDocumentRow({
                           body.set("attachmentId", file.id);
                           body.set("processId", processId);
                           const state = await manualDeleteFormAction({ status: "idle" }, body);
-                          if (state.status === "error") toast.error(state.message);
-                          else {
-                            toast.success("Documento excluído.");
-                            router.refresh();
+                          if (state.status === "error") {
+                            toast.error(state.message);
+                            return false;
                           }
+                          toast.success("Documento excluído.");
+                          router.refresh();
+                          return true;
                         }}
                       />
                     ) : null}
@@ -322,11 +324,13 @@ export function CompactDocumentRow({
                     body.set("attachmentId", files[0].id);
                     body.set("processId", processId);
                     const state = await manualDeleteFormAction({ status: "idle" }, body);
-                    if (state.status === "error") toast.error(state.message);
-                    else {
-                      toast.success("Documento excluído.");
-                      router.refresh();
+                    if (state.status === "error") {
+                      toast.error(state.message);
+                      return false;
                     }
+                    toast.success("Documento excluído.");
+                    router.refresh();
+                    return true;
                   }}
                 />
               ) : null}

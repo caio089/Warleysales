@@ -45,6 +45,8 @@ describe("formalizations actions", () => {
       // Test runner callback
       const callback = mockRunAction.mock.calls[0][0];
       const mockServices = {
+        atas: { list: vi.fn().mockResolvedValue({ ok: true, data: [{ ata: { processId: "proc-1" } }] }) },
+        contracts: { list: vi.fn().mockResolvedValue({ ok: true, data: [{ contract: { processId: "proc-1" } }] }) },
         formalizations: {
           submit: vi.fn().mockResolvedValue({ ok: true, data: {} }),
         },
@@ -84,6 +86,8 @@ describe("formalizations actions", () => {
 
       const callback = mockRunAction.mock.calls[0][0];
       const mockServices = {
+        atas: { list: vi.fn().mockResolvedValue({ ok: true, data: [{ ata: { processId: "proc-1" } }] }) },
+        contracts: { list: vi.fn().mockResolvedValue({ ok: true, data: [{ contract: { processId: "proc-1" } }] }) },
         formalizations: {
           homologate: vi.fn().mockResolvedValue({ ok: true, data: {} }),
         },

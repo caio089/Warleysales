@@ -10,7 +10,7 @@ import { ProcessView } from "./process-view";
 
 export const metadata: Metadata = { title: "Processo" };
 
-async function ProcessContent({ params, initialTab }: { params: Promise<{ id: string }>; initialTab: "documentos" | "contratacao" | "governanca" }) {
+export async function ProcessContent({ params, initialTab }: { params: Promise<{ id: string }>; initialTab: "documentos" | "contratacao" | "governanca" }) {
   const { id } = await params;
   const result = await loadScreen(async ({ services, actor }) => {
     const view = await services.processes.get(actor, id);
@@ -24,16 +24,21 @@ async function ProcessContent({ params, initialTab }: { params: Promise<{ id: st
       services.contracts.list(actor),
     ]);
     const lookups = await loadLookups({ services, actor });
-    const linkedRequest = purchaseRequests.ok
-      ? purchaseRequests.data.find((r) => r.processId === id) ?? null
-      : null;
-    const materialName = lookups.ok ? lookups.data.materialName : {};
+    if (!documents.ok) return documents;
+    if (!formalization.ok) return formalization;
+    if (!suppliers.ok) return suppliers;
+    if (!purchaseRequests.ok) return purchaseRequests;
+    if (!atas.ok) return atas;
+    if (!contracts.ok) return contracts;
+    if (!lookups.ok) return lookups;
+    const linkedRequest = purchaseRequests.data.find((r) => r.processId === id) ?? null;
+    const materialName = lookups.data.materialName;
     const councilId = view.data.process.councilId;
     return ok({
       view: view.data,
-      documents: documents.ok ? documents.data : [],
-      formalization: formalization.ok ? formalization.data : null,
-      suppliers: suppliers.ok ? suppliers.data : [],
+      documents: documents.data,
+      formalization: formalization.data,
+      suppliers: suppliers.data,
       canManage: can(actor, "process.create", councilId),
       canUnlink: can(actor, "document.unlink", councilId),
       canRegisterClosing: can(actor, "retention.manage", councilId),
@@ -47,46 +52,25 @@ async function ProcessContent({ params, initialTab }: { params: Promise<{ id: st
         quantity: item.quantity,
       })),
       requestNotes: (linkedRequest?.events ?? []).map((event) => event.note ?? ""),
-      linkedAtas: atas.ok
-        ? atas.data
-            .filter((item) => item.ata.processId === id)
-            .map((item) => ({
-              id: item.ata.id,
-              number: item.ata.number,
-              endDate: item.endDate,
-              status: item.validity === "vigente" ? "Vigente" : "Vencida",
-            }))
-        : [],
-      linkedContracts: contracts.ok
-        ? contracts.data
-            .filter((item) => item.contract.processId === id)
-            .map((item) => ({
-              id: item.contract.id,
-              number: item.contract.number,
-              object: item.contract.object,
-              value: item.terms.value,
-              endDate: item.terms.endDate,
-            }))
-        : [],
-      availableAtas: atas.ok
-        ? atas.data
-            .filter((item) => item.ata.councilId === councilId && !item.ata.processId)
-            .map((item) => ({ value: item.ata.id, label: item.ata.number }))
-        : [],
-      availableContracts: contracts.ok
-        ? contracts.data
-            .filter((item) => item.contract.councilId === councilId && !item.contract.processId)
-            .map((item) => ({ value: item.contract.id, label: item.contract.number }))
-        : [],
+      linkedAtas: atas.data
+        .filter((item) => item.ata.processId === id)
+        .map((item) => ({ id: item.ata.id, number: item.ata.number, endDate: item.endDate, status: item.validity === "vigente" ? "Vigente" : "Vencida" })),
+      linkedContracts: contracts.data
+        .filter((item) => item.contract.processId === id)
+        .map((item) => ({ id: item.contract.id, number: item.contract.number, object: item.contract.object, value: item.terms.value, endDate: item.terms.endDate })),
+      availableAtas: atas.data
+        .filter((item) => item.ata.councilId === councilId && !item.ata.processId)
+        .map((item) => ({ value: item.ata.id, label: item.ata.number })),
+      availableContracts: contracts.data
+        .filter((item) => item.contract.councilId === councilId && !item.contract.processId)
+        .map((item) => ({ value: item.contract.id, label: item.contract.number })),
       instrumentDraft: {
-        councilLabel: lookups.ok ? lookups.data.councilLabel[councilId] ?? "Órgão" : "Órgão",
+        councilLabel: lookups.data.councilLabel[councilId] ?? "Órgão",
         processLabel: `${view.data.process.number} — ${view.data.process.title}`,
-        materials: lookups.ok ? lookups.data.materials.map((material) => ({ value: material.id, label: material.label })) : [],
-        suppliers: suppliers.ok
-          ? suppliers.data
-              .filter((supplier) => supplier.active)
-              .map((supplier) => ({ value: supplier.id, label: supplier.name, cnpj: supplier.cnpj }))
-          : [],
+        materials: lookups.data.materials.map((material) => ({ value: material.id, label: material.label })),
+        suppliers: suppliers.data
+          .filter((supplier) => supplier.active)
+          .map((supplier) => ({ value: supplier.id, label: supplier.name, cnpj: supplier.cnpj })),
       },
     });
   });

@@ -1,4 +1,6 @@
 import { createServer } from 'node:http';
+import { createRequire } from 'node:module';
+import { spawnSync } from 'node:child_process';
 import next from 'next';
 
 import { fileURLToPath } from 'node:url';
@@ -29,8 +31,12 @@ const auth = createServer(async (req, res) => {
   res.end(JSON.stringify({ error: 'fixture endpoint denied' }));
 });
 
+const require = createRequire(import.meta.url);
+const build = spawnSync(process.execPath, [require.resolve('next/dist/bin/next'), 'build', root], { stdio: 'inherit' });
+if (build.status !== 0) throw new Error(`Callback fixture build failed with status ${build.status}`);
+
 const app = next({
-  dev: true,
+  dev: false,
   dir: root,
   port: 4319,
   hostname: '127.0.0.1',

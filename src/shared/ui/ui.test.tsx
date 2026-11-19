@@ -45,8 +45,9 @@ describe("componentes compartilhados (renderização no servidor)", () => {
     expect(html).toContain("5");
     expect(html).toContain("2 em andamento");
   });
-  it("estados usam roles de acessibilidade", () => {
+  it("estado de erro oferece retry sem aparecer em estados não recuperáveis", () => {
     expect(renderToStaticMarkup(<ErrorState />)).toContain('role="alert"');
+    expect(renderToStaticMarkup(<ErrorState action={<button>Tentar novamente</button>} />)).toContain("Tentar novamente");
     expect(renderToStaticMarkup(<EmptyState title="Vazio" />)).toContain('role="status"');
     expect(renderToStaticMarkup(<DataSourceUnavailableState />)).toContain("Fonte de dados não configurada");
   });

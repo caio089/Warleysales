@@ -15,7 +15,7 @@ const isolatedEnv: Record<string, string> = { ...process.env } as Record<string,
 for (const name of Object.keys(isolatedEnv)) if (sensitiveName.test(name)) isolatedEnv[name] = '';
 for (const name of envNames) isolatedEnv[name] = '';
 Object.assign(isolatedEnv, {
-  PORT: '4317', NEXT_PUBLIC_SUPABASE_URL: '', NEXT_PUBLIC_SUPABASE_ANON_KEY: '',
+  PORT: '4317', WARLEY_E2E: '1', NEXT_PUBLIC_SUPABASE_URL: '', NEXT_PUBLIC_SUPABASE_ANON_KEY: '',
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: '', SUPABASE_SERVICE_ROLE_KEY: '',
   GROQ_API_KEY: '', RESEND_API_KEY: '', SMTP_HOST: '', SMTP_USER: '', SMTP_PASSWORD: '',
 });

@@ -1,11 +1,25 @@
 # E2E
 
-Current run: `E2E_RUN_ID=callback-local-20261118 npm run e2e` exited 0: 8 passed, 0 failed, 2 skipped (10 total). The only skips are password validation without Auth configuration and search because the shell exposes no search control. Results: [`artifacts/results.json`](../artifacts/results.json), [`artifacts/html/index.html`](../artifacts/html/index.html), and screenshots/evidence in [`artifacts/evidence/callback-local-20261118/`](../artifacts/evidence/callback-local-20261118/).
+## Resultados estabilizados
 
-`npm run e2e` starts the isolated app server at `127.0.0.1:4317` and a separate Next callback fixture at `127.0.0.1:4319`; the fixture owns a synthetic Auth stub at `127.0.0.1:4320`. The fixture uses a separate `artifacts/callback-next` build output. Its Next process receives synthetic public Auth URL/key, empty secrets, and no service-role key. The stub rejects the token exchange with `invalid_grant` and exposes only call count and synthetic request body through its local state endpoint. Other paths return 404. No external backend, real credentials, or session is used.
+Duas execuções independentes do fixture atualizado foram verificadas em `artifacts/evidence/run1/results.json` e `artifacts/evidence/run2/results.json`. Cada relatório registra **19 aprovados, 2 ignorados e 0 falhas**. As duas execuções incluem callback inválido respondendo com redirect HTTP 307 para login sem configuração de backend/Auth. Os dois skips existentes cobrem validação de senha sem Auth configurada e busca sem controle no shell.
 
-The invalid-code callback test sends a synthetic PKCE verifier cookie to the real production callback route re-exported by the fixture. It verifies the HTTP 307 redirect to `http://localhost:4319/login`, exactly one Auth-stub exchange with `auth_code=invalid` and the synthetic verifier, and absence of session cookies, including chunked cookies. This proves integration with a synthetic local Auth service; it is not E2E against real Auth, real accounts, authenticated profiles, or multi-profile behavior. The separate no-code callback test redirects to `http://localhost:4317/login`.
+Houve falhas/intermitência anteriores no modo de desenvolvimento: fixture readiness e navegação/hot reload. A causa exata da intermitência não foi confirmada. A estabilização alterou o callback fixture para fazer build antes de servir com `dev: false`, envolveu renderização que depende da rota em `Suspense` e passou a sinalizar readiness usando ref, evitando `setState` no callback de ref. Duas rodadas consecutivas passaram após essas mudanças. Isso demonstra estabilidade nessas rodadas, não prova causalidade exata nem elimina toda flakiness futura.
 
-The browser network barrier remains restricted to `http://127.0.0.1:4317`; callback integration uses Playwright API requests to fixture ports. Sensitive environment names inherited by the app subprocess are emptied, including names discovered in local environment files. No real credential values are logged. This is process/environment isolation, not a firewall for the app server.
+Não confundir esses resultados com `artifacts/results.json`, que pode ser sobrescrito por outra execução. Os relatórios imutáveis usados para esta conclusão são os dois caminhos `artifacts/evidence/run1/results.json` e `artifacts/evidence/run2/results.json`.
 
-Run: `E2E_RUN_ID=callback-local-20261118 npm run e2e` (PowerShell: `$env:E2E_RUN_ID='callback-local-20261118'; npm run e2e`). Requires installed Microsoft Edge. `npx eslint playwright.config.ts e2e --no-warn-ignored` exited 0. `npm run typecheck` exited 2 only for the pre-existing TS2322 in `src/app/(app)/estoque/page.tsx:184`. Historical run with missing Auth configuration returned HTTP 500 for an invalid code; that behavior remains unaddressed as UX-17, and this synthetic-stub run does not test or fix it.
+## Escopo e limites
+
+As rotas de captura em `callback-app/app/[...path]/page.tsx` renderizam componentes reais `SimpleTable`, `ProcessesTable` e `ReturnLink` com linhas sintéticas. Não executam loaders de páginas produtivas, serviços autenticados, banco ou RLS. Os testes de `ProcessView`, confirmação, upload, Sheet, sidebar, tabelas, `ContextualLink` e `ReturnLink` exercitam componentes e navegação com fixture, não fluxos autenticados de produção.
+
+O `npm run e2e` inicia app isolado em `127.0.0.1:4317`, callback fixture em `127.0.0.1:4319` e Auth stub sintético em `127.0.0.1:4320`. Configuração sobrescreve variáveis sensíveis herdadas e valores de Auth/serviços com valores vazios; stub usa somente chave pública sintética, responde `invalid_grant` e expõe estado sintético local. Sem serviço remoto, credenciais reais, dados reais ou sessão autenticada.
+
+O teste de callback inválido envia cookie PKCE sintético para rota de produção reexportada pelo fixture. Verifica redirect HTTP 307 para login, uma troca com o stub Auth e ausência de cookies de sessão, inclusive chunks. Isso prova integração com Auth sintético local, não E2E com Auth real, contas, perfis, autorização, banco ou RLS. Não usar os resultados para afirmar validação de produção.
+
+A barreira de rede do browser restringe navegação a loopback; não é firewall do servidor app. Reexecuções não devem acessar Supabase remoto, enviar email nem executar seed. Microsoft Edge instalado é necessário.
+
+## Fixture de callback e configuração
+
+`playwright.config.ts` executa a app principal pelo servidor isolado e inicia fixture callback via `npx next build e2e/callback-app` seguido de `node e2e/callback-server.mjs`. O servidor callback usa `next({ dev: false })` com diretório de build separado `artifacts/callback-next`; o servidor local Auth stub só aceita rotas previstas e demais caminhos retornam 404. O fixture usa layout com boundary `Suspense` para dependências da rota e marca prontidão por ref após montagem.
+
+Para executar: `E2E_RUN_ID=run-name npm run e2e` (PowerShell: `$env:E2E_RUN_ID='run-name'; npm run e2e`). A configuração guarda reporter temporário em `artifacts/results.json`; para evidência durável, copiar cada relatório identificado para um diretório de execução distinto sem sobrescrever resultados anteriores.

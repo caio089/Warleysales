@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
+import { contextualHref } from "@/shared/ui/contextual-link";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useId, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useId, useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowRight,
@@ -17,9 +19,11 @@ import { cn } from "@/lib/utils";
 import {
   type FilterDefinition,
   type QueryColumn,
-  type SortDirection,
+  type UrlTableState,
   nextSort,
+  parseTableUrlState,
   runTableQuery,
+  writeTableUrlState,
 } from "@/shared/ui/data-table-logic";
 import { EmptyState } from "@/shared/ui/feedback-states";
 import { ProgressBar } from "@/shared/ui/progress-bar";
@@ -55,23 +59,18 @@ export function ProcessesTable({
   emptyAction,
 }: ProcessesTableProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const searchId = useId();
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState<{ key: string | null; direction: SortDirection }>({
-    key: null,
-    direction: "asc",
-  });
-  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
-  const [page, setPage] = useState(1);
 
   const queryColumns: QueryColumn<ProcessTableRow>[] = useMemo(
     () => [
-      { key: "number", accessor: (r) => r.number },
-      { key: "title", accessor: (r) => r.title },
-      { key: "council", accessor: (r) => r.council },
-      { key: "status", accessor: (r) => r.status },
-      { key: "completion", accessor: (r) => r.completion },
-      { key: "progress", accessor: (r) => r.progress },
+      { key: "number", accessor: (r) => r.number, sortable: true },
+      { key: "title", accessor: (r) => r.title, sortable: true },
+      { key: "council", accessor: (r) => r.council, sortable: true },
+      { key: "status", accessor: (r) => r.status, sortable: true },
+      { key: "completion", accessor: (r) => r.completion, sortable: true },
+      { key: "progress", accessor: (r) => r.progress, sortable: true },
     ],
     [],
   );
@@ -105,6 +104,22 @@ export function ProcessesTable({
     ],
     [statusOptions, councilOptions],
   );
+  const namespace = "dt-processos";
+  const [tableState, setTableState] = useState<UrlTableState>(() =>
+    parseTableUrlState(new URLSearchParams(searchParams.toString()), namespace, queryColumns, filterDefs),
+  );
+  const updateTableState = useCallback((next: UrlTableState) => {
+    setTableState(next);
+    const params = writeTableUrlState(new URLSearchParams(window.location.search), namespace, next);
+    window.history.pushState(null, "", `${window.location.pathname}${params.size ? `?${params}` : ""}${window.location.hash}`);
+  }, [namespace]);
+  useEffect(() => {
+    const restore = () => setTableState(parseTableUrlState(new URLSearchParams(window.location.search), namespace, queryColumns, filterDefs));
+    window.addEventListener("popstate", restore);
+    return () => window.removeEventListener("popstate", restore);
+  }, [namespace, queryColumns, filterDefs]);
+  const { search, filters: activeFilters, page } = tableState;
+  const sort = { key: tableState.sortKey, direction: tableState.sortDirection };
 
   const result = useMemo(
     () =>
@@ -146,8 +161,7 @@ export function ProcessesTable({
             className="pl-9"
             value={search}
             onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
+              updateTableState({ ...tableState, search: e.target.value, page: 1 });
             }}
             autoComplete="off"
           />
@@ -161,8 +175,7 @@ export function ProcessesTable({
             className="h-10 min-w-40 rounded-lg border border-input bg-card px-3 text-sm font-medium text-foreground focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
             value={activeFilters["status"] ?? ""}
             onChange={(e) => {
-              setActiveFilters((f) => ({ ...f, status: e.target.value }));
-              setPage(1);
+              updateTableState({ ...tableState, filters: { ...activeFilters, status: e.target.value }, page: 1 });
             }}
           >
             <option value="">Todos</option>
@@ -182,8 +195,7 @@ export function ProcessesTable({
             className="h-10 min-w-40 rounded-lg border border-input bg-card px-3 text-sm font-medium text-foreground focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
             value={activeFilters["council"] ?? ""}
             onChange={(e) => {
-              setActiveFilters((f) => ({ ...f, council: e.target.value }));
-              setPage(1);
+              updateTableState({ ...tableState, filters: { ...activeFilters, council: e.target.value }, page: 1 });
             }}
           >
             <option value="">Todos</option>
@@ -234,8 +246,8 @@ export function ProcessesTable({
                             type="button"
                             className="inline-flex items-center gap-1 rounded-md tracking-[0.12em] uppercase transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                             onClick={() => {
-                              setSort((s) => nextSort(s, h.key));
-                              setPage(1);
+                              const next = nextSort(sort, h.key);
+                              updateTableState({ ...tableState, sortKey: next.key, sortDirection: next.direction, page: 1 });
                             }}
                           >
                             {h.label}
@@ -263,12 +275,13 @@ export function ProcessesTable({
                   return (
                     <tr
                       key={row.id}
-                      onClick={() => router.push(row.href)}
+                      onClick={() => router.push(contextualHref(row.href, pathname, searchParams.size ? `?${searchParams.toString()}` : ""))}
                       className="group cursor-pointer border-t border-border/70 transition-colors hover:bg-primary/[0.035]"
                     >
                       <td className="px-4 py-3.5">
                         <Link
-                          href={row.href}
+                          href={contextualHref(row.href, pathname, searchParams.size ? `?${searchParams.toString()}` : "")}
+                          onClick={(event) => event.stopPropagation()}
                           className="font-medium text-primary underline-offset-4 transition-colors group-hover:text-highlight group-hover:underline"
                         >
                           {row.number}
@@ -276,7 +289,7 @@ export function ProcessesTable({
                       </td>
                       <td className="px-4 py-3.5">
                         <Link
-                          href={row.href}
+                          href={contextualHref(row.href, pathname, searchParams.size ? `?${searchParams.toString()}` : "")}
                           onClick={(event) => event.stopPropagation()}
                           className="line-clamp-2 font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
                         >
@@ -302,11 +315,12 @@ export function ProcessesTable({
                       </td>
                       <td className="px-4 py-3.5 text-right">
                         <Link
-                          href={row.href}
+                          href={contextualHref(row.href, pathname, searchParams.size ? `?${searchParams.toString()}` : "")}
                           className={cn(
                             buttonVariants({ variant: "outline", size: "sm" }),
                             "inline-flex items-center gap-1.5",
                           )}
+                          onClick={(event) => event.stopPropagation()}
                           title={`Abrir processo completo ${row.number}`}
                         >
                           <span>Abrir</span>
@@ -330,7 +344,7 @@ export function ProcessesTable({
               variant="outline"
               size="sm"
               disabled={result.page <= 1}
-              onClick={() => setPage(result.page - 1)}
+              onClick={() => updateTableState({ ...tableState, page: result.page - 1 })}
             >
               Anterior
             </Button>
@@ -341,7 +355,7 @@ export function ProcessesTable({
               variant="outline"
               size="sm"
               disabled={result.page >= result.pageCount}
-              onClick={() => setPage(result.page + 1)}
+              onClick={() => updateTableState({ ...tableState, page: result.page + 1 })}
             >
               Próxima
             </Button>

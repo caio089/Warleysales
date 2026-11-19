@@ -9,7 +9,7 @@ export interface HoldItemInput {
   items: readonly { materialId: string; quantity: number }[];
 }
 
-export interface HoldRow {
+export interface HoldRow extends Record<string, string | number | null> {
   id: string;
   name: string;
   demand: string;

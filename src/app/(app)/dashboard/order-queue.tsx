@@ -50,18 +50,22 @@ export function OrderQueue({ items }: OrderQueueProps) {
     return null;
   }
 
-  async function handleApprove(order: PendingOrderItem) {
+  async function handleApprove(order: PendingOrderItem): Promise<boolean> {
     setProcessingId(order.id);
     try {
       const res = await approveMaterialOrderAction(order.id);
       if (res.status === "error") {
         toast.error(res.message);
-      } else if (res.status === "success") {
+        return false;
+      }
+      if (res.status === "success") {
         toast.success(res.message || `Pedido ${order.number} aprovado e despachado.`);
         router.refresh();
       }
+      return true;
     } catch {
       toast.error("Erro ao aprovar o pedido de material.");
+      return false;
     } finally {
       setProcessingId(null);
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { FolderKanban, Handshake, ShieldCheck } from "lucide-react";
 import { DOCUMENT_TYPES } from "@/modules/processes/domain/document-types";
 import type { Attachment } from "@/modules/documents/schemas";
@@ -28,6 +28,13 @@ import {
 import { GovernanceTab } from "./tabs/governance-tab";
 
 export type ProcessTabId = "documentos" | "contratacao" | "governanca";
+
+export function processTabFromSearch(search: string, fallback: ProcessTabId = "documentos"): ProcessTabId {
+  const value = new URLSearchParams(search).get("aba");
+  return value === "documentos" || value === "contratacao" || value === "governanca"
+    ? value
+    : fallback;
+}
 
 export interface ProcessViewProps {
   view: ProcessServiceView;
@@ -92,6 +99,39 @@ export function ProcessView({
   initialTab = "documentos",
 }: ProcessViewProps) {
   const [activeTab, setActiveTab] = useState<ProcessTabId>(initialTab);
+  const tabRefs = useRef(new Map<ProcessTabId, HTMLButtonElement>());
+
+  useEffect(() => {
+    const syncTabFromUrl = () => {
+      setActiveTab(processTabFromSearch(window.location.search));
+    };
+    syncTabFromUrl();
+    window.addEventListener("popstate", syncTabFromUrl);
+    return () => window.removeEventListener("popstate", syncTabFromUrl);
+  }, []);
+
+  function selectTab(tab: ProcessTabId) {
+    setActiveTab(tab);
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("aba") !== tab) {
+      url.searchParams.set("aba", tab);
+      window.history.pushState(null, "", url);
+    }
+  }
+
+  function handleTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, current: ProcessTabId) {
+    const index = tabs.findIndex((tab) => tab.id === current);
+    let nextIndex: number | null = null;
+    if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+    if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = tabs.length - 1;
+    if (nextIndex === null) return;
+    event.preventDefault();
+    const nextTab = tabs[nextIndex]!.id;
+    selectTab(nextTab);
+    tabRefs.current.get(nextTab)?.focus();
+  }
 
   // Métricas e dados derivados para o ProcessHeader
   const status = presentationOf(PROCESS_STATUS, view.process.status);
@@ -187,7 +227,12 @@ export function ProcessView({
                 aria-selected={isSelected}
                 aria-controls={`panel-${tab.id}`}
                 tabIndex={isSelected ? 0 : -1}
-                onClick={() => setActiveTab(tab.id)}
+                ref={(element) => {
+                  if (element) tabRefs.current.set(tab.id, element);
+                  else tabRefs.current.delete(tab.id);
+                }}
+                onClick={() => selectTab(tab.id)}
+                onKeyDown={(event) => handleTabKeyDown(event, tab.id)}
                 className={`group inline-flex items-center gap-2 border-b-2 px-3.5 py-3 text-sm font-medium whitespace-nowrap transition-all duration-150 cursor-pointer ${
                   isSelected
                     ? "border-primary text-primary"

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { DataSourceUnavailableState, ErrorState, ForbiddenState } from "@/shared/ui/feedback-states";
 import { notFound } from "next/navigation";
 import type { ScreenResult } from "@/server/screen";
+import { RetryButton } from "@/shared/ui/retry-button";
 
 /** Converte o resultado de carregamento em UI: conteúdo, sem fonte de dados, sem permissão ou erro. */
 export function Screen<T>({ result, children }: { result: ScreenResult<T>; children: (data: T) => ReactNode }) {
@@ -16,6 +17,6 @@ export function Screen<T>({ result, children }: { result: ScreenResult<T>; child
       notFound();
       return null;
     case "error":
-      return <ErrorState description={result.message} />;
+      return <ErrorState description={result.message} action={<RetryButton />} />;
   }
 }

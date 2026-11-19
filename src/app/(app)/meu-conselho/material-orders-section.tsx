@@ -71,7 +71,9 @@ export function MaterialOrdersSection({
           {orders.length > 0 ? (
             <div className="relative">
               <Search className="size-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" aria-hidden />
+              <label htmlFor="material-orders-search" className="sr-only">Buscar pedidos de materiais</label>
               <input
+                id="material-orders-search"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -126,11 +128,11 @@ export function MaterialOrdersSection({
                     <td className="py-3 text-slate-500 tabular-nums whitespace-nowrap">
                       {formatDateTimeFortaleza(o.createdAt)}
                     </td>
-                    <td className="py-3 text-slate-700 max-w-xs truncate" title={itemsText}>
+                    <td className="py-3 text-slate-700 max-w-xs whitespace-normal break-words">
                       {itemsText}
                     </td>
                     <td
-                      className="py-3 text-slate-500 max-w-xs truncate"
+                      className="py-3 text-slate-500 max-w-xs whitespace-normal break-words"
                       title={
                         o.status === "rejeitado" && o.rejectionReason
                           ? `Recusado: ${o.rejectionReason}`

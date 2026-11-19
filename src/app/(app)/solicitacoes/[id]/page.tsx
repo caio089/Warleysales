@@ -64,6 +64,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
             <PageHeader
               eyebrow="Solicitações"
               backHref="/solicitacoes"
+              returnToPath="/solicitacoes"
               backLabel="Todas as solicitações"
               title={request.title}
               description={

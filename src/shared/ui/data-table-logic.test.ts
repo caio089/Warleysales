@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextSort, normalize, runTableQuery, type QueryColumn, type TableQuery } from "./data-table-logic";
+import { nextSort, normalize, parseTableUrlState, runTableQuery, tableQueryKey, writeTableUrlState, type QueryColumn, type TableQuery } from "./data-table-logic";
 
 interface Row { name: string; qty: number | null; status: string }
 const data: Row[] = [
@@ -14,6 +14,31 @@ const columns: QueryColumn<Row>[] = [
 ];
 const filters = [{ id: "status", label: "Status", options: [], accessor: (r: Row) => r.status }];
 const base: TableQuery = { search: "", sortKey: null, sortDirection: "asc", filters: {}, page: 1, pageSize: 2 };
+
+describe("table URL state", () => {
+  const namespace = tableQueryKey("Ordens de materiais");
+  const urlColumns = [{ key: "name", accessor: (row: Row) => row.name, sortable: true }, { key: "status", accessor: (row: Row) => row.status, sortable: false }];
+  const urlFilters = [{ id: "status", label: "Status", options: [{ value: "a", label: "A" }, { value: "b", label: "B" }], accessor: (row: Row) => row.status }];
+
+  it("round-trips allowed state and preserves unrelated query/hash", () => {
+    const params = new URLSearchParams("aba=governanca&keep=1");
+    writeTableUrlState(params, namespace, { search: "luvas", sortKey: "name", sortDirection: "desc", filters: { status: "b" }, page: 3 });
+    expect(parseTableUrlState(params, namespace, urlColumns, urlFilters)).toEqual({ search: "luvas", sortKey: "name", sortDirection: "desc", filters: { status: "b" }, page: 3 });
+    expect(params.get("aba")).toBe("governanca");
+    expect(new URL(`https://example.test/list?${params}#section`).hash).toBe("#section");
+  });
+
+  it("rejects invalid column, filter, direction and unsafe page", () => {
+    const params = new URLSearchParams(`${namespace}.q=x&${namespace}.sort=other:asc&${namespace}.f.status=admin&${namespace}.page=9007199254740992`);
+    expect(parseTableUrlState(params, namespace, urlColumns, urlFilters)).toMatchObject({ search: "x", sortKey: null, sortDirection: "asc", filters: {}, page: 1 });
+    params.set(`${namespace}.sort`, "status:asc");
+    expect(parseTableUrlState(params, namespace, urlColumns, urlFilters).sortKey).toBeNull();
+    params.set(`${namespace}.sort`, "name:sideways");
+    params.set(`${namespace}.page`, "-1");
+    expect(parseTableUrlState(params, namespace, urlColumns, urlFilters).sortKey).toBeNull();
+    expect(parseTableUrlState(params, namespace, urlColumns, urlFilters).page).toBe(1);
+  });
+});
 
 describe("runTableQuery", () => {
   it("busca ignora acentos e caixa", () => {

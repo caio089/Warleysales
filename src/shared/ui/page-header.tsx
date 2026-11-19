@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { ReturnLink } from "./contextual-link";
 import { ArrowLeft } from "lucide-react";
 
 interface PageHeaderProps {
@@ -11,13 +12,14 @@ interface PageHeaderProps {
   actions?: ReactNode;
   backHref?: string;
   backLabel?: string;
+  returnToPath?: string;
 }
 
-export function PageHeader({ title, description, eyebrow, actions, backHref, backLabel = "Voltar" }: PageHeaderProps) {
+export function PageHeader({ title, description, eyebrow, actions, backHref, backLabel = "Voltar", returnToPath }: PageHeaderProps) {
   return (
     <header className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0 flex-1">
-        {backHref ? <Link href={backHref} className="mb-4 inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowLeft className="size-4" aria-hidden />{backLabel}</Link> : null}
+        {backHref ? (returnToPath ? <ReturnLink expectedPath={returnToPath} className="mb-4 inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowLeft className="size-4" aria-hidden />{backLabel}</ReturnLink> : <Link href={backHref} className="mb-4 inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowLeft className="size-4" aria-hidden />{backLabel}</Link>) : null}
         {eyebrow ? (
           <p className="mb-2 text-[0.7rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase">{eyebrow}</p>
         ) : null}

@@ -18,12 +18,14 @@ export const metadata: Metadata = { title: "Movimentações" };
 
 const TYPE_LABEL: Record<string, string> = { entry: "Entrada", consumption: "Consumo", adjustment_in: "Ajuste (+)", adjustment_out: "Ajuste (−)", transfer_out: "Saída por transferência", transfer_in: "Entrada por transferência" };
 
-async function Content() {
+export async function Content() {
   const result = await loadScreen(async (ctx) => {
     const lookups = await loadLookups(ctx);
     if (!lookups.ok) return lookups;
     const lists = await Promise.all(lookups.data.councils.map((c) => ctx.services.inventory.listMovements(ctx.actor, c.id)));
-    const movements = lists.flatMap((l) => (l.ok ? l.data : []));
+    const failed = lists.find((list) => !list.ok);
+    if (failed && !failed.ok) return failed;
+    const movements = lists.flatMap((list) => (list.ok ? list.data : []));
     return ok({
       movements,
       lookups: lookups.data,

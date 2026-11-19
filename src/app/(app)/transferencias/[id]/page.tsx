@@ -36,7 +36,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
         const status = presentationOf(TRANSFER_STATUS, transfer.status);
         return (
           <>
-            <PageHeader eyebrow="Estoque · Transferências" backHref="/transferencias" backLabel="Todas as transferências" title={`${lookups.councilLabel[transfer.originCouncilId]} → ${lookups.councilLabel[transfer.destinationCouncilId]}`} actions={<StatusBadge label={status.label} tone={status.tone} />} />
+            <PageHeader eyebrow="Estoque · Transferências" backHref="/transferencias" returnToPath="/transferencias" backLabel="Todas as transferências" title={`${lookups.councilLabel[transfer.originCouncilId]} → ${lookups.councilLabel[transfer.destinationCouncilId]}`} actions={<StatusBadge label={status.label} tone={status.tone} />} />
             <div className="space-y-8">
               <SimpleTable
                 caption="Itens da transferência"

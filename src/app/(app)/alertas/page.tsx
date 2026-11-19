@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import Link from "next/link";
 import { Bell, BellRing, CheckCheck } from "lucide-react";
 import { loadScreen } from "@/server/screen";
 import { formatDateTimeFortaleza } from "@/shared/lib/time";
@@ -9,14 +10,25 @@ import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight
 import { PageHeader, SectionLabel } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { MarkReadForm } from "./mark-read-form";
+import { notificationDestination, resolveNotificationDestinations } from "./notification-destination";
 
 export const metadata: Metadata = { title: "Alertas" };
 
 async function Content() {
-  const result = await loadScreen(({ services, actor }) => services.notifications.listMine(actor));
+  const result = await loadScreen(async ({ services, actor }) => {
+    const listed = await services.notifications.listMine(actor);
+    if (!listed.ok) return listed;
+    const destinations = await resolveNotificationDestinations(listed.data.items, async (item) => {
+      const result = item.entityType === "ata"
+        ? await services.atas.get(actor, item.entityId)
+        : await services.contracts.get(actor, item.entityId);
+      return result.ok;
+    });
+    return { ...listed, data: { ...listed.data, destinations } };
+  });
   return (
     <Screen result={result}>
-      {({ items, unread }) => {
+      {({ items, unread, destinations }) => {
         const pending = items.filter((item) => !item.readAt);
         const read = items.filter((item) => Boolean(item.readAt));
         return (
@@ -40,7 +52,7 @@ async function Content() {
                     <ul className="space-y-3">
                       {pending.map((item) => (
                         <li key={item.id} className="surface-card flex flex-col gap-4 border-l-4 border-l-highlight p-5 sm:flex-row sm:items-start sm:justify-between">
-                          <div className="min-w-0"><p className="font-semibold text-primary">{item.title}</p><p className="mt-1 text-sm leading-relaxed text-muted-foreground">{item.body}</p><p className="mt-2 text-xs text-muted-foreground">{formatDateTimeFortaleza(item.createdAt)}</p></div>
+                          <div className="min-w-0"><p className="font-semibold text-primary">{notificationDestination(item, destinations) ? <Link href={notificationDestination(item, destinations)!} className="underline-offset-4 hover:underline focus-visible:underline">{item.title}</Link> : item.title}</p><p className="mt-1 text-sm leading-relaxed text-muted-foreground">{item.body}</p><p className="mt-2 text-xs text-muted-foreground">{formatDateTimeFortaleza(item.createdAt)}</p></div>
                           <MarkReadForm notificationId={item.id} />
                         </li>
                       ))}
@@ -51,7 +63,7 @@ async function Content() {
                   <section aria-label="Alertas lidos">
                     <div className="mb-3"><SectionLabel>Já consultados</SectionLabel></div>
                     <ul className="space-y-3">
-                      {read.map((item) => <li key={item.id} className="surface-card p-5"><p className="font-medium text-primary">{item.title}</p><p className="mt-1 text-sm leading-relaxed text-muted-foreground">{item.body}</p><p className="mt-2 text-xs text-muted-foreground">{formatDateTimeFortaleza(item.createdAt)}</p></li>)}
+                      {read.map((item) => <li key={item.id} className="surface-card p-5"><p className="font-medium text-primary">{notificationDestination(item, destinations) ? <Link href={notificationDestination(item, destinations)!} className="underline-offset-4 hover:underline focus-visible:underline">{item.title}</Link> : item.title}</p><p className="mt-1 text-sm leading-relaxed text-muted-foreground">{item.body}</p><p className="mt-2 text-xs text-muted-foreground">{formatDateTimeFortaleza(item.createdAt)}</p></li>)}
                     </ul>
                   </section>
                 ) : null}

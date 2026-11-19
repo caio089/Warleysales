@@ -88,7 +88,7 @@ export function FileUpload({ label, onUpload, disabled }: FileUploadProps) {
               <div className="flex items-center justify-between gap-2">
                 <span className="truncate font-medium">{item.name}</span>
                 <span className="shrink-0 text-xs text-muted-foreground">{formatBytes(item.size)}</span>
-                <button type="button" aria-label={`Remover ${item.name} da lista`} onClick={() => setItems((l) => l.filter((i) => i.id !== item.id))} className="rounded focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+                <button type="button" aria-label={`Remover ${item.name} da lista`} disabled={item.status === "uploading"} onClick={() => setItems((l) => l.filter((i) => i.id !== item.id))} className="rounded focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50">
                   <X className="size-4" aria-hidden />
                 </button>
               </div>

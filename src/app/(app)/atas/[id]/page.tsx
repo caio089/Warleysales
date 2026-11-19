@@ -55,7 +55,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
     <Screen result={result}>
       {({ view, lookups, canManage, processes, processHref, processLabel, relatedContracts, councilContracts }) => (
         <>
-          <PageHeader eyebrow="Acompanhamento · Atas" backHref="/atas" backLabel="Todas as atas" title={`Ata ${view.ata.number}`} description={`Vigência até ${formatDateOnly(view.endDate)} · ${view.validity === "vigente" ? "vigente" : "vencida"} · ${view.ata.status === "rascunho" ? "rascunho (não consome saldo)" : "ativa"}`} />
+          <PageHeader eyebrow="Acompanhamento · Atas" backHref="/atas" returnToPath="/atas" backLabel="Todas as atas" title={`Ata ${view.ata.number}`} description={`Vigência até ${formatDateOnly(view.endDate)} · ${view.validity === "vigente" ? "vigente" : "vencida"} · ${view.ata.status === "rascunho" ? "rascunho (não consome saldo)" : "ativa"}`} />
           <section aria-label="Processo e contratos" className="surface-card mb-8 max-w-lg space-y-4 p-6">
             <div>
               <h2 className="font-heading text-lg font-medium tracking-tight text-primary">Processo vinculado</h2>

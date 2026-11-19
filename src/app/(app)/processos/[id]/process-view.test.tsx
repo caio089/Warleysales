@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { formatCurrency } from "@/shared/lib/format";
 
 vi.mock("next/navigation", () => ({
+  useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({
     push: vi.fn(),
     refresh: vi.fn(),
@@ -43,7 +44,7 @@ vi.mock("@/modules/contracts/actions", () => ({
   createContractFormAction: vi.fn(),
 }));
 
-import { ProcessView, type ProcessViewProps } from "./process-view";
+import { ProcessView, processTabFromSearch, type ProcessViewProps } from "./process-view";
 
 const BASE_PROPS: ProcessViewProps = {
   view: {
@@ -110,6 +111,12 @@ const BASE_PROPS: ProcessViewProps = {
 };
 
 describe("ProcessView", () => {
+  it("usa aba documentos quando URL não tem aba ou tem aba inválida e aceita aba válida", () => {
+    expect(processTabFromSearch("?filtro=aberto")).toBe("documentos");
+    expect(processTabFromSearch("?aba=desconhecida&filtro=aberto")).toBe("documentos");
+    expect(processTabFromSearch("?aba=desconhecida", "contratacao")).toBe("contratacao");
+    expect(processTabFromSearch("?aba=governanca&filtro=aberto")).toBe("governanca");
+  });
   it("renderiza o ProcessHeader no topo com número, título do item e métricas", () => {
     const html = renderToStaticMarkup(<ProcessView {...BASE_PROPS} />);
 
@@ -255,6 +262,8 @@ describe("ProcessView", () => {
 
     // Checa ligação semântica entre abas e painéis
     expect(html).toContain('aria-controls="panel-documentos"');
+    expect(html).toContain('id="tab-documentos" aria-selected="true" aria-controls="panel-documentos" tabindex="0"');
+    expect(html).toContain('id="tab-contratacao" aria-selected="false" aria-controls="panel-contratacao" tabindex="-1"');
     expect(html).toContain('aria-controls="panel-contratacao"');
     expect(html).toContain('aria-controls="panel-governanca"');
 

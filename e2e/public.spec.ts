@@ -78,7 +78,8 @@ test('envio local sem backend apresenta indisponibilidade', async ({ page }) => 
   expect(loginResponse.status()).toBe(200);
   await expect(page.getByRole('alert').filter({ hasText: 'Autenticação não configurada neste ambiente.' }).first()).toBeVisible();
   await expect(email).toHaveValue('sintetico@example.invalid'); await expect(password).toHaveValue('senha-sintetica');
-  await page.getByRole('link', { name: 'Esqueci minha senha' }).click();
+  await page.getByRole('link', { name: 'Esqueci minha senha' }).focus();
+  await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/recuperar-senha/);
   const recoveryEmail = page.getByRole('textbox', { name: 'E-mail' });
   await recoveryEmail.fill('sintetico@example.invalid');

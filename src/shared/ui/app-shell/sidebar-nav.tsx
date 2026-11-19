@@ -143,6 +143,7 @@ function ExpandedGroup({
         type="button"
         onClick={onToggle}
         aria-expanded={isOpen}
+        aria-controls={`nav-group-${group.id}`}
         className={cn(
           "group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors duration-150",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-highlight",
@@ -177,6 +178,8 @@ function ExpandedGroup({
 
       {/* Itens do grupo — expande/recolhe com animação CSS */}
       <div
+        id={`nav-group-${group.id}`}
+        inert={!isOpen}
         className={cn(
           "overflow-hidden transition-all duration-200 ease-out",
           isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0",

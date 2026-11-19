@@ -3,6 +3,57 @@
  */
 export type SortDirection = "asc" | "desc";
 
+export interface UrlTableState {
+  search: string;
+  sortKey: string | null;
+  sortDirection: SortDirection;
+  filters: Record<string, string>;
+  page: number;
+}
+
+const MAX_URL_PAGE = 1_000_000;
+
+export function tableQueryKey(caption: string): string {
+  const slug = caption.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return `dt-${slug || "table"}`;
+}
+
+export function parseTableUrlState(
+  params: URLSearchParams,
+  namespace: string,
+  columns: readonly { key: string; sortable?: boolean }[],
+  filters: readonly { id: string; options: readonly { value: string }[] }[],
+): UrlTableState {
+  const allowedColumns = new Set(columns.filter((column) => column.sortable === true).map((column) => column.key));
+  const allowedFilters = new Map(filters.map((filter) => [filter.id, new Set(filter.options.map((option) => option.value))]));
+  const rawPage = params.get(`${namespace}.page`);
+  const parsedPage = rawPage && /^\d+$/.test(rawPage) ? Number(rawPage) : 1;
+  const rawSort = params.get(`${namespace}.sort`);
+  const [sortKey, direction] = rawSort?.split(":") ?? [];
+  const cleanFilters: Record<string, string> = {};
+  for (const [id, values] of allowedFilters) {
+    const value = params.get(`${namespace}.f.${id}`);
+    if (value && values.has(value)) cleanFilters[id] = value;
+  }
+  return {
+    search: (params.get(`${namespace}.q`) ?? "").slice(0, 200),
+    sortKey: sortKey && allowedColumns.has(sortKey) && (direction === "asc" || direction === "desc") ? sortKey : null,
+    sortDirection: direction === "desc" ? "desc" : "asc",
+    filters: cleanFilters,
+    page: Number.isSafeInteger(parsedPage) && parsedPage > 0 && parsedPage <= MAX_URL_PAGE ? parsedPage : 1,
+  };
+}
+
+export function writeTableUrlState(params: URLSearchParams, namespace: string, state: UrlTableState): URLSearchParams {
+  const prefix = `${namespace}.`;
+  for (const key of [...params.keys()]) if (key.startsWith(prefix)) params.delete(key);
+  if (state.search) params.set(`${namespace}.q`, state.search.slice(0, 200));
+  if (state.sortKey) params.set(`${namespace}.sort`, `${state.sortKey}:${state.sortDirection}`);
+  for (const [id, value] of Object.entries(state.filters)) if (value) params.set(`${namespace}.f.${id}`, value);
+  if (state.page > 1) params.set(`${namespace}.page`, String(Math.min(state.page, MAX_URL_PAGE)));
+  return params;
+}
+
 export interface TableQuery {
   search: string;
   sortKey: string | null;

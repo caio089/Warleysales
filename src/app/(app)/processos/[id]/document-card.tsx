@@ -62,7 +62,12 @@ export function DocumentCard({ processId, typeCode, label, valid, files, canUplo
                       body.set("attachmentId", f.id);
                       body.set("processId", processId);
                       const state = await manualDeleteFormAction({ status: "idle" }, body);
-                      if (state.status === "error") toast.error(state.message); else toast.success("Documento excluído.");
+                      if (state.status === "error") {
+                        toast.error(state.message);
+                        return false;
+                      }
+                      toast.success("Documento excluído.");
+                      return true;
                     }}
                   />
                 ) : null}
@@ -204,11 +209,13 @@ export function AdditionalDocumentsCard({
                       body.set("attachmentId", doc.id);
                       body.set("processId", processId);
                       const state = await manualDeleteFormAction({ status: "idle" }, body);
-                      if (state.status === "error") toast.error(state.message);
-                      else {
-                        toast.success("Documento excluído.");
-                        router.refresh();
+                      if (state.status === "error") {
+                        toast.error(state.message);
+                        return false;
                       }
+                      toast.success("Documento excluído.");
+                      router.refresh();
+                      return true;
                     }}
                   />
                 ) : null}

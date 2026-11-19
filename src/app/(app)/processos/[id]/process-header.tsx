@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { ReturnLink } from "@/shared/ui/contextual-link";
 import { ArrowLeft } from "lucide-react";
 import { formatCurrency } from "@/shared/lib/format";
 import { StatusBadge, type StatusTone } from "@/shared/ui/status-badge";
@@ -40,13 +40,13 @@ export function ProcessHeader({
     <header className="mb-6 space-y-4">
       {/* Navegação de retorno */}
       <div>
-        <Link
-          href="/processos"
+        <ReturnLink
+          expectedPath="/processos"
           className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition hover:text-foreground"
         >
           <ArrowLeft className="size-3.5" aria-hidden="true" />
           <span>Voltar para Processos</span>
-        </Link>
+        </ReturnLink>
       </div>
 
       {/* Topo Executivo: Eyebrow, Título, Descrição e Badges */}

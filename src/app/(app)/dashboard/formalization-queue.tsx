@@ -44,7 +44,7 @@ export function FormalizationQueue({ items }: FormalizationQueueProps) {
     return null;
   }
 
-  async function handleQuickHomologate(processId: string) {
+  async function handleQuickHomologate(processId: string): Promise<boolean> {
     setProcessingId(processId);
     try {
       const formData = new FormData();
@@ -52,11 +52,13 @@ export function FormalizationQueue({ items }: FormalizationQueueProps) {
       const res = await homologateFormalizationAction({ status: "idle" }, formData);
       if (res.status === "error") {
         toast.error(res.message);
-      } else if (res.status === "success") {
-        toast.success(res.message);
+        return false;
       }
+      if (res.status === "success") toast.success(res.message);
+      return true;
     } catch {
       toast.error("Erro ao homologar a formalização.");
+      return false;
     } finally {
       setProcessingId(null);
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { ContextualLink } from "./contextual-link";
 import type { ReactNode } from "react";
 import { formatCurrency, formatNumber } from "@/shared/lib/format";
 import { formatDateOnly, formatDateTimeFortaleza } from "@/shared/lib/time";
@@ -62,6 +62,7 @@ interface SimpleTableProps {
   /** Filtros por valor exato de uma coluna. A coluna não precisa aparecer na tabela. */
   filterKeys?: SimpleFilter[];
   pageSize?: number;
+  queryKey?: string;
   emptyTitle?: string;
   emptyDescription?: string;
   emptyAction?: ReactNode;
@@ -94,14 +95,14 @@ function renderCell(column: SimpleColumn, row: SimpleRow) {
     case "progress": return <ProgressBar value={Number(value)} label={column.header} className="min-w-32" />;
     case "link": {
       const href = column.hrefKey ? row[column.hrefKey] : null;
-      return href ? <Link href={String(href)} className="font-medium text-primary underline-offset-4 transition-colors hover:text-highlight hover:underline">{String(value)}</Link> : String(value);
+      return href ? <ContextualLink href={String(href)} className="font-medium text-primary underline-offset-4 transition-colors hover:text-highlight hover:underline">{String(value)}</ContextualLink> : String(value);
     }
     default: return String(value);
   }
 }
 
 /** Tabela de leitura com busca/ordenação/paginação, configurada apenas por dados serializáveis. */
-export function SimpleTable({ caption, rows, columns, filterKeys = [], pageSize, emptyTitle, emptyDescription, emptyAction }: SimpleTableProps) {
+export function SimpleTable({ caption, rows, columns, filterKeys = [], pageSize, queryKey, emptyTitle, emptyDescription, emptyAction }: SimpleTableProps) {
   const tableColumns: DataTableColumn<SimpleRow>[] = columns.map((c) => ({
     key: c.key,
     header: c.header,
@@ -123,5 +124,5 @@ export function SimpleTable({ caption, rows, columns, filterKeys = [], pageSize,
     };
   });
 
-  return <DataTable caption={caption} data={rows} columns={tableColumns} getRowId={(r) => r.id} filters={filters} pageSize={pageSize} emptyTitle={emptyTitle} emptyDescription={emptyDescription} emptyAction={emptyAction} />;
+  return <DataTable caption={caption} data={rows} columns={tableColumns} getRowId={(r) => r.id} filters={filters} pageSize={pageSize} queryKey={queryKey} emptyTitle={emptyTitle} emptyDescription={emptyDescription} emptyAction={emptyAction} />;
 }

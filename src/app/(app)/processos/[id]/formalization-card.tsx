@@ -380,9 +380,10 @@ export function FormalizationCard({
                     const state = await homologateFormalizationAction({ status: "idle" }, body);
                     if (state.status === "error") {
                       toast.error(state.message);
-                    } else if (state.status === "success") {
-                      toast.success(state.message);
+                      return false;
                     }
+                    if (state.status === "success") toast.success(state.message);
+                    return true;
                   }}
                 />
                 <Button

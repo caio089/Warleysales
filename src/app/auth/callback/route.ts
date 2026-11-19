@@ -12,9 +12,13 @@ export async function GET(request: NextRequest) {
   const next = ALLOWED_NEXT.has(requestedNext) ? requestedNext : "/dashboard";
 
   if (code) {
-    const client = await createSessionClient();
-    const { error } = await client.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}${next}`);
+    try {
+      const client = await createSessionClient();
+      const { error } = await client.auth.exchangeCodeForSession(code);
+      if (!error) return NextResponse.redirect(`${origin}${next}`);
+    } catch {
+      // Provider/configuration failures must not expose internal details or callback secrets.
+    }
   }
   return NextResponse.redirect(`${origin}/login`);
 }

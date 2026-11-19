@@ -52,7 +52,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
     <Screen result={result}>
       {({ view, canManage, processes, processHref, processLabel, relatedAtas, councilAtas }) => (
         <>
-          <PageHeader eyebrow="Acompanhamento · Contratos" backHref="/contratos" backLabel="Todos os contratos" title={`Contrato ${view.contract.number}`} description={view.contract.object} />
+          <PageHeader eyebrow="Acompanhamento · Contratos" backHref="/contratos" returnToPath="/contratos" backLabel="Todos os contratos" title={`Contrato ${view.contract.number}`} description={view.contract.object} />
           <section aria-label="Processo e atas" className="surface-card mb-8 max-w-lg space-y-4 p-6">
             <div>
               <h2 className="font-heading text-lg font-medium tracking-tight text-primary">Processo vinculado</h2>

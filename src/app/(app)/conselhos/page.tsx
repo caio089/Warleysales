@@ -14,7 +14,7 @@ import { StatusBadge } from "@/shared/ui/status-badge";
 
 export const metadata: Metadata = { title: "Órgãos e Empresas" };
 
-async function CouncilsContent() {
+export async function CouncilsContent() {
   const result = await loadScreen(async ({ services, actor }) => {
     const [councilsRes, requestsRes, stockRes] = await Promise.all([
       services.councils.list(actor),
@@ -23,10 +23,12 @@ async function CouncilsContent() {
     ]);
 
     if (!councilsRes.ok) return councilsRes;
+    if (!requestsRes.ok) return requestsRes;
+    if (!stockRes.ok) return stockRes;
 
     const councils = councilsRes.data;
-    const requests = requestsRes.ok ? requestsRes.data : [];
-    const stock = stockRes.ok ? stockRes.data : [];
+    const requests = requestsRes.data;
+    const stock = stockRes.data;
 
     const enriched = councils.map((c) => {
       const companyRequests = requests.filter((r) => r.councilId === c.id);

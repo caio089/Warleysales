@@ -3,6 +3,12 @@ import { expect, test } from '@playwright/test';
 const callbackOrigin = 'http://127.0.0.1:4319';
 const authOrigin = 'http://127.0.0.1:4320';
 
+test('invalid code on isolated app redirects to login without backend configuration', async ({ request }) => {
+  const response = await request.get('http://127.0.0.1:4317/auth/callback?code=invalid', { maxRedirects: 0 });
+  expect(response.status()).toBe(307);
+  expect(response.headers().location).toBe('http://localhost:4317/login');
+});
+
 test('invalid-code callback exchanges PKCE with local Auth and redirects to login', async ({ request }) => {
   const before = await request.get(`${authOrigin}/__fixture/state`);
   expect(before.ok()).toBeTruthy();
