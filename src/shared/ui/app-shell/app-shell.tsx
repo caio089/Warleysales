@@ -98,7 +98,7 @@ export function AppShell({ navHrefs, topbarSlot, children }: AppShellProps) {
           ) : null}
         </div>
         <div className="sidebar-scroll relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-3">
-          <SidebarNav items={navItems} collapsed={collapsed} />
+          <SidebarNav items={navItems} collapsed={collapsed} idPrefix="desktop-nav-group" />
         </div>
         <div className="relative shrink-0 border-t border-sidebar-border/60">
           {collapsed ? (
@@ -131,7 +131,7 @@ export function AppShell({ navHrefs, topbarSlot, children }: AppShellProps) {
             <BrandMark inverted />
           </div>
           <div className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 py-4">
-            <SidebarNav items={navItems} onNavigate={() => setMobileOpen(false)} />
+            <SidebarNav items={navItems} onNavigate={() => setMobileOpen(false)} idPrefix="mobile-nav-group" />
           </div>
         </SheetContent>
       </Sheet>

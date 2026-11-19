@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { filterNavigation, NAV_GROUPS, NAV_ITEMS } from "./navigation";
 
-const labels = (items: { label: string }[]) => items.map((i) => i.label);
+const labels = (items: { label: string }[]) => items.map((item) => item.label);
 
 describe("filterNavigation", () => {
   it("admin central vê tudo", () => {
@@ -31,10 +31,10 @@ describe("filterNavigation", () => {
 });
 
 describe("NAV_ITEMS — integridade de grupos", () => {
-  const validGroups = NAV_GROUPS.map((g) => g.id);
+  const validGroups = NAV_GROUPS.map((group) => group.id);
 
-  it("tem exatamente os 3 grupos consolidados", () => {
-    expect(NAV_GROUPS.map((g) => g.id)).toEqual(["acompanhamento", "estoque", "sistema"]);
+  it("tem exatamente os 5 grupos visuais", () => {
+    expect(NAV_GROUPS.map((group) => group.id)).toEqual(["inicio", "processos", "estoque", "agenda", "outras"]);
   });
 
   it("todo item pertence a um grupo válido", () => {
@@ -45,28 +45,44 @@ describe("NAV_ITEMS — integridade de grupos", () => {
 
   it("todos os grupos existentes têm ao menos um item", () => {
     NAV_GROUPS.forEach((group) => {
-      const count = NAV_ITEMS.filter((i) => i.group === group.id).length;
+      const count = NAV_ITEMS.filter((item) => item.group === group.id).length;
       expect(count, `grupo "${group.label}" não tem itens`).toBeGreaterThan(0);
     });
   });
 
-  it("admin central vê itens em todos os 3 grupos", () => {
+  it("admin central vê itens em todos os 5 grupos", () => {
     const adminItems = filterNavigation({ isCentralAdmin: true, roles: [] });
     NAV_GROUPS.forEach((group) => {
-      const count = adminItems.filter((i) => i.group === group.id).length;
+      const count = adminItems.filter((item) => item.group === group.id).length;
       expect(count, `admin não vê nenhum item no grupo "${group.label}"`).toBeGreaterThan(0);
     });
   });
 
-  it("Processos, Contratos, Atas e Fornecedores pertencem ao grupo acompanhamento", () => {
-    const acompanhamentoLabels = NAV_ITEMS.filter((i) => i.group === "acompanhamento").map((i) => i.label);
-    expect(acompanhamentoLabels).toContain("Visão geral");
-    expect(acompanhamentoLabels).not.toContain("Meu painel");
-    expect(acompanhamentoLabels).toContain("Processos");
-    expect(acompanhamentoLabels.indexOf("Atas")).toBeGreaterThan(acompanhamentoLabels.indexOf("Processos"));
-    expect(acompanhamentoLabels.indexOf("Contratos")).toBeGreaterThan(acompanhamentoLabels.indexOf("Atas"));
-    expect(acompanhamentoLabels).toContain("Fornecedores");
-    expect(acompanhamentoLabels).toContain("Calendário");
-    expect(acompanhamentoLabels.indexOf("Calendário")).toBeGreaterThan(acompanhamentoLabels.indexOf("Contratos"));
+  it("itens pertencem aos grupos visuais corretos e mantêm ordem", () => {
+    const inicioLabels = NAV_ITEMS.filter((item) => item.group === "inicio").map((item) => item.label);
+    expect(inicioLabels).toEqual(["Início"]);
+    const processosLabels = NAV_ITEMS.filter((item) => item.group === "processos").map((item) => item.label);
+    expect(processosLabels).toEqual(["Solicitações", "Processos", "Atas", "Contratos"]);
+    const estoqueLabels = NAV_ITEMS.filter((item) => item.group === "estoque").map((item) => item.label);
+    expect(estoqueLabels).toEqual(["Consultar estoque", "Entregas", "Transferências"]);
+    const agendaLabels = NAV_ITEMS.filter((item) => item.group === "agenda").map((item) => item.label);
+    expect(agendaLabels).toEqual(["Calendário", "Reuniões"]);
+    const outrasLabels = NAV_ITEMS.filter((item) => item.group === "outras").map((item) => item.label);
+    expect(outrasLabels).toEqual(["Órgãos e empresas", "Fornecedores", "Alertas", "Relatórios", "Auditoria", "Administração"]);
+  });
+});
+
+describe("NAV_ITEMS — baseline", () => {
+  it("preserves exact href and permission mapping", () => {
+    expect(NAV_ITEMS.map(({ href, allowedRoles, centralOnly }) => [href, allowedRoles, centralOnly ?? false])).toEqual([
+      ["/dashboard", ["council_manager", "council_operator", "viewer"], false], ["/conselhos", [], true],
+      ["/solicitacoes", ["council_manager", "council_operator", "viewer"], false], ["/processos", ["council_manager", "council_operator", "viewer"], false],
+      ["/atas", ["council_manager", "council_operator", "viewer"], false], ["/contratos", ["council_manager", "council_operator", "viewer"], false],
+      ["/calendario", ["council_manager", "council_operator", "viewer"], false], ["/fornecedores", ["council_manager", "council_operator", "viewer"], false],
+      ["/reunioes", ["council_manager", "council_operator", "viewer"], false], ["/estoque", ["council_manager", "council_operator", "viewer"], false],
+      ["/entregas", ["council_manager", "council_operator", "viewer"], false], ["/transferencias", ["council_manager", "council_operator", "viewer"], false],
+      ["/alertas", ["council_manager", "council_operator", "viewer"], false], ["/relatorios", ["council_manager", "viewer"], false],
+      ["/administracao/auditoria", ["council_manager"], false], ["/administracao", [], true],
+    ]);
   });
 });

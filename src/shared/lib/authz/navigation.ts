@@ -16,15 +16,12 @@ import {
   Truck,
   type LucideIcon,
 } from "lucide-react";
-
 export type CouncilRole = "council_manager" | "council_operator" | "viewer";
-
 /** Contexto de acesso do usuário autenticado (derivado no servidor). */
 export interface AccessContext {
   isCentralAdmin: boolean;
   roles: CouncilRole[];
 }
-
 export interface NavItem {
   label: string;
   href: string;
@@ -33,49 +30,41 @@ export interface NavItem {
   allowedRoles: CouncilRole[];
   /** Quando true, somente administração central. */
   centralOnly?: boolean;
-  /** Grupo de navegação lateral (novo modelo colapsável). */
-  group: "acompanhamento" | "estoque" | "sistema";
+  /** Grupo de navegação lateral. */
+  group: "inicio" | "processos" | "estoque" | "agenda" | "outras";
 }
-
 /** Metadados visuais de cada grupo do menu lateral. */
 export interface NavGroup {
-  id: "acompanhamento" | "estoque" | "sistema";
+  id: "inicio" | "processos" | "estoque" | "agenda" | "outras";
   label: string;
   icon: LucideIcon;
 }
-
 export const NAV_GROUPS: NavGroup[] = [
-  { id: "acompanhamento", label: "Acompanhamento", icon: LayoutDashboard },
-  { id: "estoque",        label: "Estoque",         icon: Package },
-  { id: "sistema",        label: "Sistema",          icon: Settings },
+  { id: "inicio", label: "Início", icon: LayoutDashboard },
+  { id: "processos", label: "Processos e solicitações", icon: FileText },
+  { id: "estoque", label: "Estoque", icon: Package },
+  { id: "agenda", label: "Agenda", icon: CalendarDays },
+  { id: "outras", label: "Outras opções", icon: Settings },
 ];
-
 const ALL_ROLES: CouncilRole[] = ["council_manager", "council_operator", "viewer"];
-
 export const NAV_ITEMS: NavItem[] = [
-  // ── Acompanhamento Geral ──────────────────────────────────────────────
-  { label: "Visão geral",   href: "/dashboard",    icon: LayoutDashboard, allowedRoles: ALL_ROLES, group: "acompanhamento" },
-  { label: "Órgãos e empresas", href: "/conselhos", icon: Building2,      allowedRoles: [], centralOnly: true, group: "acompanhamento" },
-  { label: "Solicitações",  href: "/solicitacoes", icon: ShoppingCart,    allowedRoles: ALL_ROLES, group: "acompanhamento" },
-  { label: "Processos",     href: "/processos",    icon: FileText,        allowedRoles: ALL_ROLES, group: "acompanhamento" },
-  { label: "Atas",          href: "/atas",         icon: ScrollText,      allowedRoles: ALL_ROLES, group: "acompanhamento" },
-  { label: "Contratos",     href: "/contratos",    icon: FileSignature,   allowedRoles: ALL_ROLES, group: "acompanhamento" },
-  { label: "Calendário",    href: "/calendario",   icon: Calendar,        allowedRoles: ALL_ROLES, group: "acompanhamento" },
-  { label: "Fornecedores",  href: "/fornecedores", icon: Truck,           allowedRoles: ALL_ROLES, group: "acompanhamento" },
-  { label: "Reuniões",      href: "/reunioes",     icon: CalendarDays,    allowedRoles: ALL_ROLES, group: "acompanhamento" },
-
-  // ── Estoque ───────────────────────────────────────────────────────────
-  { label: "Estoque",        href: "/estoque",        icon: Package,       allowedRoles: ALL_ROLES, group: "estoque" },
-  { label: "Entregas",       href: "/entregas",       icon: Truck,         allowedRoles: ALL_ROLES, group: "estoque" },
+  { label: "Início", href: "/dashboard", icon: LayoutDashboard, allowedRoles: ALL_ROLES, group: "inicio" },
+  { label: "Órgãos e empresas", href: "/conselhos", icon: Building2, allowedRoles: [], centralOnly: true, group: "outras" },
+  { label: "Solicitações", href: "/solicitacoes", icon: ShoppingCart, allowedRoles: ALL_ROLES, group: "processos" },
+  { label: "Processos", href: "/processos", icon: FileText, allowedRoles: ALL_ROLES, group: "processos" },
+  { label: "Atas", href: "/atas", icon: ScrollText, allowedRoles: ALL_ROLES, group: "processos" },
+  { label: "Contratos", href: "/contratos", icon: FileSignature, allowedRoles: ALL_ROLES, group: "processos" },
+  { label: "Calendário", href: "/calendario", icon: Calendar, allowedRoles: ALL_ROLES, group: "agenda" },
+  { label: "Fornecedores", href: "/fornecedores", icon: Truck, allowedRoles: ALL_ROLES, group: "outras" },
+  { label: "Reuniões", href: "/reunioes", icon: CalendarDays, allowedRoles: ALL_ROLES, group: "agenda" },
+  { label: "Consultar estoque", href: "/estoque", icon: Package, allowedRoles: ALL_ROLES, group: "estoque" },
+  { label: "Entregas", href: "/entregas", icon: Truck, allowedRoles: ALL_ROLES, group: "estoque" },
   { label: "Transferências", href: "/transferencias", icon: ArrowLeftRight, allowedRoles: ALL_ROLES, group: "estoque" },
-
-  // ── Sistema ───────────────────────────────────────────────────────────
-  { label: "Alertas",        href: "/alertas",                icon: AlertTriangle, allowedRoles: ALL_ROLES, group: "sistema" },
-  { label: "Relatórios",     href: "/relatorios",             icon: BarChart3,     allowedRoles: ["council_manager", "viewer"], group: "sistema" },
-  { label: "Auditoria",      href: "/administracao/auditoria", icon: History,      allowedRoles: ["council_manager"], group: "sistema" },
-  { label: "Administração",  href: "/administracao",          icon: Settings,      allowedRoles: [], centralOnly: true, group: "sistema" },
+  { label: "Alertas", href: "/alertas", icon: AlertTriangle, allowedRoles: ALL_ROLES, group: "outras" },
+  { label: "Relatórios", href: "/relatorios", icon: BarChart3, allowedRoles: ["council_manager", "viewer"], group: "outras" },
+  { label: "Auditoria", href: "/administracao/auditoria", icon: History, allowedRoles: ["council_manager"], group: "outras" },
+  { label: "Administração", href: "/administracao", icon: Settings, allowedRoles: [], centralOnly: true, group: "outras" },
 ];
-
 /**
  * Filtra a navegação conforme o acesso. Isto é apenas conveniência de UI:
  * a autorização real é reaplicada no servidor e no banco (RLS).

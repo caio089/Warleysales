@@ -12,16 +12,29 @@ interface SidebarNavProps {
   onNavigate?: () => void;
   /** Modo ícone apenas (sidebar recolhida). */
   collapsed?: boolean;
+  idPrefix?: string;
 }
 
 /** Determina qual grupo deve começar aberto com base na rota atual. */
+function matchesPath(item: NavItem, pathname: string): boolean {
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+}
+
+function isItemActive(items: NavItem[], item: NavItem, pathname: string): boolean {
+  return matchesPath(item, pathname) && !items.some(
+    (candidate) => candidate.href.length > item.href.length && matchesPath(candidate, pathname),
+  );
+}
+
 function resolveInitialOpen(items: NavItem[], pathname: string): string | null {
-  const active = items.find((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
-  return active?.group ?? items[0]?.group ?? null;
+  const active = items.filter((item) => matchesPath(item, pathname))
+    .sort((a, b) => b.href.length - a.href.length)[0];
+  if (active?.group && active.group !== "inicio") return active.group;
+  return "processos";
 }
 
 /** Menu lateral com grupos colapsáveis (acordeão). */
-export function SidebarNav({ items, onNavigate, collapsed = false }: SidebarNavProps) {
+export function SidebarNav({ items, onNavigate, collapsed = false, idPrefix = "nav-group" }: SidebarNavProps) {
   const pathname = usePathname();
   const [override, setOverride] = useState<{ pathname: string; group: string | null } | null>(null);
   const openGroup = override?.pathname === pathname ? override.group : resolveInitialOpen(items, pathname);
@@ -34,15 +47,20 @@ export function SidebarNav({ items, onNavigate, collapsed = false }: SidebarNavP
       {visibleGroups.map((group) => {
         const groupItems = items.filter((i) => i.group === group.id);
         const isOpen = openGroup === group.id;
-        const hasActive = groupItems.some(
-          (i) => pathname === i.href || pathname.startsWith(`${i.href}/`),
-        );
+        const hasActive = groupItems.some((i) => isItemActive(items, i, pathname));
 
-        return collapsed ? (
+        return group.id === "inicio" ? (
+          collapsed ? (
+            <CollapsedGroup key={group.id} items={groupItems} allItems={items} pathname={pathname} onNavigate={onNavigate} hasActive={hasActive} />
+          ) : (
+            <ExpandedHome key={group.id} items={groupItems} allItems={items} pathname={pathname} onNavigate={onNavigate} />
+          )
+        ) : collapsed ? (
           // ── Modo recolhido: apenas ícones dos itens, sem cabeçalho de grupo ──
           <CollapsedGroup
             key={group.id}
             items={groupItems}
+            allItems={items}
             pathname={pathname}
             onNavigate={onNavigate}
             hasActive={hasActive}
@@ -53,11 +71,13 @@ export function SidebarNav({ items, onNavigate, collapsed = false }: SidebarNavP
             key={group.id}
             group={group}
             items={groupItems}
+            allItems={items}
             isOpen={isOpen}
             hasActive={hasActive}
             pathname={pathname}
             onNavigate={onNavigate}
             onToggle={() => setOverride({ pathname, group: openGroup === group.id ? null : group.id })}
+            idPrefix={idPrefix}
           />
         );
       })}
@@ -71,11 +91,13 @@ export function SidebarNav({ items, onNavigate, collapsed = false }: SidebarNavP
 
 function CollapsedGroup({
   items,
+  allItems,
   pathname,
   onNavigate,
   hasActive,
 }: {
   items: NavItem[];
+  allItems: NavItem[];
   pathname: string;
   onNavigate?: () => void;
   hasActive: boolean;
@@ -90,7 +112,7 @@ function CollapsedGroup({
       )}
       {items.map((item) => {
         const Icon = item.icon;
-        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const active = isItemActive(allItems, item, pathname);
         return (
           <Link
             key={item.href}
@@ -118,22 +140,64 @@ function CollapsedGroup({
   );
 }
 
+function ExpandedHome({
+  items,
+  allItems,
+  pathname,
+  onNavigate,
+}: {
+  items: NavItem[];
+  allItems: NavItem[];
+  pathname: string;
+  onNavigate?: () => void;
+}) {
+  return (
+    <div className="flex flex-col">
+      {items.map((item) => {
+        const Icon = item.icon;
+        const active = isItemActive(allItems, item, pathname);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onNavigate}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "relative flex items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-150",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-highlight",
+              active ? "bg-white/10 text-white" : "text-white/55 hover:bg-white/6 hover:text-white",
+            )}
+          >
+            {active ? <span aria-hidden className="absolute top-1/2 left-0 h-3.5 w-0.5 -translate-y-1/2 rounded-full bg-highlight" /> : null}
+            <Icon className={cn("size-3.5 shrink-0", active ? "text-highlight" : "text-white/40")} aria-hidden />
+            <span className="truncate">{item.label}</span>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 function ExpandedGroup({
   group,
   items,
+  allItems,
   isOpen,
   hasActive,
   pathname,
   onNavigate,
   onToggle,
+  idPrefix,
 }: {
   group: NavGroup;
   items: NavItem[];
+  allItems: NavItem[];
   isOpen: boolean;
   hasActive: boolean;
   pathname: string;
   onNavigate?: () => void;
   onToggle: () => void;
+  idPrefix: string;
 }) {
   const GroupIcon = group.icon;
   return (
@@ -143,7 +207,7 @@ function ExpandedGroup({
         type="button"
         onClick={onToggle}
         aria-expanded={isOpen}
-        aria-controls={`nav-group-${group.id}`}
+        aria-controls={`${idPrefix}-${group.id}`}
         className={cn(
           "group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors duration-150",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-highlight",
@@ -178,7 +242,7 @@ function ExpandedGroup({
 
       {/* Itens do grupo — expande/recolhe com animação CSS */}
       <div
-        id={`nav-group-${group.id}`}
+        id={`${idPrefix}-${group.id}`}
         inert={!isOpen}
         className={cn(
           "overflow-hidden transition-all duration-200 ease-out",
@@ -188,7 +252,7 @@ function ExpandedGroup({
         <div className="ml-3 flex flex-col gap-0.5 border-l border-white/8 pl-2 pb-1">
           {items.map((item) => {
             const Icon = item.icon;
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active = isItemActive(allItems, item, pathname);
             return (
               <Link
                 key={item.href}
