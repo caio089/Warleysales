@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { Building2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { buildCalendarReport } from "@/modules/calendar/calendar-report";
@@ -12,7 +12,6 @@ import {
   calendarMarks,
   countsByMonth,
   marksInMonth,
-  monthWeeks,
   parseCalendarMonth,
   resolveCalendarCouncil,
   type CalendarMark,
@@ -25,11 +24,12 @@ import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { CalendarOrgFilter } from "./calendar-org-filter";
+import { MonthDialog } from "./month-dialog";
 import { CalendarReportPanel } from "./calendar-report-panel";
 
 export const metadata: Metadata = { title: "Calendário" };
 
-const WEEKDAYS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+
 const MONTH_SHORT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 function monthKey(year: number, month: number): string {
@@ -53,10 +53,6 @@ function shiftMonth(year: number, month: number, delta: number): { year: number;
   return { year: date.getUTCFullYear(), month: date.getUTCMonth() };
 }
 
-function dayKey(year: number, month: number, day: number): string {
-  return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
-
 function parseYear(raw: string | undefined): number | null {
   if (!raw || !/^\d{4}$/.test(raw)) return null;
   return Number(raw);
@@ -72,38 +68,6 @@ function sortMarks(marks: readonly CalendarMark[]): CalendarMark[] {
   });
 }
 
-function MarkCard({ mark, council }: { mark: CalendarMark; council: string }) {
-  const when = mark.day ? mark.day.split("-").reverse().join("/") : mark.detail;
-  const conclude = mark.kind === "concluir";
-  return (
-    <Link
-      href={mark.href ?? `/solicitacoes/${mark.requestId}`}
-      className="block rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition-colors hover:border-slate-300"
-    >
-      <p className={cn("text-[11px] font-semibold tracking-wide uppercase", conclude ? "text-sky-800" : "text-amber-800")}>
-        {conclude ? "Concluir" : "Vence"} · {when}
-      </p>
-      <p className="mt-1 line-clamp-2 text-sm font-medium text-slate-900">{mark.title}</p>
-      <p className="mt-1 text-[11px] text-slate-500">{council} · {mark.origin}</p>
-    </Link>
-  );
-}
-
-function MarkCards({ marks, councilLabel }: { marks: readonly CalendarMark[]; councilLabel: Record<string, string> }) {
-  if (marks.length === 0) {
-    return <p className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-8 text-sm text-slate-500">Nenhuma contratação do plano neste mês.</p>;
-  }
-  return (
-    <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      {marks.map((mark) => (
-        <li key={mark.id}>
-          <MarkCard mark={mark} council={councilLabel[mark.councilId] ?? "Órgão"} />
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 async function Content({ searchParams }: { searchParams: Promise<{ mes?: string; ano?: string; orgao?: string }> }) {
   const raw = await searchParams;
   await connection();
@@ -113,18 +77,20 @@ async function Content({ searchParams }: { searchParams: Promise<{ mes?: string;
   const year = monthView?.year ?? parseYear(raw.ano) ?? PLAN_YEAR;
 
   const result = await loadScreen(async (ctx) => {
-    const [requests, lookups, meetings, contracts, atas] = await Promise.all([
+    const [requests, lookups, meetings, contracts, atas, processes] = await Promise.all([
       ctx.services.purchases.list(ctx.actor),
       loadLookups(ctx),
       ctx.services.meetings.list(ctx.actor),
       ctx.services.contracts.list(ctx.actor),
       ctx.services.atas.list(ctx.actor),
+      ctx.services.processes.list(ctx.actor),
     ]);
     if (!requests.ok) return requests;
     if (!lookups.ok) return lookups;
     if (!meetings.ok) return meetings;
     if (!contracts.ok) return contracts;
     if (!atas.ok) return atas;
+    if (!processes.ok) return processes;
 
     const allowedIds = lookups.data.councils.map((council) => council.id);
     const councilId = resolveCalendarCouncil(allowedIds, raw.orgao);
@@ -136,6 +102,16 @@ async function Content({ searchParams }: { searchParams: Promise<{ mes?: string;
       estimatedValue: request.estimatedValue,
       notes: request.events.map((event) => event.note),
     })));
+    const processById = new Map(processes.data.map(({ process }) => [process.id, process]));
+    const requestById = new Map(visible.map((request) => [request.id, request]));
+    for (const mark of marks) {
+      const processId = requestById.get(mark.requestId)?.processId;
+      const process = processId ? processById.get(processId) : undefined;
+      if (process) {
+        mark.processNumber = process.number;
+        mark.href = `/processos/${process.id}`;
+      }
+    }
     function addEvent(id: string, owner: string, title: string, date: string, href: string, origin: string, kind: CalendarMark["kind"]) {
       if (councilId && owner !== councilId) return;
       const [eventYear, eventMonth] = date.split("-").map(Number);
@@ -176,22 +152,8 @@ async function Content({ searchParams }: { searchParams: Promise<{ mes?: string;
         const report = buildCalendarReport(marks, year);
         const years = [...new Set([2026, PLAN_YEAR, ...marks.map((mark) => mark.year)])].sort((left, right) => left - right);
         const monthMarks = monthView ? sortMarks(marksInMonth(marks, monthView.year, monthView.month)) : [];
-        const dayMarks = monthMarks.filter((mark) => mark.day);
-        const concludeCount = monthView
-          ? monthMarks.filter((mark) => mark.kind === "concluir").length
-          : report.conclude;
-        const expiryCount = monthView
-          ? monthMarks.filter((mark) => mark.kind === "vencimento").length
-          : report.expiry;
-        const previous = monthView ? shiftMonth(monthView.year, monthView.month, -1) : null;
-        const next = monthView ? shiftMonth(monthView.year, monthView.month, 1) : null;
-        const weeks = monthView ? monthWeeks(monthView.year, monthView.month) : [];
-        const byDay = new Map<string, CalendarMark[]>();
-        for (const mark of dayMarks) {
-          const bucket = byDay.get(mark.day!) ?? [];
-          bucket.push(mark);
-          byDay.set(mark.day!, bucket);
-        }
+        const previous = monthView ? shiftMonth(year, monthView.month, -1) : null;
+        const next = monthView ? shiftMonth(year, monthView.month, 1) : null;
 
         return (
           <>
@@ -220,19 +182,6 @@ async function Content({ searchParams }: { searchParams: Promise<{ mes?: string;
                     {option}
                   </Link>
                 ))}
-                {monthView && previous && next ? (
-                  <>
-                    <Link href={calendarHref(previous.year, previous.month, councilId)} className={buttonVariants({ variant: "ghost", size: "icon" })} aria-label="Mês anterior">
-                      <ChevronLeft />
-                    </Link>
-                    <p className="min-w-36 text-center text-sm font-semibold text-slate-800">{MONTH_TITLE[monthView.month]} de {monthView.year}</p>
-                    <Link href={calendarHref(next.year, next.month, councilId)} className={buttonVariants({ variant: "ghost", size: "icon" })} aria-label="Próximo mês">
-                      <ChevronRight />
-                    </Link>
-                  </>
-                ) : (
-                  <p className="px-2 text-sm font-semibold text-slate-800">Ano {year}</p>
-                )}
                 <Link href={calendarHref(todayYear ?? year, (todayMonth ?? 1) - 1, councilId)} className={buttonVariants({ variant: "outline", size: "sm" })}>
                   Hoje
                 </Link>
@@ -263,8 +212,8 @@ async function Content({ searchParams }: { searchParams: Promise<{ mes?: string;
                     href={calendarHref(year, month, councilId)}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "rounded-xl px-1 py-2 text-center text-[11px] font-semibold",
-                      active ? "bg-[#0F2942] text-white" : count > 0 ? "bg-white text-slate-800 ring-1 ring-slate-200" : "bg-slate-100 text-slate-400",
+                      "rounded-xl px-2 py-4 text-center text-sm font-semibold transition hover:ring-2 hover:ring-sky-600 focus-visible:ring-2 focus-visible:ring-sky-600",
+                      active ? "bg-[#0F2942] text-white" : count > 0 ? "bg-white text-slate-800 ring-1 ring-slate-200" : "bg-slate-100 text-slate-600",
                     )}
                   >
                     {label}
@@ -274,96 +223,25 @@ async function Content({ searchParams }: { searchParams: Promise<{ mes?: string;
               })}
             </nav>
 
-            <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-600">
-              <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-sky-400" aria-hidden /> Concluir ({concludeCount})</span>
-              <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-amber-400" aria-hidden /> Vencimento ({expiryCount})</span>
-            </div>
-
-            {monthView ? (
-              <section aria-labelledby="lista-do-mes">
-                <h2 id="lista-do-mes" className="mb-3 text-sm font-semibold text-slate-800">
-                  Agenda de {MONTH_TITLE[monthView.month].toLowerCase()}
-                </h2>
-                <MarkCards marks={monthMarks} councilLabel={lookups.councilLabel} />
-              </section>
-            ) : (
-              <div className="grid gap-4 lg:grid-cols-2">
-                {MONTH_TITLE.map((title, month) => {
-                  const items = sortMarks(marksInMonth(marks, year, month));
-                  const preview = items.slice(0, 4);
-                  return (
-                    <section key={title} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
-                      <div className="mb-3 flex items-center justify-between gap-2">
-                        <h2 className="text-sm font-semibold text-slate-800">
-                          <Link href={calendarHref(year, month, councilId)}>{title}</Link>
-                        </h2>
-                        <Link href={calendarHref(year, month, councilId)} className="text-xs font-semibold text-slate-500 hover:text-slate-800">
-                          {items.length === 0 ? "Vazio" : `${items.length} no mês`}
-                        </Link>
-                      </div>
-                      {preview.length === 0 ? (
-                        <p className="text-xs text-slate-400">Nenhuma contratação neste mês.</p>
-                      ) : (
-                        <ul className="space-y-2">
-                          {preview.map((mark) => (
-                            <li key={mark.id}>
-                              <MarkCard mark={mark} council={lookups.councilLabel[mark.councilId] ?? "Órgão"} />
-                            </li>
-                          ))}
-                          {items.length > preview.length ? (
-                            <li>
-                              <Link href={calendarHref(year, month, councilId)} className="text-xs font-semibold text-slate-600 hover:text-slate-900">
-                                Ver as {items.length} contratações
-                              </Link>
-                            </li>
-                          ) : null}
-                        </ul>
-                      )}
-                    </section>
-                  );
-                })}
-              </div>
-            )}
-
-            {monthView ? (
-              <section className="mt-6 print:hidden" aria-labelledby="dias-fechados">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <h2 id="dias-fechados" className="text-sm font-semibold text-slate-800">{MONTH_TITLE[monthView.month]} de {monthView.year}</h2>
-                  <Link href={yearHref(year, councilId)} className={buttonVariants({ variant: "outline", size: "sm" })}>Voltar para visão anual</Link>
-                </div>
-                <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  <div className="min-w-[720px]">
-                    <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
-                      {WEEKDAYS.map((weekday) => <div key={weekday} className="px-2 py-2">{weekday}</div>)}
-                    </div>
-                    {weeks.map((week, weekIndex) => (
-                      <div key={weekIndex} className="grid grid-cols-7 border-b border-slate-100 last:border-b-0">
-                        {week.map((day, dayIndex) => {
-                          if (!day) return <div key={`${weekIndex}-${dayIndex}`} className="min-h-16 bg-slate-50/60" />;
-                          const key = dayKey(monthView.year, monthView.month, day);
-                          const items = byDay.get(key) ?? [];
-                          const isToday = key === todayParts;
-                          return (
-                            <div key={key} className={cn("min-h-16 border-l border-slate-100 p-1.5 first:border-l-0", isToday && "bg-sky-50/70")}>
-                              <details>
-                                <summary className={cn("cursor-pointer text-xs font-semibold", isToday ? "text-sky-800" : "text-slate-500")}>{day} · {items.length} demandas</summary>
-                                {items.length === 0 ? <p className="mt-2 text-xs text-slate-500">Nenhuma demanda com data definida neste dia.</p> : null}
-                              {items.map((mark) => (
-                                <Link key={mark.id} href={mark.href ?? `/solicitacoes/${mark.requestId}`} className="mt-1 block truncate rounded bg-amber-100 px-1 text-[10px] font-medium text-amber-950">
-                                  {mark.title}
-                                </Link>
-                              ))}
-                              </details>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </section>
+            {monthView && previous && next ? (
+              <MonthDialog
+                title={`${MONTH_TITLE[monthView.month]} de ${year}`}
+                year={year}
+                month={monthView.month}
+                today={todayParts}
+                marks={monthMarks}
+                councilLabels={lookups.councilLabel}
+                previousHref={calendarHref(previous.year, previous.month, councilId)}
+                nextHref={calendarHref(next.year, next.month, councilId)}
+                todayHref={calendarHref(todayYear, todayMonth - 1, councilId)}
+                closeHref={yearHref(year, councilId)}
+              >
+                {locked ? <p className="text-sm">{councilName}</p> : (
+                  <CalendarOrgFilter councils={lookups.councils} councilId={councilId} preserved={preserved}
+                    allLabel={isCentralAdmin ? "Todos os órgãos" : "Todos os meus órgãos"} />
+                )}
+              </MonthDialog>
             ) : null}
-
             <CalendarReportPanel
               report={report}
               councilLabel={lookups.councilLabel}

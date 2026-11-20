@@ -20,6 +20,7 @@ export interface CalendarSource {
 
 export interface CalendarMark {
   href?: string;
+  processNumber?: string;
   id: string;
   requestId: string;
   councilId: string;
@@ -56,7 +57,7 @@ export function plannedMonthIndexes(label: string): number[] {
 
   const tokens = [...text.matchAll(/\b(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\b/g)].map((match) => MONTH_TOKEN[match[1]!]);
   if (tokens.length === 0) return [];
-  const joinedByRange = /\b(?:a|-)\b/.test(text) && tokens.length === 2;
+  const joinedByRange = /\ba\b|-/.test(text) && tokens.length === 2;
   if (!joinedByRange) return [...new Set(tokens)];
 
   const [start, end] = tokens as [number, number];
@@ -82,6 +83,12 @@ function monthFromLabel(label: string | null): { year: number; month: number } |
   return { year: Number(match[2]), month: MONTH_FROM_LABEL[match[1]!] ?? 0 };
 }
 
+function exactCalendarDate(day: string | null): Date | null {
+  if (!day) return null;
+  const date = new Date(`${day}T00:00:00Z`);
+  return !Number.isNaN(date.valueOf()) && date.toISOString().startsWith(`${day}T`) ? date : null;
+}
+
 /** Uma marca por data que o plano realmente informa. Sem mês, a contratação fica fora do calendário. */
 export function calendarMarks(sources: readonly CalendarSource[], planYear = PLAN_YEAR): CalendarMark[] {
   const marks: CalendarMark[] = [];
@@ -89,15 +96,20 @@ export function calendarMarks(sources: readonly CalendarSource[], planYear = PLA
     const dossier = planDossier(source.notes, source.estimatedValue, source.title);
     if (!dossier.itemNumber) continue;
 
-    for (const month of plannedMonthIndexes(dossier.plannedMonth)) {
+    const exact = dossier.plannedMonth.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    const plannedDay = exact ? `${exact[3]}-${exact[2]}-${exact[1]}` : null;
+    const date = exactCalendarDate(plannedDay);
+    const year = date?.getUTCFullYear() ?? planYear;
+    const months = date ? [date.getUTCMonth()] : plannedMonthIndexes(dossier.plannedMonth);
+    for (const month of months) {
       marks.push({
-        id: `${source.id}:concluir:${planYear}-${month}`,
+        id: `${source.id}:concluir:${year}-${month}`,
         requestId: source.id,
         councilId: source.councilId,
         title: source.title,
         kind: "concluir",
-        day: null,
-        year: planYear,
+        day: date ? plannedDay : null,
+        year,
         month,
         detail: dossier.plannedMonth,
         priority: dossier.priority,
@@ -107,7 +119,7 @@ export function calendarMarks(sources: readonly CalendarSource[], planYear = PLA
 
     if (dossier.expiry?.day) {
       const [year, month] = dossier.expiry.day.split("-").map(Number);
-      if (year && month) {
+      if (year && month && exactCalendarDate(dossier.expiry.day)) {
         marks.push({
           id: `${source.id}:vencimento:${dossier.expiry.day}`,
           requestId: source.id,
@@ -124,16 +136,18 @@ export function calendarMarks(sources: readonly CalendarSource[], planYear = PLA
       }
     } else {
       const monthOnly = monthFromLabel(dossier.expiry?.monthLabel ?? null);
-      if (monthOnly) {
+      const expiryMonths = monthOnly ? [monthOnly.month] : plannedMonthIndexes(dossier.expiry?.raw ?? "");
+      const expiryYear = monthOnly?.year ?? planYear;
+      for (const month of expiryMonths) {
         marks.push({
-          id: `${source.id}:vencimento:${monthOnly.year}-${monthOnly.month}`,
+          id: `${source.id}:vencimento:${expiryYear}-${month}`,
           requestId: source.id,
           councilId: source.councilId,
           title: source.title,
           kind: "vencimento",
           day: null,
-          year: monthOnly.year,
-          month: monthOnly.month,
+          year: expiryYear,
+          month,
           detail: dossier.expiry?.raw ?? "",
           priority: dossier.priority,
           origin: dossier.origin,
@@ -150,16 +164,16 @@ export function marksInMonth(marks: readonly CalendarMark[], year: number, month
 
 /** Quantidade de contratações em cada mês (0–11) de um ano. */
 export function countsByMonth(marks: readonly CalendarMark[], year: number): number[] {
-  const counts = Array.from({ length: 12 }, () => 0);
+  const requests = Array.from({ length: 12 }, () => new Set<string>());
   for (const mark of marks) {
-    if (mark.year === year) counts[mark.month] = (counts[mark.month] ?? 0) + 1;
+    if (mark.year === year) requests[mark.month]?.add(mark.requestId);
   }
-  return counts;
+  return requests.map((ids) => ids.size);
 }
 
-/** Grade do mês começando na segunda-feira. Null é dia de outro mês. */
-export function monthWeeks(year: number, month: number): (number | null)[][] {
-  const startWeekday = (new Date(Date.UTC(year, month, 1)).getUTCDay() + 6) % 7;
+/** Null é dia de outro mês. A semana começa na segunda por padrão. */
+export function monthWeeks(year: number, month: number, firstWeekday: 0 | 1 = 1): (number | null)[][] {
+  const startWeekday = (new Date(Date.UTC(year, month, 1)).getUTCDay() + 7 - firstWeekday) % 7;
   const days = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
   const cells: (number | null)[] = Array.from({ length: startWeekday }, () => null);
   for (let day = 1; day <= days; day += 1) cells.push(day);

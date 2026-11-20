@@ -47,4 +47,16 @@ describe("calendário do plano", () => {
     expect(weeks[0]?.[0]).toBeNull();
     expect(weeks[0]?.[6]).toBe(1);
   });
+
+  it("abre a grade mensal no domingo e preserva datas e períodos sem duplicar a demanda", () => {
+    expect(monthWeeks(2026, 10, 0)[0]?.[0]).toBe(1);
+    const notes = [note.replace("Out.", "02/01/2027.").replace("24/10/2026 [VERIFICAR]", "DEZ/JAN")];
+    const marks = calendarMarks([{ id: "req-1", councilId: "org-1", title: "Locação", notes }]);
+    expect(marks[0]?.day).toBe("2027-01-02");
+    expect(marks.filter((mark) => mark.kind === "vencimento")).toEqual([
+      expect.objectContaining({ month: 11, day: null, detail: "DEZ/JAN" }),
+      expect.objectContaining({ month: 0, day: null, detail: "DEZ/JAN" }),
+    ]);
+    expect(countsByMonth(marks, 2027)[0]).toBe(1);
+  });
 });
