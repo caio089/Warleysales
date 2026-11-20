@@ -46,8 +46,8 @@ export interface DocumentalSnapshot {
   percent: number;
 }
 
-export function buildSnapshot(attachments: readonly ProcessAttachment[], takenAt: Date): DocumentalSnapshot {
-  const progress = calculateProgress(attachments);
+export function buildSnapshot(attachments: readonly ProcessAttachment[], takenAt: Date, exceptions: readonly string[] = []): DocumentalSnapshot {
+  const progress = calculateProgress(attachments, exceptions);
   const types = Object.fromEntries(
     [...progress.validTypes.map((c) => [c, true]), ...progress.missingTypes.map((c) => [c, false])],
   ) as Record<DocumentTypeCode, boolean>;

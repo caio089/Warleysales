@@ -77,7 +77,7 @@ function MarkCard({ mark, council }: { mark: CalendarMark; council: string }) {
   const conclude = mark.kind === "concluir";
   return (
     <Link
-      href={`/solicitacoes/${mark.requestId}`}
+      href={mark.href ?? `/solicitacoes/${mark.requestId}`}
       className="block rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition-colors hover:border-slate-300"
     >
       <p className={cn("text-[11px] font-semibold tracking-wide uppercase", conclude ? "text-sky-800" : "text-amber-800")}>
@@ -113,12 +113,18 @@ async function Content({ searchParams }: { searchParams: Promise<{ mes?: string;
   const year = monthView?.year ?? parseYear(raw.ano) ?? PLAN_YEAR;
 
   const result = await loadScreen(async (ctx) => {
-    const [requests, lookups] = await Promise.all([
+    const [requests, lookups, meetings, contracts, atas] = await Promise.all([
       ctx.services.purchases.list(ctx.actor),
       loadLookups(ctx),
+      ctx.services.meetings.list(ctx.actor),
+      ctx.services.contracts.list(ctx.actor),
+      ctx.services.atas.list(ctx.actor),
     ]);
     if (!requests.ok) return requests;
     if (!lookups.ok) return lookups;
+    if (!meetings.ok) return meetings;
+    if (!contracts.ok) return contracts;
+    if (!atas.ok) return atas;
 
     const allowedIds = lookups.data.councils.map((council) => council.id);
     const councilId = resolveCalendarCouncil(allowedIds, raw.orgao);
@@ -130,6 +136,26 @@ async function Content({ searchParams }: { searchParams: Promise<{ mes?: string;
       estimatedValue: request.estimatedValue,
       notes: request.events.map((event) => event.note),
     })));
+    function addEvent(id: string, owner: string, title: string, date: string, href: string, origin: string, kind: CalendarMark["kind"]) {
+      if (councilId && owner !== councilId) return;
+      const [eventYear, eventMonth] = date.split("-").map(Number);
+      if (!eventYear || !eventMonth) return;
+      marks.push({ id, requestId: id, councilId: owner, title, day: date, year: eventYear,
+        month: eventMonth - 1, kind, detail: date, priority: "Não informado", origin, href });
+    }
+    for (const meeting of meetings.data) {
+      if (meeting.status !== "cancelada") addEvent(`meeting:${meeting.id}`, meeting.councilId, meeting.title,
+        toFortalezaDate(meeting.scheduledAt), `/reunioes?reuniao=${meeting.id}`, "Reunião", "concluir");
+    }
+    for (const entry of contracts.data) {
+      addEvent(`contract:${entry.contract.id}`, entry.contract.councilId,
+        `Contrato ${entry.contract.number} — ${entry.contract.object}`, entry.terms.endDate,
+        `/contratos/${entry.contract.id}`, "Vencimento de contrato", "vencimento");
+    }
+    for (const entry of atas.data) {
+      addEvent(`ata:${entry.ata.id}`, entry.ata.councilId, `Ata ${entry.ata.number}`, entry.endDate,
+        `/atas/${entry.ata.id}`, "Vencimento de ata", "vencimento");
+    }
 
     return ok({
       lookups: lookups.data,
@@ -171,10 +197,10 @@ async function Content({ searchParams }: { searchParams: Promise<{ mes?: string;
           <>
             <PageHeader
               eyebrow="Acompanhamento · Plano"
-              title={councilName ? `Calendário · ${councilName}` : "Calendário do plano"}
+              title={councilName ? `Calendário · ${councilName}` : "Calendário"}
               description={locked
-                ? "Só as contratações do seu órgão. Cada cartão é uma data do plano: mês para concluir ou vencimento."
-                : "Cada cartão é uma contratação do plano, no mês em que ela deve ser concluída ou vence. O filtro mostra apenas órgãos que você pode acompanhar."}
+                ? "Demandas, reuniões e vencimentos do seu órgão."
+                : "Demandas, reuniões e vencimentos dos órgãos que você acompanha."}
               actions={
                 <Link href="#relatorio" className={`${buttonVariants({ variant: "outline", size: "sm" })} print:hidden`}>
                   Ver relatório
@@ -256,7 +282,7 @@ async function Content({ searchParams }: { searchParams: Promise<{ mes?: string;
             {monthView ? (
               <section aria-labelledby="lista-do-mes">
                 <h2 id="lista-do-mes" className="mb-3 text-sm font-semibold text-slate-800">
-                  Contratações de {MONTH_TITLE[monthView.month].toLowerCase()}
+                  Agenda de {MONTH_TITLE[monthView.month].toLowerCase()}
                 </h2>
                 <MarkCards marks={monthMarks} councilLabel={lookups.councilLabel} />
               </section>
@@ -268,7 +294,9 @@ async function Content({ searchParams }: { searchParams: Promise<{ mes?: string;
                   return (
                     <section key={title} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
                       <div className="mb-3 flex items-center justify-between gap-2">
-                        <h2 className="text-sm font-semibold text-slate-800">{title}</h2>
+                        <h2 className="text-sm font-semibold text-slate-800">
+                          <Link href={calendarHref(year, month, councilId)}>{title}</Link>
+                        </h2>
                         <Link href={calendarHref(year, month, councilId)} className="text-xs font-semibold text-slate-500 hover:text-slate-800">
                           {items.length === 0 ? "Vazio" : `${items.length} no mês`}
                         </Link>
@@ -297,9 +325,12 @@ async function Content({ searchParams }: { searchParams: Promise<{ mes?: string;
               </div>
             )}
 
-            {monthView && dayMarks.length > 0 ? (
+            {monthView ? (
               <section className="mt-6 print:hidden" aria-labelledby="dias-fechados">
-                <h2 id="dias-fechados" className="mb-3 text-sm font-semibold text-slate-800">Dias com data fechada</h2>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h2 id="dias-fechados" className="text-sm font-semibold text-slate-800">{MONTH_TITLE[monthView.month]} de {monthView.year}</h2>
+                  <Link href={yearHref(year, councilId)} className={buttonVariants({ variant: "outline", size: "sm" })}>Voltar para visão anual</Link>
+                </div>
                 <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
                   <div className="min-w-[720px]">
                     <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
@@ -314,12 +345,15 @@ async function Content({ searchParams }: { searchParams: Promise<{ mes?: string;
                           const isToday = key === todayParts;
                           return (
                             <div key={key} className={cn("min-h-16 border-l border-slate-100 p-1.5 first:border-l-0", isToday && "bg-sky-50/70")}>
-                              <p className={cn("text-xs font-semibold", isToday ? "text-sky-800" : "text-slate-500")}>{day}</p>
-                              {items.slice(0, 2).map((mark) => (
-                                <Link key={mark.id} href={`/solicitacoes/${mark.requestId}`} className="mt-1 block truncate rounded bg-amber-100 px-1 text-[10px] font-medium text-amber-950">
+                              <details>
+                                <summary className={cn("cursor-pointer text-xs font-semibold", isToday ? "text-sky-800" : "text-slate-500")}>{day} · {items.length} demandas</summary>
+                                {items.length === 0 ? <p className="mt-2 text-xs text-slate-500">Nenhuma demanda com data definida neste dia.</p> : null}
+                              {items.map((mark) => (
+                                <Link key={mark.id} href={mark.href ?? `/solicitacoes/${mark.requestId}`} className="mt-1 block truncate rounded bg-amber-100 px-1 text-[10px] font-medium text-amber-950">
                                   {mark.title}
                                 </Link>
                               ))}
+                              </details>
                             </div>
                           );
                         })}

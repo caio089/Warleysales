@@ -9,6 +9,9 @@ const pcaNote = [
 ].join(" ");
 
 describe("facetas da solicitação", () => {
+  it("usa a última prioridade registrada em uma correção", () => {
+    expect(requestFacets([pcaNote, "Correção: prazo revisto | Prioridade Baixa"], 100).priority).toBe("Baixa");
+  });
   it("extrai grupo, prioridade, mês e origem do histórico do PCA", () => {
     expect(requestFacets([pcaNote], 25000)).toEqual({
       priority: "Alta",

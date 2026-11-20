@@ -18,7 +18,8 @@ import { MeetingMediaPanel } from "./meeting-media-panel";
 
 export const metadata: Metadata = { title: "Reuniões" };
 
-async function Content() {
+async function Content({ searchParams }: { searchParams: Promise<{ reuniao?: string }> }) {
+  const selectedId = (await searchParams).reuniao;
   const result = await loadScreen(async (ctx) => {
     const [meetings, lookups] = await Promise.all([ctx.services.meetings.list(ctx.actor), loadLookups(ctx)]);
     if (!meetings.ok) return meetings;
@@ -28,6 +29,7 @@ async function Content() {
   return (
     <Screen result={result}>
       {({ meetings, lookups, canManage, manageableMeetingIds }) => {
+        const selected = meetings.find((meeting) => meeting.id === selectedId);
         const totalMeetings = meetings.length;
         const upcomingMeetings = meetings.filter((m) => m.status === "agendada").length;
         const completedWithMinutes = meetings.filter((m) => m.status === "realizada" && Boolean(m.minutes)).length;
@@ -36,6 +38,11 @@ async function Content() {
         return (
           <div className="space-y-8">
             <PageHeader eyebrow="Agenda · Governança" title="Reuniões" description="Agende encontros, registre o áudio e transforme a transcrição revisada em ata." actions={canManage ? <a href="#agendar-reuniao" className={buttonVariants()}>Agendar reunião</a> : undefined} />
+            {selected ? <section className="surface-card space-y-2 p-5" aria-labelledby="reuniao-selecionada">
+              <h2 id="reuniao-selecionada" className="font-semibold">{selected.title}</h2>
+              <p className="text-sm">{lookups.councilLabel[selected.councilId]} · {selected.scheduledAt.toLocaleString("pt-BR", { timeZone: "America/Fortaleza" })} · {selected.status}</p>
+              {selected.minutes ? <p className="whitespace-pre-wrap text-sm">{selected.minutes.text}</p> : null}
+            </section> : null}
             <FlowGuide title="Da agenda à ata" steps={[
               { title: "Agende", detail: "Defina o órgão, o assunto e a data." },
               { title: "Realize", detail: "Atualize a situação da reunião." },
@@ -145,8 +152,8 @@ async function Content() {
   );
 }
 
-export default function MeetingsPage() {
+export default function MeetingsPage({ searchParams }: { searchParams: Promise<{ reuniao?: string }> }) {
   return (
-    <Suspense fallback={<LoadingState />}><Content /></Suspense>
+    <Suspense fallback={<LoadingState />}><Content searchParams={searchParams} /></Suspense>
   );
 }

@@ -19,6 +19,7 @@ export interface CalendarSource {
 }
 
 export interface CalendarMark {
+  href?: string;
   id: string;
   requestId: string;
   councilId: string;

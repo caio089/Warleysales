@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { formatCurrency } from "@/shared/lib/format";
+vi.mock("@/modules/processes/exception-action", () => ({ documentExceptionAction: vi.fn() }));
 
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),

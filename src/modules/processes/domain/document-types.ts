@@ -9,8 +9,8 @@ export const DOCUMENT_TYPES = [
   { code: "MR", label: "Matriz de Riscos" },
   { code: "TR", label: "Termo de Referência" },
   { code: "PP", label: "Pesquisa de Preços" },
-  { code: "PJ", label: "Parecer Jurídico" },
-  { code: "ED", label: "Edital" },
+  { code: "PJ", label: "Parecer Jurídico / Técnico" },
+  { code: "ED", label: "Edital de Licitação / Aviso" },
 ] as const;
 
 export type DocumentTypeCode = (typeof DOCUMENT_TYPES)[number]["code"];

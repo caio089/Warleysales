@@ -168,7 +168,8 @@ function citedInstruments(text: string): string[] {
  */
 export function planDossier(notes: readonly (string | null | undefined)[], estimatedValue: number | null | undefined, objectText = ""): PlanDossier {
   const text = joinedNotes(notes);
-  const priority = priorityLabel(text.match(/Prioridade\s+(Alta|M[eé]dia|Baixa)/i)?.[1]);
+  const priorityMatches = [...text.matchAll(/Prioridade\s+(Alta|M[eé]dia|Baixa)/gi)];
+  const priority = priorityLabel(priorityMatches[priorityMatches.length - 1]?.[1]);
   const group = text.match(/Grupo:\s*(.+?)\.\s*Prioridade/i)?.[1]?.trim() || NOT_INFORMED;
   const plannedMonth = sliceBetween(text, "Mês previsto:", "Vencimento atual:") ?? NOT_INFORMED;
   const expiryRaw = sliceBetween(text, "Vencimento atual:", "Forma prevista:");

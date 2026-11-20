@@ -4,6 +4,7 @@ import type { DocumentalSnapshot } from "./domain/completion";
 import type { ProcessStatus } from "./domain/process-status";
 
 export interface AdministrativeProcess {
+  documentExceptions?: Record<string, { justification: string; actorId: string; at: string }>;
   id: string;
   councilId: string;
   sequence: number;

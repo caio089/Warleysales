@@ -143,7 +143,7 @@ export class RetentionService {
     if (await this.retention.hasRun(key)) return false;
     const attachments = await this.documents.listByProcess(process.id);
     // R7: snapshot histórico ANTES de qualquer eliminação (preservado se uma execução anterior já o gravou).
-    if (!process.snapshot) await this.processes.update(process.id, { snapshot: buildSnapshot(attachments, now) });
+    if (!process.snapshot) await this.processes.update(process.id, { snapshot: buildSnapshot(attachments, now, Object.keys(process.documentExceptions ?? {})) });
     for (const a of attachments.filter((x) => x.retentionState !== "disposed")) {
       await this.storage.remove(a.storagePath);
       await this.documents.update(a.id, { retentionState: "disposed" });

@@ -27,7 +27,7 @@ export const MANDATORY_DOCUMENTS = [
   { code: "MR", label: "Matriz de Riscos" },
   { code: "TR", label: "Termo de Referência" },
   { code: "PP", label: "Pesquisa de Preços" },
-  { code: "PJ", label: "Parecer Jurídico" },
+  { code: "PJ", label: "Parecer Jurídico / Técnico" },
   { code: "ED", label: "Edital de Licitação / Aviso" },
 ] as const;
 

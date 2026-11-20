@@ -18,6 +18,8 @@ import { LinkedProcessCard } from "./linked-process-card";
 import { PlanDossierCard } from "../plan-dossier-card";
 import { RequestActions } from "./request-actions";
 import { planDossier } from "../request-facets";
+import { CorrectionForm } from "./correction-form";
+import { getServiceClient } from "@/server/supabase/client";
 
 export const metadata: Metadata = { title: "Solicitação" };
 
@@ -28,6 +30,14 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
     if (!request.ok) return request;
     if (!lookups.ok) return lookups;
     const councilId = request.data.councilId;
+    const materials = await ctx.services.inventory.listMaterials(ctx.actor);
+    if (!materials.ok) return materials;
+    const canCorrect = can(ctx.actor, "request.create", councilId);
+    let revision: string | null = null;
+    if (canCorrect) {
+      const response = await getServiceClient().rpc("purchase_request_revision", { p_request: id });
+      if (!response.error) revision = response.data as string;
+    }
 
     let linkedProcess: ProcessView | null = null;
     if (request.data.processId) {
@@ -39,6 +49,12 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
 
     return ok({
       request: request.data,
+      revision,
+      correctionItems: request.data.items.map((item) => {
+        const material = materials.data.find((entry) => entry.id === item.materialId);
+        return { materialId: item.materialId, description: material?.name ?? "", unit: material?.unit ?? "un", quantity: item.quantity };
+      }),
+      correctionCouncils: lookups.data.councils.filter((council) => can(ctx.actor, "request.create", council.id)),
       lookups: lookups.data,
       linkedProcess,
       canDecide: can(ctx.actor, "request.decide", councilId),
@@ -48,7 +64,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
   });
   return (
     <Screen result={result}>
-      {({ request, lookups, linkedProcess, canDecide, canCreate, canReceive }) => {
+      {({ request, lookups, linkedProcess, canDecide, canCreate, canReceive, revision, correctionItems, correctionCouncils }) => {
         const status = presentationOf(REQUEST_STATUS, request.status);
         const next = requestNextStep(request.status, { canCreate, canDecide, canReceive });
         const dossier = planDossier(request.events.map((event) => event.note), request.estimatedValue, request.title);
@@ -78,6 +94,10 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
             <NextStepCallout {...next} />
             <div className="space-y-8">
               <PlanDossierCard dossier={dossier} objectText={request.title} />
+              {canCreate && !revision ? <p role="status" className="rounded border p-3 text-sm">O formulário de correção ficará disponível após a atualização do banco de dados.</p> : null}
+              {canCreate && revision ? <CorrectionForm key={revision} requestId={request.id} revision={revision} title={request.title}
+                councilId={request.councilId} councils={correctionCouncils} estimatedValue={request.estimatedValue ?? null}
+                priority={dossier.priority} items={correctionItems} /> : null}
               {linkedProcess ? <LinkedProcessCard processView={linkedProcess} /> : null}
               <SimpleTable
                 caption="Itens da solicitação"

@@ -39,10 +39,11 @@ export function isValidAttachment(attachment: ProcessAttachment): boolean {
 }
 
 /** R1: progresso = tipos distintos válidos / 7 × 100. Vários arquivos do mesmo tipo contam 1. */
-export function calculateProgress(attachments: readonly ProcessAttachment[]): DocumentalProgress {
+export function calculateProgress(attachments: readonly ProcessAttachment[], exceptions: readonly string[] = []): DocumentalProgress {
   const validSet = new Set<string>(
     attachments.filter(isValidAttachment).map((a) => a.typeCode),
   );
+  exceptions.forEach((code) => validSet.add(code));
   const validTypes = DOCUMENT_TYPE_CODES.filter((code) => validSet.has(code));
   const missingTypes = DOCUMENT_TYPE_CODES.filter((code) => !validSet.has(code));
   return {

@@ -16,6 +16,7 @@ interface SnapshotJson {
 }
 
 interface ProcessRow {
+  document_exceptions?: AdministrativeProcess["documentExceptions"];
   id: string;
   council_id: string;
   sequence: number;
@@ -31,6 +32,7 @@ interface ProcessRow {
 }
 
 const toProcess = (row: ProcessRow): AdministrativeProcess => ({
+  documentExceptions: row.document_exceptions ?? {},
   id: row.id,
   councilId: row.council_id,
   sequence: row.sequence,

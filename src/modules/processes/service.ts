@@ -115,7 +115,7 @@ export class ProcessService {
     if (!allowed.ok) return allowed;
 
     const attachments = await this.documents.listByProcess(processId);
-    const progress = calculateProgress(attachments);
+    const progress = calculateProgress(attachments, Object.keys(process.documentExceptions ?? {}));
 
     if (!progress.isComplete) {
       const justification = closingJustification?.trim();
@@ -169,11 +169,11 @@ export class ProcessService {
 
   private async toView(process: AdministrativeProcess): Promise<ProcessView> {
     const attachments = await this.documents.listByProcess(process.id);
-    const progress = calculateProgress(attachments);
+    const progress = calculateProgress(attachments, Object.keys(process.documentExceptions ?? {}));
     return {
       process,
       progress,
-      displayPercent: effectiveProgressPercent(attachments, process.snapshot),
+      displayPercent: Math.max(progress.percent, effectiveProgressPercent(attachments, process.snapshot)),
       completion: process.documentalCompletedAt ? "completa" : "pendente",
     };
   }

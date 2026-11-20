@@ -20,7 +20,7 @@ export async function refreshCompletion(
   if (!process || process.snapshot) return "none";
 
   const attachments = await deps.documents.listByProcess(processId);
-  const progress = calculateProgress(attachments);
+  const progress = calculateProgress(attachments, Object.keys(process.documentExceptions ?? {}));
   const transition = reevaluateCompletion({ documentalCompletedAt: process.documentalCompletedAt }, progress, now);
 
   if (transition.event !== "none") {

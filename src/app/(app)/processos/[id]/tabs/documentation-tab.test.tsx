@@ -78,7 +78,7 @@ describe("DocumentationTab", () => {
       expect(html).toContain("3. Matriz de Riscos");
       expect(html).toContain("4. Termo de Referência");
       expect(html).toContain("5. Pesquisa de Preços");
-      expect(html).toContain("6. Parecer Jurídico");
+      expect(html).toContain("6. Parecer Jurídico / Técnico");
       expect(html).toContain("7. Edital de Licitação / Aviso");
     });
 

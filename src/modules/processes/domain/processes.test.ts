@@ -17,6 +17,14 @@ const allSeven = () => DOCUMENT_TYPE_CODES.map((c) => attach(c));
 const day = (iso: string) => new Date(`${iso}T12:00:00Z`);
 
 describe("Cenário A — progresso documental (R1–R3)", () => {
+  it("considera etapas justificadas sem duplicar documentos e preserva o snapshot", () => {
+    const attachments = DOCUMENT_TYPE_CODES.slice(0, 5).map((code) => attach(code));
+    const progress = calculateProgress(attachments, ["PJ", "ED", "DFD", "OUTRO"]);
+    expect(progress.isComplete).toBe(true);
+    expect(progress.percent).toBe(100);
+    expect(buildSnapshot(attachments, day("2026-11-20"), ["PJ", "ED"]).percent).toBe(100);
+    expect(calculateProgress(attachments, ["PJ"]).isComplete).toBe(false);
+  });
   it("0 anexos = 0%", () => {
     expect(calculateProgress([]).percent).toBe(0);
   });

@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { FolderKanban, Handshake, ShieldCheck } from "lucide-react";
 import { DOCUMENT_TYPES } from "@/modules/processes/domain/document-types";
+import { DocumentExceptions } from "./document-exceptions";
+import Link from "next/link";
 import type { Attachment } from "@/modules/documents/schemas";
 import type { ProcessAttachment } from "@/modules/processes/domain/progress";
 import type { ProcessView as ProcessServiceView } from "@/modules/processes/service";
@@ -204,6 +206,7 @@ export function ProcessView({
       />
 
       <PlanDossierCard dossier={dossier} objectText={productName} />
+      {requestId && canManage ? <Link href={`/solicitacoes/${requestId}`} className="inline-flex rounded-md border px-4 py-2 text-sm font-medium">Corrigir solicitação vinculada</Link> : null}
 
       {/* 2. Barra de Navegação por Abas */}
       <nav
@@ -276,6 +279,8 @@ export function ProcessView({
           tabIndex={0}
         >
           {activeTab === "documentos" && (
+            <>
+            {canManage ? <DocumentExceptions process={view.process} /> : null}
             <DocumentationTab
               processId={view.process.id}
               validTypes={view.progress.validTypes}
@@ -284,6 +289,7 @@ export function ProcessView({
               canUnlink={canUnlink}
               isSpecialDeleter={isSpecialDeleter}
             />
+            </>
           )}
         </div>
 
