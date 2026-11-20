@@ -12,6 +12,7 @@ import {
   unlinkDocumentFormAction,
 } from "@/modules/documents/actions";
 import type { ProcessAttachment } from "@/modules/processes/domain/progress";
+import type { AdministrativeProcess } from "@/modules/processes/schemas";
 import { sha256Hex, uploadToSignedUrl } from "@/shared/lib/browser-upload";
 import { formatBytes } from "@/shared/lib/format";
 import { formatDateTimeFortaleza } from "@/shared/lib/time";
@@ -47,6 +48,7 @@ export interface DocumentationTabDocument {
 
 export interface DocumentationTabProps {
   processId: string;
+  documentExceptions?: AdministrativeProcess["documentExceptions"];
   validTypes: string[];
   documents: (ProcessAttachment | DocumentationTabDocument)[];
   canManage: boolean;
@@ -57,6 +59,7 @@ export interface DocumentationTabProps {
 /** Aba 1 — Pasta Documental: 7 obrigatórios compactos + artefatos adicionais. */
 export function DocumentationTab({
   processId,
+  documentExceptions,
   validTypes,
   documents,
   canManage,
@@ -169,6 +172,7 @@ export function DocumentationTab({
                 typeCode={doc.code}
                 label={`${index + 1}. ${doc.label}`}
                 valid={validTypes.includes(doc.code)}
+                exception={documentExceptions?.[doc.code]}
                 files={filesForType}
                 canUpload={canManage}
                 canUnlink={canUnlink}

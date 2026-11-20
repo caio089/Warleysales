@@ -15,6 +15,8 @@ import { sha256Hex, uploadToSignedUrl } from "@/shared/lib/browser-upload";
 import { formatBytes } from "@/shared/lib/format";
 import { formatDateTimeFortaleza } from "@/shared/lib/time";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
+import { documentExceptionAction } from "@/modules/processes/exception-action";
+import type { AdministrativeProcess } from "@/modules/processes/schemas";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { toast } from "@/shared/ui/toast-store";
 
@@ -30,6 +32,7 @@ export interface CompactDocumentRowProps {
   typeCode: string;
   label: string;
   valid: boolean;
+  exception?: NonNullable<AdministrativeProcess["documentExceptions"]>[string];
   files: CompactDocumentFile[];
   canUpload: boolean;
   canUnlink: boolean;
@@ -43,6 +46,7 @@ export function CompactDocumentRow({
   typeCode,
   label,
   valid,
+  exception,
   files,
   canUpload,
   canUnlink,
@@ -120,7 +124,7 @@ export function CompactDocumentRow({
   }
 
   const hasFiles = files.length > 0;
-  const isPending = !valid && !hasFiles;
+  const isPending = !valid && !hasFiles && !exception;
 
   return (
     <article
@@ -141,7 +145,9 @@ export function CompactDocumentRow({
       {/* Lado Esquerdo: Identificação do documento, status e metadados de arquivos */}
       <div className="flex min-w-0 flex-1 items-start gap-3">
         {/* Indicador de Status Visual */}
-        {valid ? (
+        {exception ? (
+          <span className="inline-flex shrink-0 rounded-full border border-sky-500/25 bg-sky-500/10 px-2 py-0.5 text-[0.68rem] font-semibold text-sky-700 dark:text-sky-300">Não se aplica</span>
+        ) : valid ? (
           <span
             className="flex size-7 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
             aria-label="Documento válido anexado"
@@ -169,6 +175,7 @@ export function CompactDocumentRow({
               Nenhum arquivo anexado para esta etapa legal.
             </p>
           ) : null}
+          {exception ? <p className="text-xs text-muted-foreground">Justificativa: {exception.justification}</p> : null}
 
           {/* Listagem de arquivos anexados quando files.length === 1 */}
           {files.length === 1 ? (
@@ -352,6 +359,27 @@ export function CompactDocumentRow({
               )}
               {uploading ? "Enviando..." : hasFiles ? "Anexar outro" : "+ Anexar arquivo"}
             </Button>
+          ) : null}
+          {canUpload ? (
+            <details className="group relative">
+              <summary className="inline-flex h-8 cursor-pointer items-center rounded-md border border-input px-3 text-xs font-medium hover:bg-accent">
+                {exception ? "Reativar exigência" : "Não se aplica"}
+              </summary>
+              <div className="absolute right-0 z-20 mt-2 w-72 max-w-[85vw] rounded-lg border bg-background p-3 shadow-lg">
+                <p className="mb-2 text-xs text-muted-foreground">
+                  {exception ? "Informe por que esta etapa volta a ser exigida." : "Esta etapa contará como resolvida. Informe por que o documento não se aplica."}
+                </p>
+                <ActionForm
+                  action={documentExceptionAction}
+                  submitLabel={exception ? "Reativar exigência" : "Confirmar dispensa"}
+                  hiddenFields={{ processId, typeCode, ...(exception ? { remove: "true" } : {}) }}
+                >
+                  {() => <label className="block text-xs font-medium">Justificativa
+                    <textarea name="justification" required minLength={10} maxLength={1000} className="mt-1 block min-h-20 w-full rounded-md border bg-background p-2 text-sm" />
+                  </label>}
+                </ActionForm>
+              </div>
+            </details>
           ) : null}
         </div>
       ) : null}

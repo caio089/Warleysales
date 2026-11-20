@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { FolderKanban, Handshake, ShieldCheck } from "lucide-react";
 import { DOCUMENT_TYPES } from "@/modules/processes/domain/document-types";
-import { DocumentExceptions } from "./document-exceptions";
 import Link from "next/link";
 import type { Attachment } from "@/modules/documents/schemas";
 import type { ProcessAttachment } from "@/modules/processes/domain/progress";
@@ -280,9 +279,9 @@ export function ProcessView({
         >
           {activeTab === "documentos" && (
             <>
-            {canManage ? <DocumentExceptions process={view.process} /> : null}
             <DocumentationTab
               processId={view.process.id}
+              documentExceptions={view.process.documentExceptions}
               validTypes={view.progress.validTypes}
               documents={documents}
               canManage={canManage}
