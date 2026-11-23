@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+vi.mock("@/modules/processes/estimated-value-action", () => ({ saveProcessEstimatedValue: vi.fn() }));
 vi.mock("@/modules/processes/exception-action", () => ({ documentExceptionAction: vi.fn() }));
 
 vi.mock("next/navigation", () => ({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Clock, Download, FileText, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,7 @@ export interface CompactDocumentRowProps {
   canUnlink: boolean;
   canManualDelete: boolean;
   onUploadClick?: () => void;
+  children?: ReactNode;
 }
 
 /** Linha compacta e moderna para exibição e gestão de um tipo documental do processo. */
@@ -52,6 +53,7 @@ export function CompactDocumentRow({
   canUnlink,
   canManualDelete,
   onUploadClick,
+  children,
 }: CompactDocumentRowProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -203,6 +205,8 @@ export function CompactDocumentRow({
               )}
             </div>
           ) : null}
+
+          {children}
 
           {/* Listagem de arquivos quando houver múltiplos arquivos (files.length > 1) */}
           {files.length > 1 ? (

@@ -114,10 +114,9 @@ export function buildRequestExcelTemplate(): Uint8Array {
   const emptyItemRows = Array.from({ length: 20 }, () => ["", "", ""]);
   const sheet = XLSX.utils.aoa_to_sheet([
     ["MODELO DE SOLICITAÇÃO — Warley"],
-    ["Preencha a coluna B (Título e Valor) e as linhas da tabela. Não renomeie Item / Quantidade / Unidade. Depois importe em Nova solicitação."],
+    ["Preencha o Título na coluna B e as linhas de itens. Depois importe em Nova solicitação."],
     [],
     [TEMPLATE_HEADERS.title, "", "← escreva o título aqui"],
-    [TEMPLATE_HEADERS.estimatedValue, "", "← opcional, só números (ex.: 1500.50)"],
     [],
     [TEMPLATE_HEADERS.item, TEMPLATE_HEADERS.quantity, TEMPLATE_HEADERS.unit],
     ...emptyItemRows,
@@ -128,14 +127,13 @@ export function buildRequestExcelTemplate(): Uint8Array {
     { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } },
     { s: { r: 1, c: 0 }, e: { r: 1, c: 2 } },
   ];
-  // Células vazias prontas para digitar (B4 título, B5 valor).
+  // Célula vazia pronta para digitar o título.
   sheet["B4"] = { t: "s", v: "" };
-  sheet["B5"] = { t: "s", v: "" };
 
   const guide = XLSX.utils.aoa_to_sheet([
     ["Como preencher este modelo"],
     [],
-    ["1. Na aba Solicitação, escreva o Título. O Valor estimado (R$) é opcional."],
+    ["1. Na aba Solicitação, escreva o Título. Informe o valor estimado na Pesquisa de Preços do processo."],
     ["2. Na tabela, coloque um item por linha: Item, Quantidade e Unidade."],
     ["3. Pode cadastrar quantas linhas quiser (deixe linhas vazias sem preencher)."],
     ["4. Salve o arquivo e importe em Nova solicitação → Importar e preencher."],
@@ -214,7 +212,6 @@ export async function buildRequestWordTemplate(): Promise<Uint8Array> {
     <w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Modelo de solicitação — Warley</w:t></w:r></w:p>
     <w:p><w:r><w:t>Preencha o título, o valor (opcional) e a tabela abaixo. Não renomeie as colunas. Depois importe em Nova solicitação.</w:t></w:r></w:p>
     <w:p><w:r><w:t>${TEMPLATE_HEADERS.title}: </w:t></w:r></w:p>
-    <w:p><w:r><w:t>${TEMPLATE_HEADERS.estimatedValue}: </w:t></w:r></w:p>
     <w:tbl>
       <w:tblPr><w:tblW w:w="5000" w:type="pct"/></w:tblPr>
       ${tableRowsXml}

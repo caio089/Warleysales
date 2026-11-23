@@ -89,6 +89,7 @@ describe("formalizations actions", () => {
         atas: { list: vi.fn().mockResolvedValue({ ok: true, data: [{ ata: { processId: "proc-1" } }] }) },
         contracts: { list: vi.fn().mockResolvedValue({ ok: true, data: [{ contract: { processId: "proc-1" } }] }) },
         formalizations: {
+          getByProcess: vi.fn().mockResolvedValue({ ok: true, data: null }),
           homologate: vi.fn().mockResolvedValue({ ok: true, data: {} }),
         },
       };

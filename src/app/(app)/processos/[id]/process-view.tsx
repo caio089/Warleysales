@@ -145,7 +145,7 @@ export function ProcessView({
     requestItems.length === 1 ? requestItems[0]!.name : view.process.title;
   const quantity = requestItems.reduce((total, item) => total + item.quantity, 0);
   const initialValue =
-    defaultEstimatedValue ?? formalization?.estimatedValue ?? null;
+    defaultEstimatedValue ?? view.process.estimatedValue ?? formalization?.estimatedValue ?? null;
   const dossier = planDossier(requestNotes, initialValue, productName);
   const planSummary = dossier.itemNumber
     ? `Item ${dossier.itemNumber} do PCA. ${dossier.contractingForm}. Concluir em ${dossier.plannedMonth}. Vencimento atual: ${dossier.expiry?.raw ?? "não informado"}.`
@@ -280,6 +280,8 @@ export function ProcessView({
           {activeTab === "documentos" && (
             <>
             <DocumentationTab
+              estimatedValue={initialValue}
+              canEditEstimatedValue={canManage && !view.process.snapshot && !["cancelado", "arquivado"].includes(view.process.status)}
               processId={view.process.id}
               documentExceptions={view.process.documentExceptions}
               validTypes={view.progress.validTypes}

@@ -100,16 +100,6 @@ export function NewRequestForm({ councils }: { councils: Option[] }) {
                 defaultValue={extracted?.title ?? ""}
                 errors={e.title}
               />
-              <TextField
-                name="estimatedValue"
-                label="Valor estimado (R$)"
-                type="number"
-                step="0.01"
-                min="0"
-                hint="Opcional — pode deixar em branco se ainda não souber o valor."
-                defaultValue={extracted?.estimatedValue != null ? String(extracted.estimatedValue) : ""}
-                errors={e.estimatedValue}
-              />
               <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border/60 bg-muted/20 p-3.5 transition-colors hover:bg-muted/30">
                 <input
                   type="checkbox"
