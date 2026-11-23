@@ -4,9 +4,11 @@ import { Suspense } from "react";
 import { CircleCheck, FileClock, FolderKanban } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { loadLookups } from "@/server/lookups";
+import { planDossier } from "@/app/(app)/solicitacoes/request-facets";
 import { loadScreen } from "@/server/screen";
 import { canInAnyCouncil } from "@/shared/lib/authz/policy";
 import { ok } from "@/shared/lib/result";
+import { diffInDays, toFortalezaDate } from "@/shared/lib/time";
 import { PROCESS_FLOW_STEPS } from "@/shared/ui/flow-copy";
 import { FlowGuide } from "@/shared/ui/flow-guide";
 import { LoadingState } from "@/shared/ui/feedback-states";
@@ -21,14 +23,23 @@ export const metadata: Metadata = { title: "Processos" };
 
 async function Content() {
   const result = await loadScreen(async (ctx) => {
-    const [processes, lookups] = await Promise.all([
+    const [processes, lookups, requests] = await Promise.all([
       ctx.services.processes.list(ctx.actor),
       loadLookups(ctx),
+      ctx.services.purchases.list(ctx.actor),
     ]);
     if (!processes.ok) return processes;
     if (!lookups.ok) return lookups;
+    if (!requests.ok) return requests;
+    const today = toFortalezaDate(new Date());
+    const deadlines = new Map(requests.data.filter((request) => request.processId).map((request) => {
+      const due = planDossier(request.events.map((event) => event.note), request.estimatedValue, request.title).expiry?.day;
+      return [request.processId!, due ?? null] as const;
+    }));
     return ok({
       processes: processes.data,
+      deadlines,
+      today,
       lookups: lookups.data,
       canCreate: canInAnyCouncil(ctx.actor, "process.create"),
     });
@@ -36,7 +47,7 @@ async function Content() {
 
   return (
     <Screen result={result}>
-      {({ processes, lookups, canCreate }) => (
+      {({ processes, lookups, canCreate, deadlines, today }) => (
         <>
           <PageHeader
             eyebrow="Documentação"
@@ -72,6 +83,15 @@ async function Content() {
               status: p.process.status,
               completion: p.completion,
               progress: p.displayPercent,
+              createdAt: p.process.createdAt.toISOString(),
+              priority: (() => {
+                if (["concluido", "cancelado", "arquivado"].includes(p.process.status)) return "";
+                const due = deadlines.get(p.process.id);
+                if (!due) return "";
+                const days = diffInDays(today, due);
+                if (days < 0) return "";
+                return days <= 15 ? "Alta" : days <= 30 ? "Média" : "Baixa";
+              })(),
               href: `/processos/${p.process.id}`,
             }))}
             emptyTitle="Nenhum processo ainda"

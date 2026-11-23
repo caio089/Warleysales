@@ -41,6 +41,8 @@ export interface ProcessTableRow {
   status: string;
   completion: string;
   progress: number;
+  createdAt?: string;
+  priority?: string;
   href: string;
 }
 
@@ -62,6 +64,8 @@ export function ProcessesTable({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const searchId = useId();
+  const [pageSize, setPageSize] = useState<20 | 50 | "all">(20);
+  const [visibleAll, setVisibleAll] = useState(100);
 
   const queryColumns: QueryColumn<ProcessTableRow>[] = useMemo(
     () => [
@@ -71,6 +75,7 @@ export function ProcessesTable({
       { key: "status", accessor: (r) => r.status, sortable: true },
       { key: "completion", accessor: (r) => r.completion, sortable: true },
       { key: "progress", accessor: (r) => r.progress, sortable: true },
+      { key: "createdAt", accessor: (r) => r.createdAt, sortable: true, searchable: false },
     ],
     [],
   );
@@ -101,6 +106,7 @@ export function ProcessesTable({
     () => [
       { id: "status", label: "Situação", options: statusOptions, accessor: (r) => r.status },
       { id: "council", label: "Órgão", options: councilOptions, accessor: (r) => r.council },
+      { id: "priority", label: "Prioridade do prazo", options: ["Alta", "Média", "Baixa"].map((value) => ({ value, label: value })), accessor: (r) => r.priority ?? "" },
     ],
     [statusOptions, councilOptions],
   );
@@ -119,7 +125,7 @@ export function ProcessesTable({
     return () => window.removeEventListener("popstate", restore);
   }, [namespace, queryColumns, filterDefs]);
   const { search, filters: activeFilters, page } = tableState;
-  const sort = { key: tableState.sortKey, direction: tableState.sortDirection };
+  const sort = useMemo(() => ({ key: tableState.sortKey, direction: tableState.sortDirection }), [tableState.sortKey, tableState.sortDirection]);
 
   const result = useMemo(
     () =>
@@ -129,9 +135,9 @@ export function ProcessesTable({
         sortDirection: sort.direction,
         filters: activeFilters,
         page,
-        pageSize: 10,
+        pageSize: pageSize === "all" ? Math.min(rows.length || 1, visibleAll) : pageSize,
       }),
-    [rows, queryColumns, filterDefs, search, sort, activeFilters, page],
+    [rows, queryColumns, filterDefs, search, sort, activeFilters, page, pageSize, visibleAll],
   );
 
   const headers: { key: string; label: string; sortable: boolean }[] = [
@@ -186,6 +192,31 @@ export function ProcessesTable({
             ))}
           </select>
         </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">Prioridade do prazo</span>
+          <select className="h-10 min-w-40 rounded-lg border border-input bg-card px-3 text-sm font-medium text-foreground focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
+            value={activeFilters.priority ?? ""}
+            onChange={(event) => updateTableState({ ...tableState, filters: { ...activeFilters, priority: event.target.value }, page: 1 })}>
+            <option value="">Todas as prioridades</option>
+            <option value="Alta">Alta</option>
+            <option value="Média">Média</option>
+            <option value="Baixa">Baixa</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">Ordem de criação</span>
+          <select
+            className="h-10 min-w-44 rounded-lg border border-input bg-card px-3 text-sm font-medium text-foreground focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
+            value={sort.key === "createdAt" ? sort.direction : ""}
+            onChange={(event) => updateTableState({ ...tableState,
+              sortKey: event.target.value ? "createdAt" : null,
+              sortDirection: event.target.value === "asc" ? "asc" : "desc", page: 1 })}
+          >
+            <option value="">Ordem atual</option>
+            <option value="desc">Mais recentes primeiro</option>
+            <option value="asc">Mais antigos primeiro</option>
+          </select>
+        </label>
 
         <label className="flex flex-col gap-1.5">
           <span className="text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
@@ -204,6 +235,23 @@ export function ProcessesTable({
                 {opt.label}
               </option>
             ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">Exibir</span>
+          <select
+            className="h-10 min-w-32 rounded-lg border border-input bg-card px-3 text-sm font-medium text-foreground focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
+            value={pageSize}
+            onChange={(event) => {
+              const value = event.target.value;
+              setPageSize(value === "all" ? "all" : value === "50" ? 50 : 20);
+              setVisibleAll(100);
+              updateTableState({ ...tableState, page: 1 });
+            }}
+          >
+            <option value="20">20 processos</option>
+            <option value="50">50 processos</option>
+            <option value="all">Todos os processos</option>
           </select>
         </label>
       </div>
@@ -337,28 +385,26 @@ export function ProcessesTable({
       )}
 
       {result.total > 0 ? (
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span aria-live="polite">{result.total} registro(s) no banco</span>
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+          <span aria-live="polite">Exibindo {result.rows.length} de {result.total} processo(s) encontrado(s)</span>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={result.page <= 1}
-              onClick={() => updateTableState({ ...tableState, page: result.page - 1 })}
-            >
-              Anterior
-            </Button>
-            <span>
-              Página {result.page} de {result.pageCount}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={result.page >= result.pageCount}
-              onClick={() => updateTableState({ ...tableState, page: result.page + 1 })}
-            >
-              Próxima
-            </Button>
+            {pageSize === "all" && result.rows.length < result.total ? (
+              <Button variant="outline" size="sm" onClick={() => setVisibleAll((count) => count + 100)}>
+                Carregar mais
+              </Button>
+            ) : pageSize !== "all" ? (
+              <>
+                <Button variant="outline" size="sm" disabled={result.page <= 1}
+                  onClick={() => updateTableState({ ...tableState, page: result.page - 1 })}>
+                  Anterior
+                </Button>
+                <span>Página {result.page} de {result.pageCount}</span>
+                <Button variant="outline" size="sm" disabled={result.page >= result.pageCount}
+                  onClick={() => updateTableState({ ...tableState, page: result.page + 1 })}>
+                  Próxima
+                </Button>
+              </>
+            ) : null}
           </div>
         </div>
       ) : null}
