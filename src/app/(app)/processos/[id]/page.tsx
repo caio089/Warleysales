@@ -13,30 +13,30 @@ export const metadata: Metadata = { title: "Processo" };
 export async function ProcessContent({ params, initialTab }: { params: Promise<{ id: string }>; initialTab: "documentos" | "contratacao" | "governanca" }) {
   const { id } = await params;
   const result = await loadScreen(async ({ services, actor }) => {
-    const view = await services.processes.get(actor, id);
-    if (!view.ok) return view;
-    const documents = await services.documents.listByProcess(actor, id);
-    const formalization = await services.formalizations.getByProcess(actor, id);
-    const suppliers = await services.suppliers.list(actor);
-    const [purchaseRequests, atas, contracts] = await Promise.all([
-      services.purchases.list(actor),
-      services.atas.list(actor),
-      services.contracts.list(actor),
+    const detail = await services.processes.getDetail(actor, id);
+    if (!detail.ok) return detail;
+    const { view, documents } = detail.data;
+    const councilId = view.process.councilId;
+    const instrumentScope = { id, councilId };
+    const [formalization, suppliers, request, atas, contracts, lookups] = await Promise.all([
+      services.formalizations.getByProcess(actor, id),
+      services.suppliers.list(actor),
+      services.purchases.findLinkedByProcess(actor, id),
+      services.atas.list(actor, instrumentScope),
+      services.contracts.list(actor, instrumentScope),
+      loadLookups({ services, actor }),
     ]);
-    const lookups = await loadLookups({ services, actor });
-    if (!documents.ok) return documents;
     if (!formalization.ok) return formalization;
     if (!suppliers.ok) return suppliers;
-    if (!purchaseRequests.ok) return purchaseRequests;
+    if (!request.ok) return request;
     if (!atas.ok) return atas;
     if (!contracts.ok) return contracts;
     if (!lookups.ok) return lookups;
-    const linkedRequest = purchaseRequests.data.find((r) => r.processId === id) ?? null;
+    const linkedRequest = request.data;
     const materialName = lookups.data.materialName;
-    const councilId = view.data.process.councilId;
     return ok({
-      view: view.data,
-      documents: documents.data,
+      view,
+      documents,
       formalization: formalization.data,
       suppliers: suppliers.data,
       canManage: can(actor, "process.create", councilId),
@@ -66,7 +66,7 @@ export async function ProcessContent({ params, initialTab }: { params: Promise<{
         .map((item) => ({ value: item.contract.id, label: item.contract.number })),
       instrumentDraft: {
         councilLabel: lookups.data.councilLabel[councilId] ?? "Órgão",
-        processLabel: `${view.data.process.number} — ${view.data.process.title}`,
+        processLabel: `${view.process.number} — ${view.process.title}`,
         materials: lookups.data.materials.map((material) => ({ value: material.id, label: material.label })),
         suppliers: suppliers.data
           .filter((supplier) => supplier.active)

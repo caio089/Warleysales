@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { idSchema } from "@/shared/lib/service-support";
 import type { ContractRepository } from "@/modules/contracts/repository";
 import type { Contract } from "@/modules/contracts/schemas";
 import { callRpc, selectAll, toDate, toIso, toNumber, unwrap } from "../db";
@@ -76,10 +77,15 @@ export class SupabaseContractRepository implements ContractRepository {
     return row ? toContract(row) : null;
   }
 
-  async listByCouncils(councilIds: readonly string[] | "all") {
+  async listByCouncils(councilIds: readonly string[] | "all", process?: { id: string; councilId: string }) {
     if (councilIds !== "all" && councilIds.length === 0) return [];
     const rows = await selectAll<ContractRow>("contracts.list", (from, to) => {
-      const query = this.db.from("contracts").select(SELECT).order("created_at", { ascending: false }).range(from, to);
+      let query = this.db.from("contracts").select(SELECT).order("created_at", { ascending: false }).range(from, to);
+      if (process) {
+        const processId = idSchema.parse(process.id);
+        const councilId = idSchema.parse(process.councilId);
+        query = query.or(`process_id.eq.${processId},and(process_id.is.null,council_id.eq.${councilId})`);
+      }
       return councilIds === "all" ? query : query.in("council_id", [...councilIds]);
     });
     return rows.map(toContract);

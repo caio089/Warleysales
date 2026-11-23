@@ -184,6 +184,15 @@ describe("PurchaseRequestService", () => {
     if (!proc.ok) return;
     expect(proc.data.process.number).toBe("001/2026");
     expect(proc.data.process.title).toBe("Aquisição de computadores");
+    expect(await ctx.service.listLinkedNotes(operatorOf(COUNCIL_A))).toEqual({
+      ok: true,
+      data: [{ processId: r.data.processId, notes: r.data.events.map((event) => event.note) }],
+    });
+    expect(await ctx.service.listLinkedNotes(operatorOf(COUNCIL_B))).toEqual({ ok: true, data: [] });
+    expect(await ctx.service.findLinkedByProcess(operatorOf(COUNCIL_A), r.data.processId!))
+      .toEqual(await ctx.service.get(operatorOf(COUNCIL_A), r.data.id));
+    expect(await ctx.service.findLinkedByProcess(operatorOf(COUNCIL_B), r.data.processId!))
+      .toEqual({ ok: true, data: null });
   });
   it("provisiona estoque bloqueado ao criar solicitacao com itens", async () => {
     const r = await ctx.service.create(operatorOf(COUNCIL_A), {

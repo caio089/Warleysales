@@ -26,15 +26,21 @@ export interface DocumentalProgress {
   isComplete: boolean;
 }
 
+export const ATTACHMENT_PROGRESS_CRITERIA = {
+  uploadStatus: "confirmed",
+  linkStatus: "active",
+  excludedRetentionState: "disposed",
+} as const;
+
 /**
  * R2: anexo válido = upload confirmado, vínculo ativo e não eliminado.
  * Anexos substituídos, falhos, pendentes ou eliminados não contam.
  */
 export function isValidAttachment(attachment: ProcessAttachment): boolean {
   return (
-    attachment.uploadStatus === "confirmed" &&
-    attachment.linkStatus === "active" &&
-    attachment.retentionState !== "disposed"
+    attachment.uploadStatus === ATTACHMENT_PROGRESS_CRITERIA.uploadStatus &&
+    attachment.linkStatus === ATTACHMENT_PROGRESS_CRITERIA.linkStatus &&
+    attachment.retentionState !== ATTACHMENT_PROGRESS_CRITERIA.excludedRetentionState
   );
 }
 

@@ -6,7 +6,7 @@ export interface AtaRepository {
   insert(ata: PriceRegistrationAta): Promise<PriceRegistrationAta>;
   findById(id: string): Promise<PriceRegistrationAta | null>;
   findByItemId(itemId: string): Promise<PriceRegistrationAta | null>;
-  listByCouncils(councilIds: readonly string[] | "all"): Promise<PriceRegistrationAta[]>;
+  listByCouncils(councilIds: readonly string[] | "all", process?: { id: string; councilId: string }): Promise<PriceRegistrationAta[]>;
   save(ata: PriceRegistrationAta): Promise<PriceRegistrationAta>;
   listEvents(itemId: string): Promise<CommitmentEvent[]>;
   /** Eventos de vários itens em poucas consultas — evita N+1 na listagem de atas. */

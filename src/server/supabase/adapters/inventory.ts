@@ -123,10 +123,13 @@ export class SupabaseInventoryRepository implements InventoryRepository {
     }));
   }
 
-  async listMovements(key?: StockKey) {
+  async listMovements(filter?: { councilId: string; materialId?: string }) {
     const rows = await selectAll<MovementRow>("stock.movements", (from, to) => {
       let query = this.db.from("stock_movements").select().order("id").range(from, to);
-      if (key) query = query.eq("council_id", key.councilId).eq("material_id", key.materialId);
+      if (filter) {
+        query = query.eq("council_id", filter.councilId);
+        if (filter.materialId !== undefined) query = query.eq("material_id", filter.materialId);
+      }
       return query;
     });
     return rows.map(toMovement);

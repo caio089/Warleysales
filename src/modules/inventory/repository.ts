@@ -35,5 +35,5 @@ export interface InventoryRepository {
   transact<T>(key: StockKey, mutate: (state: StockState) => Result<StockMutation<T>>): Promise<Result<T>>;
   setMinimum(key: StockKey, minimum: number): Promise<void>;
   listStock(councilIds: readonly string[] | "all"): Promise<StockRow[]>;
-  listMovements(key?: StockKey): Promise<MovementRecord[]>;
+  listMovements(filter?: { councilId: string; materialId?: string }): Promise<MovementRecord[]>;
 }

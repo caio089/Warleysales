@@ -1,11 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Attachment } from "@/modules/documents/schemas";
-import type { DocumentRepository, StoragePort } from "@/modules/documents/repository";
+import type { AttachmentForProgress, DocumentRepository, StoragePort } from "@/modules/documents/repository";
 import type { DocumentalSnapshot } from "@/modules/processes/domain/completion";
 import type { DocumentTypeCode } from "@/modules/processes/domain/document-types";
 import type { ProcessStatus } from "@/modules/processes/domain/process-status";
 import type { ProcessRepository } from "@/modules/processes/repository";
 import type { AdministrativeProcess } from "@/modules/processes/schemas";
+import { ATTACHMENT_PROGRESS_CRITERIA } from "@/modules/processes/domain/progress";
 import { fail, ok } from "@/shared/lib/result";
 import { isUniqueViolation, selectAll, toDate, toDateOrNull, toIso, toIsoOrNull, unwrap } from "../db";
 
@@ -160,16 +161,28 @@ export class SupabaseDocumentRepository implements DocumentRepository {
     return rows.map(toAttachment);
   }
 
-  async listByProcessIds(processIds: readonly string[]) {
+  async listProgressAttachments(processIds: readonly string[]) {
     if (processIds.length === 0) return [];
     const CHUNK = 100;
-    const out: Attachment[] = [];
+    const out: AttachmentForProgress[] = [];
     for (let i = 0; i < processIds.length; i += CHUNK) {
       const chunk = processIds.slice(i, i + CHUNK);
-      const rows = await selectAll<AttachmentRow>("attachments.list", (from, to) =>
-        this.db.from("attachments").select().in("process_id", chunk).order("created_at").range(from, to),
+      const rows = await selectAll<Pick<AttachmentRow, "process_id" | "type_code" | "upload_status" | "link_status" | "retention_state">>("attachments.progress", (from, to) =>
+        this.db.from("attachments")
+          .select("process_id, type_code, upload_status, link_status, retention_state")
+          .in("process_id", chunk)
+          .eq("upload_status", ATTACHMENT_PROGRESS_CRITERIA.uploadStatus)
+          .eq("link_status", ATTACHMENT_PROGRESS_CRITERIA.linkStatus)
+          .neq("retention_state", ATTACHMENT_PROGRESS_CRITERIA.excludedRetentionState)
+          .order("id").range(from, to),
       );
-      out.push(...rows.map(toAttachment));
+      out.push(...rows.map((row) => ({
+        processId: row.process_id,
+        typeCode: row.type_code,
+        uploadStatus: row.upload_status,
+        linkStatus: row.link_status,
+        retentionState: row.retention_state,
+      })));
     }
     return out;
   }

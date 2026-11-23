@@ -1,12 +1,15 @@
 import type { Attachment } from "./schemas";
+import type { ProcessAttachment } from "@/modules/processes/domain/progress";
+
+export type AttachmentForProgress = ProcessAttachment & { processId: string };
 
 /** Port de metadados de anexos. */
 export interface DocumentRepository {
   insert(attachment: Attachment): Promise<Attachment>;
   findById(id: string): Promise<Attachment | null>;
   listByProcess(processId: string): Promise<Attachment[]>;
-  /** Uma consulta (em lotes) para vários processos — evita N+1 em listagens. */
-  listByProcessIds(processIds: readonly string[]): Promise<Attachment[]>;
+  /** Projeção em lotes dos anexos válidos para o cálculo do progresso. */
+  listProgressAttachments(processIds: readonly string[]): Promise<AttachmentForProgress[]>;
   update(id: string, changes: Partial<Attachment>): Promise<Attachment | null>;
 }
 

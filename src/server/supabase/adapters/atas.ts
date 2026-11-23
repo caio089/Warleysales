@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { idSchema } from "@/shared/lib/service-support";
 import type { AtaRepository } from "@/modules/atas/repository";
 import type { AtaStatus, PriceRegistrationAta } from "@/modules/atas/schemas";
 import type { CommitmentEvent } from "@/modules/atas/domain/balance";
@@ -101,10 +102,15 @@ export class SupabaseAtaRepository implements AtaRepository {
     return item ? this.findById(item.ata_id) : null;
   }
 
-  async listByCouncils(councilIds: readonly string[] | "all") {
+  async listByCouncils(councilIds: readonly string[] | "all", process?: { id: string; councilId: string }) {
     if (councilIds !== "all" && councilIds.length === 0) return [];
     const rows = await selectAll<AtaRow>("atas.list", (from, to) => {
-      const query = this.db.from("price_registration_atas").select(ATA_SELECT).order("created_at", { ascending: false }).range(from, to);
+      let query = this.db.from("price_registration_atas").select(ATA_SELECT).order("created_at", { ascending: false }).range(from, to);
+      if (process) {
+        const processId = idSchema.parse(process.id);
+        const councilId = idSchema.parse(process.councilId);
+        query = query.or(`process_id.eq.${processId},and(process_id.is.null,council_id.eq.${councilId})`);
+      }
       return councilIds === "all" ? query : query.in("council_id", [...councilIds]);
     });
     return rows.map(toAta);

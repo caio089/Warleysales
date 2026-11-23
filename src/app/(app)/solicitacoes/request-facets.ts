@@ -162,6 +162,14 @@ function citedInstruments(text: string): string[] {
   return [...new Set(matches.map((item) => item.replace(/\s+/g, " ").trim()))];
 }
 
+export function planExpiryFromNotes(notes: readonly (string | null | undefined)[]): PlanDate | null {
+  return expiryFromText(joinedNotes(notes));
+}
+
+function expiryFromText(text: string): PlanDate | null {
+  return identifyPlanDate(sliceBetween(text, "Vencimento atual:", "Forma prevista:"));
+}
+
 /**
  * Abre o histórico do PCA em campos: datas, forma, valor e objeto citado.
  * Solicitação avulsa volta com os campos vazios de plano.
@@ -172,7 +180,6 @@ export function planDossier(notes: readonly (string | null | undefined)[], estim
   const priority = priorityLabel(priorityMatches[priorityMatches.length - 1]?.[1]);
   const group = text.match(/Grupo:\s*(.+?)\.\s*Prioridade/i)?.[1]?.trim() || NOT_INFORMED;
   const plannedMonth = sliceBetween(text, "Mês previsto:", "Vencimento atual:") ?? NOT_INFORMED;
-  const expiryRaw = sliceBetween(text, "Vencimento atual:", "Forma prevista:");
   const contractingForm = sliceBetween(text, "Forma prevista:", "Valor no plano:") ?? NOT_INFORMED;
   const planValueText = sliceBetween(text, "Valor no plano:", "Valor estimado") ?? NOT_INFORMED;
   const valueReading = sliceBetween(text, "Valor estimado", "A quantidade 1") ?? "";
@@ -186,7 +193,7 @@ export function planDossier(notes: readonly (string | null | undefined)[], estim
     group,
     priority,
     plannedMonth,
-    expiry: identifyPlanDate(expiryRaw),
+    expiry: expiryFromText(text),
     needsVerification: /\[VERIFICAR\]/i.test(text),
     contractingForm,
     planValueText,

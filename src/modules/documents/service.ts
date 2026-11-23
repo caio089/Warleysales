@@ -9,7 +9,7 @@ import { internalError, parseInput, type RuntimeDeps } from "@/shared/lib/servic
 import { ALLOWED_FILE_TYPES, extensionOf, validateFileMeta } from "@/shared/lib/upload-rules";
 import { sanitizeFileName, validateUpload } from "./domain/file-validation";
 import type { DocumentRepository, StoragePort } from "./repository";
-import { attachmentIdSchema, prepareUploadSchema, uploadDocumentSchema, type Attachment, type PreparedUpload } from "./schemas";
+import { attachmentIdSchema, isVisibleAttachment, prepareUploadSchema, uploadDocumentSchema, type Attachment, type PreparedUpload } from "./schemas";
 
 const SIGNED_URL_TTL_SECONDS = 60;
 
@@ -195,6 +195,6 @@ export class DocumentService {
   async listByProcess(actor: Parameters<typeof guard>[1], processId: string): Promise<Result<Attachment[]>> {
     const process = await this.processes.findById(processId);
     if (!process || !can(actor, "council.read", process.councilId)) return fail("NOT_FOUND", "Processo não encontrado.");
-    return ok((await this.documents.listByProcess(processId)).filter((a) => a.retentionState !== "disposed" && a.uploadStatus === "confirmed"));
+    return ok((await this.documents.listByProcess(processId)).filter(isVisibleAttachment));
   }
 }

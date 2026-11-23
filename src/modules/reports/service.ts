@@ -33,6 +33,7 @@ export interface DashboardDeadline {
 
 export interface DashboardSnapshot {
   summary: OperationalSummary;
+  stockLevels: StockLevelView[];
   processStatuses: { status: string; count: number }[];
   attention: DashboardAttention[];
   deadlines: DashboardDeadline[];
@@ -78,6 +79,7 @@ export class ReportService {
     const summary = this.toSummary(loaded.data);
     return ok({
       summary,
+      stockLevels: loaded.data.levels,
       processStatuses: Object.entries(summary.processes.byStatus)
         .map(([status, count]) => ({ status, count }))
         .sort((a, b) => b.count - a.count),

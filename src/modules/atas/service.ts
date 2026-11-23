@@ -182,10 +182,10 @@ export class AtaService {
     return ok(await this.toView(ata));
   }
 
-  async list(actor: Actor): Promise<Result<AtaView[]>> {
+  async list(actor: Actor, process?: { id: string; councilId: string }): Promise<Result<AtaView[]>> {
     const scope = readableCouncilIds(actor);
     if (scope !== "all" && scope.length === 0) return ok([]);
-    const atas = await this.repository.listByCouncils(scope);
+    const atas = await this.repository.listByCouncils(scope, process);
     const itemIds = atas.flatMap((ata) => ata.items.map((item) => item.id));
     const eventsByItem = await this.repository.listEventsByItemIds(itemIds);
     return ok(atas.map((ata) => this.viewFrom(ata, eventsByItem)));

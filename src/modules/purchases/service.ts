@@ -246,6 +246,15 @@ export class PurchaseRequestService {
     return ok(request);
   }
 
+  async listLinkedNotes(actor: Actor) {
+    const scope = readableCouncilIds(actor);
+    return ok(await this.repository.listLinkedNotesByCouncils(scope));
+  }
+
+  async findLinkedByProcess(actor: Actor, processId: string) {
+    return ok(await this.repository.findLinkedByProcess(processId, readableCouncilIds(actor)));
+  }
+
   /** Passo simples da máquina de estados (autoriza, valida transição, persiste, audita). */
   private async simpleStep(actor: Actor, input: unknown, schema: Parameters<typeof parseInput>[0], to: PurchaseRequestStatus, action: PermissionAction): Promise<Result<PurchaseRequest>> {
     const parsed = parseInput(schema, input) as Result<{ requestId: string; note?: string }>;

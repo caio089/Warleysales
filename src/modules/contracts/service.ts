@@ -97,10 +97,10 @@ export class ContractService {
     return ok(this.toView(contract));
   }
 
-  async list(actor: Actor): Promise<Result<ContractView[]>> {
+  async list(actor: Actor, process?: { id: string; councilId: string }): Promise<Result<ContractView[]>> {
     const scope = readableCouncilIds(actor);
     if (scope !== "all" && scope.length === 0) return ok([]);
-    return ok((await this.repository.listByCouncils(scope)).map((c) => this.toView(c)));
+    return ok((await this.repository.listByCouncils(scope, process)).map((c) => this.toView(c)));
   }
 
   private toView(contract: Contract): ContractView {

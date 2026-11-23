@@ -40,8 +40,11 @@ export class InMemoryInventoryRepository implements InventoryRepository {
   async listStock(councilIds: readonly string[] | "all") {
     return [...this.rows.values()].filter((r) => councilIds === "all" || councilIds.includes(r.councilId));
   }
-  async listMovements(key?: StockKey) {
-    return this.ledger.filter((m) => !key || (m.councilId === key.councilId && m.materialId === key.materialId));
+  async listMovements(filter?: { councilId: string; materialId?: string }) {
+    return this.ledger.filter((movement) =>
+      !filter || (movement.councilId === filter.councilId
+        && (filter.materialId === undefined || movement.materialId === filter.materialId)),
+    );
   }
   /** Teste de reconciliação: corrompe o saldo de propósito. */
   corruptPhysical(key: StockKey, physical: number) {

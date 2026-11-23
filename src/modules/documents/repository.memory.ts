@@ -1,4 +1,5 @@
 import { MemoryTable } from "@/shared/lib/memory-table";
+import { isValidAttachment } from "@/modules/processes/domain/progress";
 import type { DocumentRepository, StoragePort } from "./repository";
 import type { Attachment } from "./schemas";
 
@@ -7,10 +8,13 @@ export class InMemoryDocumentRepository implements DocumentRepository {
   async insert(a: Attachment) { return this.table.insert(a); }
   async findById(id: string) { return this.table.get(id); }
   async listByProcess(processId: string) { return this.table.all((a) => a.processId === processId); }
-  async listByProcessIds(processIds: readonly string[]) {
+  async listProgressAttachments(processIds: readonly string[]) {
     if (processIds.length === 0) return [];
     const wanted = new Set(processIds);
-    return this.table.all((a) => wanted.has(a.processId));
+    return this.table.all((a) => wanted.has(a.processId) && isValidAttachment(a))
+      .map(({ processId, typeCode, uploadStatus, linkStatus, retentionState }) => ({
+        processId, typeCode, uploadStatus, linkStatus, retentionState,
+      }));
   }
   async update(id: string, changes: Partial<Attachment>) { return this.table.update(id, changes); }
 }

@@ -425,7 +425,7 @@ export class InventoryService {
   async listMovements(actor: Actor, councilId: string) {
     const allowed = await guard(this.audit, actor, "council.read", councilId, "stock_movement");
     if (!allowed.ok) return allowed;
-    return ok(await this.repository.listMovements().then((all) => all.filter((m) => m.councilId === councilId)));
+    return ok(await this.repository.listMovements({ councilId }));
   }
 
   /** Reconciliação (H2): compara saldo físico gravado com o recalculado do ledger. */

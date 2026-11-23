@@ -16,9 +16,20 @@ export class InMemoryPurchaseRequestRepository implements PurchaseRequestReposit
     const items = this.table.all((r) => ids === "all" || ids.includes(r.councilId));
     return items.map((r) => ({ ...r, processId: r.processId ?? null, estimatedValue: r.estimatedValue ?? null }));
   }
+  async findLinkedByProcess(processId: string, ids: readonly string[] | "all") {
+    return this.table.all((request) =>
+      request.processId === processId && (ids === "all" || ids.includes(request.councilId)),
+    )[0] ?? null;
+  }
   async save(r: PurchaseRequest) {
     const entity: PurchaseRequest = { ...r, processId: r.processId ?? null, estimatedValue: r.estimatedValue ?? null };
     this.table.insert(entity);
     return entity;
+  }
+  async listLinkedNotesByCouncils(ids: readonly string[] | "all") {
+    return this.table.all((request) => ids === "all" || ids.includes(request.councilId))
+      .flatMap((request) => request.processId
+        ? [{ processId: request.processId, notes: request.events.map((event) => event.note) }]
+        : []);
   }
 }

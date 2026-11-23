@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { InMemoryAuditRepository } from "@/modules/audit/repository.memory";
 import { AuditService } from "@/modules/audit/service";
 import { InMemoryDocumentRepository, InMemoryStorage } from "@/modules/documents/repository.memory";
@@ -97,11 +97,35 @@ describe("ProcessService", () => {
     const view = await ctx.processes.get(managerOf(COUNCIL_A), p.id);
     expect(view.ok && view.data.progress.percent).toBe(42.86);
     expect(view.ok && view.data.completion).toBe("pendente");
+    expect(await ctx.processes.list(managerOf(COUNCIL_A))).toEqual({
+      ok: true,
+      data: view.ok ? [view.data] : [],
+    });
   });
   it("transição de situação inválida é rejeitada", async () => {
     const p = await newProcess(ctx);
     const r = await ctx.processes.changeStatus(managerOf(COUNCIL_A), { processId: p.id, status: "arquivado" });
     expect(!r.ok && r.code).toBe("INVALID_STATE");
+  });
+  it("usa uma leitura autorizada para o progresso e os anexos visíveis do detalhe", async () => {
+    const process = await newProcess(ctx);
+    const actor = managerOf(COUNCIL_A);
+    await attachAll(ctx, process.id, DOCUMENT_TYPE_CODES.slice(0, 2));
+    const [pending] = await ctx.docRepo.listByProcess(process.id);
+    await ctx.docRepo.update(pending!.id, { uploadStatus: "pending" });
+    const documents = await ctx.documents.listByProcess(actor, process.id);
+    const view = await ctx.processes.get(actor, process.id);
+    const read = vi.spyOn(ctx.docRepo, "listByProcess");
+
+    expect(await ctx.processes.getDetail(managerOf(COUNCIL_B), process.id))
+      .toMatchObject({ ok: false, code: "NOT_FOUND" });
+    expect(read).not.toHaveBeenCalled();
+    expect(documents.ok && documents.data).toHaveLength(1);
+    expect(await ctx.processes.getDetail(actor, process.id)).toEqual({
+      ok: true,
+      data: { view: view.ok && view.data, documents: documents.ok && documents.data },
+    });
+    expect(read).toHaveBeenCalledExactlyOnceWith(process.id);
   });
   it("encerramento com documentação incompleta exige justificativa (mínimo 20 caracteres)", async () => {
     const p = await newProcess(ctx);
@@ -245,6 +269,9 @@ describe("RetentionService (R6/R7, P2)", () => {
     const view = await ctx.processes.get(managerOf(COUNCIL_A), p.id);
     expect(view.ok && view.data.displayPercent).toBe(100);
     expect(view.ok && view.data.completion).toBe("completa");
+    expect(await ctx.docRepo.listProgressAttachments([p.id])).toEqual([]);
+    const listing = await ctx.processes.list(managerOf(COUNCIL_A));
+    expect(listing.ok && listing.data.find(({ process }) => process.id === p.id)?.displayPercent).toBe(100);
     expect(await ctx.retention.runCleanup()).toMatchObject({ disposed: 0 });
   });
   it("bloqueio de retenção impede a limpeza", async () => {

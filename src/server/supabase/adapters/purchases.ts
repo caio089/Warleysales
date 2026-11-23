@@ -35,6 +35,11 @@ interface RequestRow {
 
 const SELECT = "*, purchase_request_items(*), purchase_request_events(*), purchase_receipt_keys(receipt_key)";
 
+interface LinkedRequestNotesRow {
+  process_id: string;
+  purchase_request_events: { position: number; note: string | null }[];
+}
+
 const toRequest = (row: RequestRow): PurchaseRequest => ({
   id: row.id,
   councilId: row.council_id,
@@ -108,5 +113,32 @@ export class SupabasePurchaseRequestRepository implements PurchaseRequestReposit
       return councilIds === "all" ? query : query.in("council_id", [...councilIds]);
     });
     return rows.map(toRequest);
+  }
+
+  async findLinkedByProcess(processId: string, councilIds: readonly string[] | "all") {
+    if (councilIds !== "all" && councilIds.length === 0) return null;
+    let query = this.db.from("purchase_requests").select(SELECT)
+      .eq("process_id", processId)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (councilIds !== "all") query = query.in("council_id", [...councilIds]);
+    const row = unwrap("requests.findLinked", await query.maybeSingle<RequestRow>());
+    return row ? toRequest(row) : null;
+  }
+
+  async listLinkedNotesByCouncils(councilIds: readonly string[] | "all") {
+    if (councilIds !== "all" && councilIds.length === 0) return [];
+    const rows = await selectAll<LinkedRequestNotesRow>("requests.linkedNotes", (from, to) => {
+      const query = this.db.from("purchase_requests")
+        .select("process_id, purchase_request_events(position, note)")
+        .not("process_id", "is", null)
+        .order("created_at", { ascending: false })
+        .range(from, to);
+      return councilIds === "all" ? query : query.in("council_id", [...councilIds]);
+    });
+    return rows.map((row) => ({
+      processId: row.process_id,
+      notes: row.purchase_request_events.sort((a, b) => a.position - b.position).map((event) => event.note),
+    }));
   }
 }

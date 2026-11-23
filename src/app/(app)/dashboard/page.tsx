@@ -73,7 +73,6 @@ async function DashboardContent({
       lookups,
       requests,
       meetings,
-      stockLevels,
       pendingFormalizations,
       savingsSummary,
       suppliersRes,
@@ -85,7 +84,6 @@ async function DashboardContent({
       loadLookups(ctx),
       ctx.services.purchases.list(ctx.actor),
       ctx.services.meetings.list(ctx.actor),
-      ctx.services.inventory.listLevels(ctx.actor, councilId),
       ctx.actor.isCentralAdmin ? ctx.services.formalizations.listPending(ctx.actor) : Promise.resolve(ok([])),
       ctx.services.formalizations.getSavingsSummary(ctx.actor, councilId),
       ctx.services.suppliers.list(ctx.actor),
@@ -99,7 +97,7 @@ async function DashboardContent({
     if (!lookups.ok) return lookups;
     if (!requests.ok) return requests;
     if (!meetings.ok) return meetings;
-    if (!stockLevels.ok) return stockLevels;
+    const stockLevels = dash.data.stockLevels;
     if (!pendingFormalizations.ok) return pendingFormalizations;
     if (!savingsSummary.ok) return savingsSummary;
     if (!pendingOrdersRes.ok) return pendingOrdersRes;
@@ -148,7 +146,7 @@ async function DashboardContent({
       ? councilOrdersRes.data.filter((order) => order.councilId === actionCouncilId)
       : [];
     const workspaceStock = actionCouncilId
-      ? stockLevels.data.filter((level) => level.councilId === actionCouncilId)
+      ? stockLevels.filter((level) => level.councilId === actionCouncilId)
       : [];
 
     return ok({
@@ -157,7 +155,7 @@ async function DashboardContent({
       lookups: lookups.data,
       requests: requests.data,
       meetings: meetings.data,
-      stockLevels: stockLevels.data,
+      stockLevels,
       pendingQueue,
       pendingOrderQueue,
       savingsSummary: savingsSummary.data,

@@ -3,8 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { CircleCheck, FileClock, FolderKanban } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { loadLookups } from "@/server/lookups";
-import { planDossier } from "@/app/(app)/solicitacoes/request-facets";
+import { planExpiryFromNotes } from "@/app/(app)/solicitacoes/request-facets";
 import { loadScreen } from "@/server/screen";
 import { canInAnyCouncil } from "@/shared/lib/authz/policy";
 import { ok } from "@/shared/lib/result";
@@ -23,31 +22,38 @@ export const metadata: Metadata = { title: "Processos" };
 
 async function Content() {
   const result = await loadScreen(async (ctx) => {
-    const [processes, lookups, requests] = await Promise.all([
+    const [processes, councils, requests] = await Promise.all([
       ctx.services.processes.list(ctx.actor),
-      loadLookups(ctx),
-      ctx.services.purchases.list(ctx.actor),
+      ctx.services.councils.list(ctx.actor),
+      ctx.services.purchases.listLinkedNotes(ctx.actor),
     ]);
     if (!processes.ok) return processes;
-    if (!lookups.ok) return lookups;
+    if (!councils.ok) return councils;
     if (!requests.ok) return requests;
     const today = toFortalezaDate(new Date());
-    const deadlines = new Map(requests.data.filter((request) => request.processId).map((request) => {
-      const due = planDossier(request.events.map((event) => event.note), request.estimatedValue, request.title).expiry?.day;
-      return [request.processId!, due ?? null] as const;
-    }));
+    const deadlines = new Map(requests.data.map(({ processId, notes }) =>
+      [processId, planExpiryFromNotes(notes)?.day ?? null] as const,
+    ));
+    let complete = 0;
+    let pending = 0;
+    for (const { displayPercent } of processes.data) {
+      if (displayPercent === 100) complete++;
+      if (displayPercent < 100) pending++;
+    }
     return ok({
       processes: processes.data,
+      complete,
+      pending,
       deadlines,
       today,
-      lookups: lookups.data,
+      councilLabel: Object.fromEntries(councils.data.map((council) => [council.id, council.acronym])),
       canCreate: canInAnyCouncil(ctx.actor, "process.create"),
     });
   });
 
   return (
     <Screen result={result}>
-      {({ processes, lookups, canCreate, deadlines, today }) => (
+      {({ processes, complete, pending, councilLabel, canCreate, deadlines, today }) => (
         <>
           <PageHeader
             eyebrow="Documentação"
@@ -64,14 +70,14 @@ async function Content() {
           <Suspense fallback={<ModuleInsightFallback />}>
             <ModuleInsight moduleName="Processos" sourceHref="/processos" facts={[
               { label: "Total", value: processes.length },
-              { label: "Documentação completa", value: processes.filter((p) => p.displayPercent === 100).length },
-              { label: "Documentação pendente", value: processes.filter((p) => p.displayPercent < 100).length },
+              { label: "Documentação completa", value: complete },
+              { label: "Documentação pendente", value: pending },
             ]} />
           </Suspense>
           <div className="mb-6 grid gap-3 sm:grid-cols-3" aria-label="Resumo dos processos">
             <KpiCard icon={<FolderKanban className="size-4" aria-hidden />} label="Processos" value={processes.length} />
-            <KpiCard icon={<CircleCheck className="size-4" aria-hidden />} label="Documentação completa" value={processes.filter((p) => p.displayPercent === 100).length} />
-            <KpiCard icon={<FileClock className="size-4" aria-hidden />} label="Documentação pendente" value={processes.filter((p) => p.displayPercent < 100).length} accent={processes.some((p) => p.displayPercent < 100)} />
+            <KpiCard icon={<CircleCheck className="size-4" aria-hidden />} label="Documentação completa" value={complete} />
+            <KpiCard icon={<FileClock className="size-4" aria-hidden />} label="Documentação pendente" value={pending} accent={pending > 0} />
           </div>
           <FlowGuide title="Fluxo em 4 passos" steps={PROCESS_FLOW_STEPS} />
           <ProcessesTable
@@ -79,7 +85,7 @@ async function Content() {
               id: p.process.id,
               number: p.process.number,
               title: p.process.title,
-              council: lookups.councilLabel[p.process.councilId] ?? "—",
+              council: councilLabel[p.process.councilId] ?? "—",
               status: p.process.status,
               completion: p.completion,
               progress: p.displayPercent,

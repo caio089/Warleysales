@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { InMemoryAuditRepository } from "@/modules/audit/repository.memory";
 import { AuditService } from "@/modules/audit/service";
 import { COUNCIL_A, COUNCIL_B, centralAdmin, makeRuntime, managerOf, operatorOf, viewerOf } from "@/shared/testing/fixtures";
@@ -23,6 +23,23 @@ const move = (actor = operatorOf(COUNCIL_A), overrides: object = {}) =>
   ctx.service.registerMovement(actor, { councilId: COUNCIL_A, materialId, type: "entry", quantity: 10, idempotencyKey: "chave-0001", reason: "Compra", ...overrides });
 
 describe("InventoryService", () => {
+  it("consulta o histórico somente no órgão autorizado e preserva a ordem", async () => {
+    const admin = centralAdmin();
+    await move(admin);
+    await move(admin, { councilId: COUNCIL_B, idempotencyKey: "chave-0002" });
+    await move(admin, { idempotencyKey: "chave-0003" });
+    const history = await ctx.repo.listMovements();
+    expect(history.map((row) => row.councilId)).toEqual([COUNCIL_A, COUNCIL_B, COUNCIL_A]);
+    const read = vi.spyOn(ctx.repo, "listMovements");
+
+    expect(await ctx.service.listMovements(viewerOf(COUNCIL_A), COUNCIL_A))
+      .toEqual({ ok: true, data: [history[0], history[2]] });
+    expect(await ctx.service.listMovements(admin, COUNCIL_B))
+      .toEqual({ ok: true, data: [history[1]] });
+    expect(await ctx.service.listMovements(viewerOf(COUNCIL_B), COUNCIL_A))
+      .toMatchObject({ ok: false, code: "FORBIDDEN" });
+    expect(read.mock.calls).toEqual([[{ councilId: COUNCIL_A }], [{ councilId: COUNCIL_B }]]);
+  });
   it("entrada e consumo atualizam saldo e ledger", async () => {
     await move();
     const r = await move(operatorOf(COUNCIL_A), { type: "consumption", quantity: 4, idempotencyKey: "chave-0002", reason: "Uso mensal" });

@@ -9,10 +9,17 @@ export interface AtomicDecision {
   note?: string;
 }
 
+export interface LinkedRequestNotes {
+  processId: string;
+  notes: readonly (string | null | undefined)[];
+}
+
 export interface PurchaseRequestRepository {
   insert(request: PurchaseRequest): Promise<PurchaseRequest>;
   findById(id: string): Promise<PurchaseRequest | null>;
+  findLinkedByProcess(processId: string, councilIds: readonly string[] | "all"): Promise<PurchaseRequest | null>;
   listByCouncils(councilIds: readonly string[] | "all"): Promise<PurchaseRequest[]>;
+  listLinkedNotesByCouncils(councilIds: readonly string[] | "all"): Promise<LinkedRequestNotes[]>;
   save(request: PurchaseRequest): Promise<PurchaseRequest>;
   /**
    * Opcional. Quando implementado (adapter Supabase), aprova comprometendo o saldo de TODAS as linhas de ata,

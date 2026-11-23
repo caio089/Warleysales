@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { InMemoryAuditRepository } from "@/modules/audit/repository.memory";
 import { AuditService } from "@/modules/audit/service";
-import { COUNCIL_A, COUNCIL_B, makeRuntime, managerOf, operatorOf } from "@/shared/testing/fixtures";
+import { COUNCIL_A, COUNCIL_B, centralAdmin, makeRuntime, managerOf, operatorOf } from "@/shared/testing/fixtures";
 import { InMemoryContractRepository } from "./repository.memory";
 import { ContractService } from "./service";
 
@@ -47,6 +47,19 @@ describe("ContractService", () => {
     const view = await service.get(managerOf(COUNCIL_A), created.data.id);
     expect(view.ok && view.data.status).toBe("vencido");
   });
+  it("restringe as opções do processo aos contratos vinculados ou disponíveis no órgão", async () => {
+    const { service } = setup();
+    const admin = centralAdmin();
+    const id = "11111111-1111-4111-8111-111111111111";
+    const available = await service.create(admin, input);
+    const unrelated = await service.create(admin, { ...input, councilId: COUNCIL_B });
+    expect(available.ok && unrelated.ok).toBe(true);
+    const selected = await service.list(admin, { id, councilId: COUNCIL_A });
+    expect(selected.ok && selected.data.map(({ contract }) => contract.id))
+      .toEqual(available.ok ? [available.data.id] : []);
+    expect(await service.list(managerOf(COUNCIL_B), { id, councilId: COUNCIL_A }))
+      .toEqual({ ok: true, data: [] });
+  });
   it("vincula processo do mesmo órgão e recusa o de outro", async () => {
     const same = "11111111-1111-4111-8111-111111111111";
     const other = "22222222-2222-4222-8222-222222222222";
@@ -63,5 +76,7 @@ describe("ContractService", () => {
     expect((await service.linkProcess(managerOf(COUNCIL_A), { contractId: created.data.id, processId: other })).ok).toBe(false);
     const linked = await service.linkProcess(managerOf(COUNCIL_A), { contractId: created.data.id, processId: same });
     expect(linked.ok && linked.data.processId).toBe(same);
+    const selected = await service.list(managerOf(COUNCIL_A), { id: same, councilId: COUNCIL_A });
+    expect(selected.ok && selected.data.map(({ contract }) => contract.id)).toEqual([created.data.id]);
   });
 });

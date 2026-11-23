@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { fail, ok } from "@/shared/lib/result";
-import { COUNCIL_A, makeRuntime, managerOf } from "@/shared/testing/fixtures";
+import { COUNCIL_A, managerOf } from "@/shared/testing/fixtures";
 
 const { loadScreenMock, loadLookupsMock } = vi.hoisted(() => ({ loadScreenMock: vi.fn(), loadLookupsMock: vi.fn() }));
 vi.mock("@/server/screen", () => ({ loadScreen: loadScreenMock }));
@@ -14,11 +14,10 @@ import { ProcessContent } from "./page";
 describe("process detail required queries", () => {
   it("returns first failed required query and keeps empty success as valid data", async () => {
     const services = {
-      processes: { get: vi.fn().mockResolvedValue(ok({ process: { councilId: COUNCIL_A } })) },
-      documents: { listByProcess: vi.fn().mockResolvedValue(fail("INTERNAL", "query failed")) },
-      formalizations: { getByProcess: vi.fn().mockResolvedValue(ok(null)) },
+      processes: { getDetail: vi.fn().mockResolvedValue(ok({ view: { process: { councilId: COUNCIL_A } }, documents: [] })) },
+      formalizations: { getByProcess: vi.fn().mockResolvedValue(fail("INTERNAL", "query failed")) },
       suppliers: { list: vi.fn().mockResolvedValue(ok([])) },
-      purchases: { list: vi.fn().mockResolvedValue(ok([])) },
+      purchases: { findLinkedByProcess: vi.fn().mockResolvedValue(ok(null)) },
       atas: { list: vi.fn().mockResolvedValue(ok([])) },
       contracts: { list: vi.fn().mockResolvedValue(ok([])) },
     } as never;
@@ -27,11 +26,10 @@ describe("process detail required queries", () => {
     expect(JSON.stringify(failed)).toContain("query failed");
 
     const emptyServices = {
-      processes: { get: vi.fn().mockResolvedValue(ok({ process: { councilId: COUNCIL_A, number: "1", title: "x" } })) },
-      documents: { listByProcess: vi.fn().mockResolvedValue(ok([])) },
+      processes: { getDetail: vi.fn().mockResolvedValue(ok({ view: { process: { councilId: COUNCIL_A, number: "1", title: "x" } }, documents: [] })) },
       formalizations: { getByProcess: vi.fn().mockResolvedValue(ok(null)) },
       suppliers: { list: vi.fn().mockResolvedValue(ok([])) },
-      purchases: { list: vi.fn().mockResolvedValue(ok([])) },
+      purchases: { findLinkedByProcess: vi.fn().mockResolvedValue(ok(null)) },
       atas: { list: vi.fn().mockResolvedValue(ok([])) },
       contracts: { list: vi.fn().mockResolvedValue(ok([])) },
     } as never;

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { InMemoryAtaRepository } from "@/modules/atas/repository.memory";
 import { AtaService } from "@/modules/atas/service";
 import { InMemoryAuditRepository } from "@/modules/audit/repository.memory";
@@ -10,7 +10,7 @@ import { InMemoryInventoryRepository } from "@/modules/inventory/repository.memo
 import { InventoryService } from "@/modules/inventory/service";
 import { InMemoryProcessRepository } from "@/modules/processes/repository.memory";
 import { ProcessService } from "@/modules/processes/service";
-import { COUNCIL_A, COUNCIL_B, makeRuntime, managerOf, operatorOf } from "@/shared/testing/fixtures";
+import { COUNCIL_A, COUNCIL_B, centralAdmin, makeRuntime, managerOf, operatorOf } from "@/shared/testing/fixtures";
 import { ReportService } from "./service";
 
 function setup() {
@@ -20,7 +20,7 @@ function setup() {
   const inventory = new InventoryService(new InMemoryInventoryRepository(rt.now), audit, rt);
   const contracts = new ContractService(new InMemoryContractRepository(), audit, rt);
   const atas = new AtaService(new InMemoryAtaRepository(), audit, rt);
-  return { processes, report: new ReportService(processes, inventory, contracts, atas, rt) };
+  return { processes, inventory, report: new ReportService(processes, inventory, contracts, atas, rt) };
 }
 
 describe("ReportService", () => {
@@ -68,5 +68,31 @@ describe("ReportService", () => {
     const r = await report.dashboard(managerOf(COUNCIL_A));
     expect(r.ok && r.data.attention).toEqual([]);
     expect(r.ok && r.data.deadlines).toEqual([]);
+    expect(r.ok && r.data.stockLevels).toEqual([]);
+  });
+  it("reutiliza os mesmos níveis para os indicadores e a tela no escopo autorizado", async () => {
+    const { report, inventory } = setup();
+    const admin = centralAdmin();
+    const material = await inventory.createMaterial(admin, { code: "PAP-001", name: "Papel", unit: "resma" });
+    if (!material.ok) throw new Error(material.message);
+    for (const [councilId, quantity] of [[COUNCIL_A, 10], [COUNCIL_B, 20]] as const) {
+      const result = await inventory.registerMovement(admin, {
+        councilId, materialId: material.data.id, type: "entry", quantity,
+        idempotencyKey: `entrada-${councilId}`, reason: "Compra",
+      });
+      expect(result.ok).toBe(true);
+    }
+    const read = vi.spyOn(inventory, "listLevels");
+    const all = await report.dashboard(admin);
+    expect(all.ok && all.data.summary.stock.items).toBe(2);
+    expect(all.ok && all.data.stockLevels.map((level) => level.available)).toEqual([10, 20]);
+    const scoped = await report.dashboard(admin, { councilId: COUNCIL_B });
+    expect(scoped.ok && scoped.data.summary.stock.items).toBe(1);
+    expect(scoped.ok && scoped.data.stockLevels).toMatchObject([{ councilId: COUNCIL_B, available: 20 }]);
+    const operator = operatorOf(COUNCIL_A);
+    const own = await report.dashboard(operator);
+    expect(own.ok && own.data.stockLevels).toMatchObject([{ councilId: COUNCIL_A, available: 10 }]);
+    expect(await report.dashboard(operator, { councilId: COUNCIL_B })).toMatchObject({ ok: false, code: "FORBIDDEN" });
+    expect(read.mock.calls).toEqual([[admin, undefined], [admin, COUNCIL_B], [operator, undefined]]);
   });
 });

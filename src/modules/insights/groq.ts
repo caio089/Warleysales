@@ -2,12 +2,24 @@ import "server-only";
 import { generateText } from "ai";
 import { groq } from "@ai-sdk/groq";
 import { connection } from "next/server";
+import { log } from "@/shared/lib/logger";
 import { fail, ok, type Result } from "@/shared/lib/result";
 import { BRIEFING_SYSTEM_PROMPT, parseBriefingText, type BriefingFacts, type OperationalBriefing } from "./briefing";
 import type { ModuleFact } from "./module-insight";
 
 const GROQ_MODEL = "openai/gpt-oss-20b";
 
+async function timedGeneration<T>(kind: "dashboard" | "module", generate: () => Promise<T>): Promise<T> {
+  const started = performance.now();
+  let outcome = "error";
+  try {
+    const result = await generate();
+    outcome = "success";
+    return result;
+  } finally {
+    log("info", "insights.generation", { kind, outcome, durationMs: Math.round(performance.now() - started) });
+  }
+}
 export function isGroqConfigured(): boolean {
   return Boolean(process.env.GROQ_API_KEY?.trim());
 }
@@ -19,7 +31,7 @@ export async function generateOperationalBriefing(facts: BriefingFacts): Promise
     return fail("UNAVAILABLE", "Resumo de IA não configurado. Defina GROQ_API_KEY no servidor.");
   }
   try {
-    const result = await generateText({
+    const result = await timedGeneration("dashboard", () => generateText({
       model: groq(GROQ_MODEL),
       temperature: 0,
       providerOptions: {
@@ -30,7 +42,7 @@ export async function generateOperationalBriefing(facts: BriefingFacts): Promise
       },
       system: `${BRIEFING_SYSTEM_PROMPT} Responda somente JSON válido: {"headline": string, "bullets": string[], "tone": "ok"|"atencao"|"critico"}.`,
       prompt: JSON.stringify(facts),
-    });
+    }));
     const briefing = parseBriefingText(collectModelText(result));
     if (!briefing) return fail("INTERNAL", "Não foi possível gerar o resumo agora.");
     return ok(briefing);
@@ -44,7 +56,7 @@ export async function generateModuleBriefing(moduleName: string, facts: ModuleFa
   await connection();
   if (!isGroqConfigured()) return fail("UNAVAILABLE", "Resumo de IA não configurado.");
   try {
-    const result = await generateText({
+    const result = await timedGeneration("module", () => generateText({
       model: groq(GROQ_MODEL),
       temperature: 0,
       abortSignal: AbortSignal.timeout(8_000),
@@ -57,7 +69,7 @@ export async function generateModuleBriefing(moduleName: string, facts: ModuleFa
         "Título com até 140 caracteres, no máximo 3 tópicos, cada um com até 200 caracteres.",
       ].join(" "),
       prompt: JSON.stringify({ module: moduleName, facts }),
-    });
+    }));
     const briefing = parseBriefingText(collectModelText(result));
     if (!briefing || /\d/.test([briefing.headline, ...briefing.bullets].join(" "))) {
       return fail("INTERNAL", "Resumo inválido.");

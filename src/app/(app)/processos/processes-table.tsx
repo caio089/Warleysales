@@ -22,7 +22,8 @@ import {
   type UrlTableState,
   nextSort,
   parseTableUrlState,
-  runTableQuery,
+  filterAndSortTableRows,
+  paginateTableRows,
   writeTableUrlState,
 } from "@/shared/ui/data-table-logic";
 import { EmptyState } from "@/shared/ui/feedback-states";
@@ -127,18 +128,17 @@ export function ProcessesTable({
   const { search, filters: activeFilters, page } = tableState;
   const sort = useMemo(() => ({ key: tableState.sortKey, direction: tableState.sortDirection }), [tableState.sortKey, tableState.sortDirection]);
 
-  const result = useMemo(
+  const matchingRows = useMemo(
     () =>
-      runTableQuery(rows, queryColumns, filterDefs, {
+      filterAndSortTableRows(rows, queryColumns, filterDefs, {
         search,
         sortKey: sort.key,
         sortDirection: sort.direction,
         filters: activeFilters,
-        page,
-        pageSize: pageSize === "all" ? Math.min(rows.length || 1, visibleAll) : pageSize,
       }),
-    [rows, queryColumns, filterDefs, search, sort, activeFilters, page, pageSize, visibleAll],
+    [rows, queryColumns, filterDefs, search, sort, activeFilters],
   );
+  const result = paginateTableRows(matchingRows, page, pageSize === "all" ? visibleAll : pageSize);
 
   const headers: { key: string; label: string; sortable: boolean }[] = [
     { key: "number", label: "Número", sortable: true },

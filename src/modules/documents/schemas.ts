@@ -4,6 +4,10 @@ import { idSchema } from "@/shared/lib/service-support";
 import { ALL_DOCUMENT_TYPE_CODES } from "@/modules/processes/domain/document-types";
 import type { DocumentLinkStatus, ProcessAttachment, RetentionState, UploadStatus } from "@/modules/processes/domain/progress";
 
+export function isVisibleAttachment(attachment: Pick<Attachment, "retentionState" | "uploadStatus">): boolean {
+  return attachment.retentionState !== "disposed" && attachment.uploadStatus === "confirmed";
+}
+
 /** Anexo persistido (metadados; o binário vive no Storage privado, R15). */
 export interface Attachment extends ProcessAttachment {
   id: string;

@@ -108,10 +108,19 @@ export function runTableQuery<T>(
   filters: readonly FilterDefinition<T>[],
   query: TableQuery,
 ): TablePage<T> {
+  return paginateTableRows(filterAndSortTableRows(data, columns, filters, query), query.page, query.pageSize);
+}
+
+export function filterAndSortTableRows<T>(
+  data: readonly T[],
+  columns: readonly QueryColumn<T>[],
+  filters: readonly FilterDefinition<T>[],
+  query: Omit<TableQuery, "page" | "pageSize">,
+): T[] {
   const term = normalize(query.search.trim());
   const searchable = columns.filter((c) => c.searchable !== false);
 
-  let rows = data.filter((row) => {
+  const rows = data.filter((row) => {
     const matchesFilters = filters.every((f) => {
       const selected = query.filters[f.id];
       return !selected || f.accessor(row) === selected;
@@ -124,12 +133,16 @@ export function runTableQuery<T>(
   const sortColumn = columns.find((c) => c.key === query.sortKey);
   if (sortColumn) {
     const factor = query.sortDirection === "asc" ? 1 : -1;
-    rows = [...rows].sort((a, b) => compareValues(sortColumn.accessor(a), sortColumn.accessor(b), factor));
+    rows.sort((a, b) => compareValues(sortColumn.accessor(a), sortColumn.accessor(b), factor));
   }
 
-  const pageSize = Math.max(1, query.pageSize);
+  return rows;
+}
+
+export function paginateTableRows<T>(rows: readonly T[], requestedPage: number, requestedPageSize: number): TablePage<T> {
+  const pageSize = Math.max(1, requestedPageSize);
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
-  const page = Math.min(Math.max(1, query.page), pageCount);
+  const page = Math.min(Math.max(1, requestedPage), pageCount);
   return { rows: rows.slice((page - 1) * pageSize, page * pageSize), total: rows.length, page, pageCount };
 }
 

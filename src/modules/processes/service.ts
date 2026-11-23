@@ -1,11 +1,11 @@
 import type { AuditRecorder } from "@/modules/audit/service";
 import type { DocumentRepository } from "@/modules/documents/repository";
+import { isVisibleAttachment, type Attachment } from "@/modules/documents/schemas";
 import { guard } from "@/shared/lib/authz/guard";
 import { can, readableCouncilIds, type Actor } from "@/shared/lib/authz/policy";
 import { fail, ok, type Result } from "@/shared/lib/result";
 import { internalError, parseInput, type RuntimeDeps } from "@/shared/lib/service-support";
-import { effectiveProgressPercent } from "./domain/completion";
-import { calculateProgress, type DocumentalProgress } from "./domain/progress";
+import { calculateProgress, type DocumentalProgress, type ProcessAttachment } from "./domain/progress";
 import { changeProcessStatus } from "./domain/process-status";
 import { formatProcessNumber, parseProcessNumber } from "./domain/process-number";
 import type { ProcessRepository } from "./repository";
@@ -69,11 +69,23 @@ export class ProcessService {
   }
 
   async get(actor: Actor, processId: string): Promise<Result<ProcessView>> {
+    const result = await this.readWithAttachments(actor, processId);
+    return result.ok ? ok(this.viewFrom(result.data.process, result.data.attachments)) : result;
+  }
+
+  async getDetail(actor: Actor, processId: string): Promise<Result<{ view: ProcessView; documents: Attachment[] }>> {
+    const result = await this.readWithAttachments(actor, processId);
+    if (!result.ok) return result;
+    const { process, attachments } = result.data;
+    return ok({ view: this.viewFrom(process, attachments), documents: attachments.filter(isVisibleAttachment) });
+  }
+
+  private async readWithAttachments(actor: Actor, processId: string) {
     const process = await this.processes.findById(processId);
     if (!process) return fail("NOT_FOUND", "Processo não encontrado.");
     // Sem permissão de leitura, não revelamos a existência do processo.
     if (!can(actor, "council.read", process.councilId)) return fail("NOT_FOUND", "Processo não encontrado.");
-    return ok(await this.toView(process));
+    return ok({ process, attachments: await this.documents.listByProcess(processId) });
   }
 
   async list(actor: Actor): Promise<Result<ProcessView[]>> {
@@ -81,7 +93,7 @@ export class ProcessService {
     if (scope !== "all" && scope.length === 0) return ok([]);
     const rows = await this.processes.listByCouncils(scope);
     // Uma (ou poucas) consultas de anexos em lote — o N+1 por processo estourava o timeout da Vercel.
-    const attachments = await this.documents.listByProcessIds(rows.map((p) => p.id));
+    const attachments = await this.documents.listProgressAttachments(rows.map((p) => p.id));
     const byProcess = new Map<string, typeof attachments>();
     for (const attachment of attachments) {
       const bucket = byProcess.get(attachment.processId);
@@ -175,16 +187,12 @@ export class ProcessService {
     return this.registerClosingReport(actor, input);
   }
 
-  private async toView(process: AdministrativeProcess): Promise<ProcessView> {
-    return this.viewFrom(process, await this.documents.listByProcess(process.id));
-  }
-
-  private viewFrom(process: AdministrativeProcess, attachments: Awaited<ReturnType<DocumentRepository["listByProcess"]>>): ProcessView {
+  private viewFrom(process: AdministrativeProcess, attachments: readonly ProcessAttachment[]): ProcessView {
     const progress = calculateProgress(attachments, Object.keys(process.documentExceptions ?? {}));
     return {
       process,
       progress,
-      displayPercent: Math.max(progress.percent, effectiveProgressPercent(attachments, process.snapshot)),
+      displayPercent: Math.max(progress.percent, process.snapshot?.percent ?? 0),
       completion: process.documentalCompletedAt ? "completa" : "pendente",
     };
   }
