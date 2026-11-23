@@ -63,11 +63,19 @@ const toPayload = (ata: PriceRegistrationAta) => ({
 });
 
 interface CommitmentRow {
+  item_id?: string;
   event_type: CommitmentEvent["type"];
   quantity: number | string;
   council_id: string;
   legal_basis: string | null;
 }
+
+const toCommitment = (r: CommitmentRow): CommitmentEvent => ({
+  type: r.event_type,
+  quantity: toNumber(r.quantity),
+  councilId: r.council_id,
+  ...(r.legal_basis ? { legalBasis: r.legal_basis } : {}),
+});
 
 export class SupabaseAtaRepository implements AtaRepository {
   constructor(private readonly db: SupabaseClient) {}
@@ -106,7 +114,33 @@ export class SupabaseAtaRepository implements AtaRepository {
     const rows = await selectAll<CommitmentRow>("atas.events", (from, to) =>
       this.db.from("ata_commitments").select("event_type, quantity, council_id, legal_basis").eq("item_id", itemId).order("id").range(from, to),
     );
-    return rows.map((r) => ({ type: r.event_type, quantity: toNumber(r.quantity), councilId: r.council_id, ...(r.legal_basis ? { legalBasis: r.legal_basis } : {}) }));
+    return rows.map(toCommitment);
+  }
+
+  async listEventsByItemIds(itemIds: readonly string[]): Promise<Map<string, CommitmentEvent[]>> {
+    const map = new Map<string, CommitmentEvent[]>();
+    for (const itemId of itemIds) map.set(itemId, []);
+    if (itemIds.length === 0) return map;
+
+    const CHUNK = 100;
+    for (let i = 0; i < itemIds.length; i += CHUNK) {
+      const chunk = itemIds.slice(i, i + CHUNK);
+      const rows = await selectAll<CommitmentRow>("atas.events", (from, to) =>
+        this.db
+          .from("ata_commitments")
+          .select("item_id, event_type, quantity, council_id, legal_basis")
+          .in("item_id", chunk)
+          .order("id")
+          .range(from, to),
+      );
+      for (const row of rows) {
+        if (!row.item_id) continue;
+        const bucket = map.get(row.item_id);
+        if (bucket) bucket.push(toCommitment(row));
+        else map.set(row.item_id, [toCommitment(row)]);
+      }
+    }
+    return map;
   }
 
   /**

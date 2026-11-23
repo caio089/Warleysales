@@ -135,7 +135,7 @@ export function buildRequestExcelTemplate(): Uint8Array {
   const guide = XLSX.utils.aoa_to_sheet([
     ["Como preencher este modelo"],
     [],
-    ["1. Na aba Solicitação, escreva o Título e o Valor estimado (R$)."],
+    ["1. Na aba Solicitação, escreva o Título. O Valor estimado (R$) é opcional."],
     ["2. Na tabela, coloque um item por linha: Item, Quantidade e Unidade."],
     ["3. Pode cadastrar quantas linhas quiser (deixe linhas vazias sem preencher)."],
     ["4. Salve o arquivo e importe em Nova solicitação → Importar e preencher."],

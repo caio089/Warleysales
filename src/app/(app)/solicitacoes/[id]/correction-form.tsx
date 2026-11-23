@@ -20,7 +20,7 @@ export function CorrectionForm({ requestId, revision, title, councilId, councils
       {() => <div className="space-y-4">
         <label className="block text-sm">Objeto<Input name="title" required minLength={3} maxLength={200} defaultValue={title} /></label>
         <label className="block text-sm">Órgão<select className="block w-full rounded border p-2" name="councilId" defaultValue={councilId} required>{councils.map((council) => <option key={council.id} value={council.id}>{council.label}</option>)}</select></label>
-        <label className="block text-sm">Valor estimado<Input name="estimatedValue" type="number" min="0" step="0.01" defaultValue={estimatedValue ?? ""} /></label>
+        <label className="block text-sm">Valor estimado <span className="font-normal text-muted-foreground">(opcional)</span><Input name="estimatedValue" type="number" min="0" step="0.01" defaultValue={estimatedValue ?? ""} /></label>
         <label className="block text-sm">Prioridade<select className="block w-full rounded border p-2" name="priority" defaultValue={["Alta", "Média", "Baixa"].includes(priority) ? priority : "Média"} required>
           {["Alta", "Média", "Baixa"].map((level) => <option key={level}>{level}</option>)}
         </select></label>

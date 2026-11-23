@@ -7,6 +7,11 @@ export class InMemoryDocumentRepository implements DocumentRepository {
   async insert(a: Attachment) { return this.table.insert(a); }
   async findById(id: string) { return this.table.get(id); }
   async listByProcess(processId: string) { return this.table.all((a) => a.processId === processId); }
+  async listByProcessIds(processIds: readonly string[]) {
+    if (processIds.length === 0) return [];
+    const wanted = new Set(processIds);
+    return this.table.all((a) => wanted.has(a.processId));
+  }
   async update(id: string, changes: Partial<Attachment>) { return this.table.update(id, changes); }
 }
 

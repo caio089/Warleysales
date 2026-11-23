@@ -80,7 +80,15 @@ export class ProcessService {
     const scope = readableCouncilIds(actor);
     if (scope !== "all" && scope.length === 0) return ok([]);
     const rows = await this.processes.listByCouncils(scope);
-    return ok(await Promise.all(rows.map((p) => this.toView(p))));
+    // Uma (ou poucas) consultas de anexos em lote — o N+1 por processo estourava o timeout da Vercel.
+    const attachments = await this.documents.listByProcessIds(rows.map((p) => p.id));
+    const byProcess = new Map<string, typeof attachments>();
+    for (const attachment of attachments) {
+      const bucket = byProcess.get(attachment.processId);
+      if (bucket) bucket.push(attachment);
+      else byProcess.set(attachment.processId, [attachment]);
+    }
+    return ok(rows.map((process) => this.viewFrom(process, byProcess.get(process.id) ?? [])));
   }
 
   /** Alteração da situação administrativa (independe da completude documental, R4). */
@@ -168,7 +176,10 @@ export class ProcessService {
   }
 
   private async toView(process: AdministrativeProcess): Promise<ProcessView> {
-    const attachments = await this.documents.listByProcess(process.id);
+    return this.viewFrom(process, await this.documents.listByProcess(process.id));
+  }
+
+  private viewFrom(process: AdministrativeProcess, attachments: Awaited<ReturnType<DocumentRepository["listByProcess"]>>): ProcessView {
     const progress = calculateProgress(attachments, Object.keys(process.documentExceptions ?? {}));
     return {
       process,

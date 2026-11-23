@@ -77,7 +77,6 @@ async function DashboardContent({
       pendingFormalizations,
       savingsSummary,
       suppliersRes,
-      processesRes,
       pendingOrdersRes,
       councilOrdersRes,
     ] = await Promise.all([
@@ -90,7 +89,6 @@ async function DashboardContent({
       ctx.actor.isCentralAdmin ? ctx.services.formalizations.listPending(ctx.actor) : Promise.resolve(ok([])),
       ctx.services.formalizations.getSavingsSummary(ctx.actor, councilId),
       ctx.services.suppliers.list(ctx.actor),
-      ctx.services.processes.list(ctx.actor),
       ctx.actor.isCentralAdmin
         ? ctx.services.orders.list(ctx.actor, { status: "pendente", ...(councilId ? { councilId } : {}) })
         : Promise.resolve(ok([])),
@@ -110,9 +108,8 @@ async function DashboardContent({
     const actionCouncilId = councilId ?? (lookups.data.councils.length === 1 ? lookups.data.councils[0]!.id : null);
 
     const suppliers = suppliersRes.ok ? suppliersRes.data : [];
-    const processes = processesRes.ok ? processesRes.data : [];
     const supplierMap = Object.fromEntries(suppliers.map((s) => [s.id, s.name]));
-    const processMap = Object.fromEntries(processes.map((p) => [p.process.id, p.process]));
+    const processMap = Object.fromEntries(dash.data.processRefs.map((p) => [p.id, p]));
 
     const pendingQueue: PendingFormalizationItem[] = pendingFormalizations.data.map((f) => ({
       id: f.id,

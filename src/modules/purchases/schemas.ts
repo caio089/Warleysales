@@ -49,7 +49,11 @@ const requestItemSchema = z.object({
 export const createRequestSchema = z.object({
   councilId: idSchema,
   title: z.string().trim().min(3).max(200),
-  estimatedValue: z.number().min(0, "Valor estimado deve ser não-negativo").nullable().optional(),
+  // Aceita ausente, null ou número ≥ 0; string vazia vinda do formulário vira null.
+  estimatedValue: z.preprocess(
+    (value) => (value === "" || value === undefined ? null : value),
+    z.number().min(0, "Valor estimado deve ser não-negativo").nullable(),
+  ),
   createProcess: z.boolean().optional(),
   items: z.array(requestItemSchema).min(1, "Informe ao menos um item."),
 });

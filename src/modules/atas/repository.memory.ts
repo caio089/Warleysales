@@ -14,6 +14,11 @@ export class InMemoryAtaRepository implements AtaRepository {
   async listByCouncils(ids: readonly string[] | "all") { return this.table.all((a) => ids === "all" || ids.includes(a.councilId)); }
   async save(a: PriceRegistrationAta) { this.table.insert(a); return a; }
   async listEvents(itemId: string) { return [...(this.events.get(itemId) ?? [])]; }
+  async listEventsByItemIds(itemIds: readonly string[]) {
+    const map = new Map<string, CommitmentEvent[]>();
+    for (const itemId of itemIds) map.set(itemId, [...(this.events.get(itemId) ?? [])]);
+    return map;
+  }
   async appendEventAtomically(itemId: string, decide: (events: readonly CommitmentEvent[]) => Result<CommitmentEvent>) {
     const current = this.events.get(itemId) ?? [];
     const decision = decide(current);

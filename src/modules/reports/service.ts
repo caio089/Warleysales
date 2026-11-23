@@ -36,6 +36,8 @@ export interface DashboardSnapshot {
   processStatuses: { status: string; count: number }[];
   attention: DashboardAttention[];
   deadlines: DashboardDeadline[];
+  /** Índice leve para filas do painel — evita um segundo `processes.list` na home. */
+  processRefs: { id: string; number: string; title: string }[];
 }
 
 export interface SummaryFilter {
@@ -81,6 +83,11 @@ export class ReportService {
         .sort((a, b) => b.count - a.count),
       attention: this.toAttention(summary),
       deadlines: this.toDeadlines(loaded.data),
+      processRefs: loaded.data.processes.map((p) => ({
+        id: p.process.id,
+        number: p.process.number,
+        title: p.process.title,
+      })),
     });
   }
 

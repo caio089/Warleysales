@@ -9,6 +9,8 @@ export interface AtaRepository {
   listByCouncils(councilIds: readonly string[] | "all"): Promise<PriceRegistrationAta[]>;
   save(ata: PriceRegistrationAta): Promise<PriceRegistrationAta>;
   listEvents(itemId: string): Promise<CommitmentEvent[]>;
+  /** Eventos de vários itens em poucas consultas — evita N+1 na listagem de atas. */
+  listEventsByItemIds(itemIds: readonly string[]): Promise<Map<string, CommitmentEvent[]>>;
   /**
    * Leitura + validação + gravação do evento sob lock do item da ata (FOR UPDATE, H3).
    * `decide` recebe o ledger atual e devolve o evento a gravar, ou a falha que aborta tudo.

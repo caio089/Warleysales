@@ -186,18 +186,25 @@ export class AtaService {
     const scope = readableCouncilIds(actor);
     if (scope !== "all" && scope.length === 0) return ok([]);
     const atas = await this.repository.listByCouncils(scope);
-    return ok(await Promise.all(atas.map((a) => this.toView(a))));
+    const itemIds = atas.flatMap((ata) => ata.items.map((item) => item.id));
+    const eventsByItem = await this.repository.listEventsByItemIds(itemIds);
+    return ok(atas.map((ata) => this.viewFrom(ata, eventsByItem)));
   }
 
   private async toView(ata: PriceRegistrationAta): Promise<AtaView> {
+    const eventsByItem = await this.repository.listEventsByItemIds(ata.items.map((item) => item.id));
+    return this.viewFrom(ata, eventsByItem);
+  }
+
+  private viewFrom(ata: PriceRegistrationAta, eventsByItem: Map<string, Awaited<ReturnType<AtaRepository["listEvents"]>>>): AtaView {
     const endDate = currentEndDate(ata.startDate, ata.extensions);
-    const items = await Promise.all(ata.items.map(async (i) => ({
+    const items = ata.items.map((i) => ({
       itemId: i.id,
       description: i.description,
       materialId: i.materialId,
       allocations: i.allocations,
-      balance: computeAtaBalance(i.registeredQuantity, await this.repository.listEvents(i.id)),
-    })));
+      balance: computeAtaBalance(i.registeredQuantity, eventsByItem.get(i.id) ?? []),
+    }));
     return { ata, endDate, validity: ataValidityStatus(endDate, toFortalezaDate(this.runtime.now())), items };
   }
 

@@ -5,6 +5,8 @@ export interface DocumentRepository {
   insert(attachment: Attachment): Promise<Attachment>;
   findById(id: string): Promise<Attachment | null>;
   listByProcess(processId: string): Promise<Attachment[]>;
+  /** Uma consulta (em lotes) para vários processos — evita N+1 em listagens. */
+  listByProcessIds(processIds: readonly string[]): Promise<Attachment[]>;
   update(id: string, changes: Partial<Attachment>): Promise<Attachment | null>;
 }
 

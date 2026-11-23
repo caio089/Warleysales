@@ -59,8 +59,8 @@ export function NewRequestForm({ councils }: { councils: Option[] }) {
       <section className="space-y-3 rounded-lg border border-border p-4" aria-label="Importar solicitação">
         <h2 className="font-medium">Cadastrar vários itens de uma vez</h2>
         <p className="text-sm text-muted-foreground">
-          Baixe o modelo Excel (aba Solicitação + Instruções) ou Word, preencha Título, Valor e a tabela Item / Quantidade / Unidade
-          com quantas linhas quiser e envie de volta. O sistema compara as colunas e preenche o formulário. Nada é gravado antes da sua conferência.
+          Baixe o modelo Excel (aba Solicitação + Instruções) ou Word, preencha o Título e a tabela Item / Quantidade / Unidade
+          com quantas linhas quiser (o Valor estimado é opcional) e envie de volta. O sistema compara as colunas e preenche o formulário. Nada é gravado antes da sua conferência.
         </p>
         <div className="flex flex-wrap gap-2">
           <a
@@ -106,6 +106,7 @@ export function NewRequestForm({ councils }: { councils: Option[] }) {
                 type="number"
                 step="0.01"
                 min="0"
+                hint="Opcional — pode deixar em branco se ainda não souber o valor."
                 defaultValue={extracted?.estimatedValue != null ? String(extracted.estimatedValue) : ""}
                 errors={e.estimatedValue}
               />

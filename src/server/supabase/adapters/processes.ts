@@ -158,6 +158,20 @@ export class SupabaseDocumentRepository implements DocumentRepository {
     return rows.map(toAttachment);
   }
 
+  async listByProcessIds(processIds: readonly string[]) {
+    if (processIds.length === 0) return [];
+    const CHUNK = 100;
+    const out: Attachment[] = [];
+    for (let i = 0; i < processIds.length; i += CHUNK) {
+      const chunk = processIds.slice(i, i + CHUNK);
+      const rows = await selectAll<AttachmentRow>("attachments.list", (from, to) =>
+        this.db.from("attachments").select().in("process_id", chunk).order("created_at").range(from, to),
+      );
+      out.push(...rows.map(toAttachment));
+    }
+    return out;
+  }
+
   async update(id: string, changes: Partial<Attachment>) {
     const patch: Record<string, unknown> = {};
     if (changes.linkStatus !== undefined) patch.link_status = changes.linkStatus;
