@@ -1,6 +1,7 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "./currency-input";
 import { FormField, SelectControl, TextareaControl } from "@/shared/ui/form-field";
 
 interface BaseFieldProps {
@@ -9,6 +10,16 @@ interface BaseFieldProps {
   errors?: string[];
   hint?: string;
   required?: boolean;
+}
+
+export function CurrencyField({ name, label, errors, hint, required, defaultValue }: BaseFieldProps & {
+  defaultValue?: number | string | null;
+}) {
+  return (
+    <FormField label={label} errors={errors} hint={hint} required={required}>
+      {(props) => <CurrencyInput {...props} name={name} required={required} defaultValue={defaultValue} />}
+    </FormField>
+  );
 }
 
 export function TextField({

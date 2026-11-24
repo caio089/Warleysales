@@ -17,9 +17,16 @@ describe("PDF de relatórios", () => {
       stock: { items: 3, critical: 1, withoutAvailability: 0 },
       contracts: { total: 1, expired: 0, expiring30: 1 },
       atas: { total: 1, expired: 0 },
-    }, { totalEstimated: 1000, totalContracted: 800, totalSavings: 200, averageSavingsPercent: 20, count: 1 }, context);
+    }, { totalEstimated: 10500.5, totalContracted: 800, totalSavings: 9700.5, averageSavingsPercent: 92.38, count: 1 }, context);
     expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe("%PDF-");
     expect((await PDFDocument.load(bytes)).getPageCount()).toBe(1);
+    const pdf = await getDocumentProxy(bytes);
+    try {
+      const extracted = await extractText(pdf, { mergePages: true });
+      expect(String(extracted.text)).toMatch(/R\$\s+10\.500,50/);
+    } finally {
+      await pdf.destroy();
+    }
   });
 
   it("identifica explicitamente a prévia com dados de demonstração", async () => {

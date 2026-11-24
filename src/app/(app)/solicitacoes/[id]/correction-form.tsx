@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ActionForm } from "@/shared/ui/forms/action-form";
+import { CurrencyField } from "@/shared/ui/forms/fields";
 import { correctRequestAction } from "@/modules/purchases/correction-action";
 
 interface Item { materialId?: string; description: string; quantity: number; unit: string }
@@ -20,7 +21,7 @@ export function CorrectionForm({ requestId, revision, title, councilId, councils
       {() => <div className="space-y-4">
         <label className="block text-sm">Objeto<Input name="title" required minLength={3} maxLength={200} defaultValue={title} /></label>
         <label className="block text-sm">Órgão<select className="block w-full rounded border p-2" name="councilId" defaultValue={councilId} required>{councils.map((council) => <option key={council.id} value={council.id}>{council.label}</option>)}</select></label>
-        <label className="block text-sm">Valor estimado <span className="font-normal text-muted-foreground">(opcional)</span><Input name="estimatedValue" type="number" min="0" step="0.01" defaultValue={estimatedValue ?? ""} /></label>
+        <CurrencyField key={estimatedValue} name="estimatedValue" label="Valor estimado (opcional)" defaultValue={estimatedValue} />
         <label className="block text-sm">Prioridade<select className="block w-full rounded border p-2" name="priority" defaultValue={["Alta", "Média", "Baixa"].includes(priority) ? priority : "Média"} required>
           {["Alta", "Média", "Baixa"].map((level) => <option key={level}>{level}</option>)}
         </select></label>

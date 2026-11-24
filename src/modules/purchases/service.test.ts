@@ -198,12 +198,14 @@ describe("PurchaseRequestService", () => {
     const r = await ctx.service.create(operatorOf(COUNCIL_A), {
       councilId: COUNCIL_A,
       title: "Aquisição de mesas",
-      estimatedValue: 5000,
+      estimatedValue: 10500.50,
       items: [{ materialId: MATERIAL, quantity: 10 }],
     });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.data.estimatedValue).toBe(5000);
+    expect(r.data.estimatedValue).toBe(10500.50);
+    const reloaded = await ctx.service.get(operatorOf(COUNCIL_A), r.data.id);
+    expect(reloaded.ok && reloaded.data.estimatedValue).toBe(10500.50);
 
     const levels = await ctx.inventory.listLevels(operatorOf(COUNCIL_A), COUNCIL_A);
     expect(levels.ok).toBe(true);

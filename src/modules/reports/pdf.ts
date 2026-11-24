@@ -1,4 +1,5 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { formatCurrency as brl } from "@/shared/lib/format";
 import type { AuditEntry } from "@/modules/audit/schemas";
 import type { OperationalSummary } from "./service";
 
@@ -36,10 +37,6 @@ function safeText(value: unknown): string {
     .replace(/[“”]/g, '"')
     .replace(/[‘’]/g, "'")
     .replace(/[^\x20-\x7E\xA0-\xFF]/g, "?");
-}
-
-function brl(value: number): string {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
 function percent(value: number): string {

@@ -16,7 +16,7 @@ import type { AdministrativeProcess } from "@/modules/processes/schemas";
 import { saveProcessEstimatedValue } from "@/modules/processes/estimated-value-action";
 import { sha256Hex, uploadToSignedUrl } from "@/shared/lib/browser-upload";
 import { formatBytes, formatCurrency } from "@/shared/lib/format";
-import { TextField } from "@/shared/ui/forms/fields";
+import { CurrencyField } from "@/shared/ui/forms/fields";
 import { formatDateTimeFortaleza } from "@/shared/lib/time";
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { ActionForm } from "@/shared/ui/forms/action-form";
@@ -189,8 +189,8 @@ export function DocumentationTab({
                     {canEditEstimatedValue ? (
                       <ActionForm action={saveProcessEstimatedValue} submitLabel="Salvar valor"
                         hiddenFields={{ processId }} resetOnSuccess={false} submitVariant="outline">
-                        {() => <TextField name="estimatedValue" label="Valor estimado (R$)" type="number"
-                          min="0" step="0.01" required defaultValue={estimatedValue?.toFixed(2) ?? ""} />}
+                        {() => <CurrencyField key={estimatedValue} name="estimatedValue" label="Valor estimado (R$)"
+                          required defaultValue={estimatedValue?.toFixed(2)} />}
                       </ActionForm>
                     ) : (
                       <p className="text-sm">Valor estimado: {estimatedValue == null ? "A definir" : formatCurrency(estimatedValue)}</p>

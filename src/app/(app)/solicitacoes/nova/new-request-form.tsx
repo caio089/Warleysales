@@ -60,7 +60,7 @@ export function NewRequestForm({ councils }: { councils: Option[] }) {
         <h2 className="font-medium">Cadastrar vários itens de uma vez</h2>
         <p className="text-sm text-muted-foreground">
           Baixe o modelo Excel (aba Solicitação + Instruções) ou Word, preencha o Título e a tabela Item / Quantidade / Unidade
-          com quantas linhas quiser (o Valor estimado é opcional) e envie de volta. O sistema compara as colunas e preenche o formulário. Nada é gravado antes da sua conferência.
+          com quantas linhas quiser e envie de volta. O sistema compara as colunas e preenche o formulário. Nada é gravado antes da sua conferência.
         </p>
         <div className="flex flex-wrap gap-2">
           <a

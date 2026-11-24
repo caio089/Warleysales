@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import type { ExtractedContract } from "@/modules/contracts/pdf-extraction";
 import { createContractFormAction } from "@/modules/contracts/actions";
 import { ActionForm } from "@/shared/ui/forms/action-form";
-import { SelectField, TextField } from "@/shared/ui/forms/fields";
+import { CurrencyField, SelectField, TextField } from "@/shared/ui/forms/fields";
 
 type Option = { value: string; label: string };
 type ProcessOption = Option & { councilId: string };
@@ -91,7 +91,7 @@ export function NewContractForm({
         <TextField key={`object-${extracted?.object ?? ""}`} name="object" label="Objeto" required defaultValue={extracted?.object ?? ""} errors={e.object} />
         <TextField key={`start-${extracted?.startDate ?? ""}`} name="startDate" label="Início" type="date" required defaultValue={extracted?.startDate ?? ""} errors={e.startDate} />
         <TextField key={`end-${extracted?.endDate ?? ""}`} name="endDate" label="Fim/validade" type="date" required defaultValue={extracted?.endDate ?? ""} errors={e.endDate} />
-        <TextField key={`value-${extracted?.value ?? ""}`} name="value" label="Valor global (R$)" type="number" step="0.01" min="0" defaultValue={extracted?.value?.toString() ?? ""} errors={e.value} />
+        <CurrencyField key={`value-${extracted?.value ?? ""}`} name="value" label="Valor global (R$)" defaultValue={extracted?.value} errors={e.value} />
       </>)}
       </ActionForm>
     </div>

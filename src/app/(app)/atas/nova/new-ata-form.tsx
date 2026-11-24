@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createAtaFormAction } from "@/modules/atas/actions";
 import { ActionForm } from "@/shared/ui/forms/action-form";
-import { SelectField, TextField } from "@/shared/ui/forms/fields";
+import { CurrencyField, SelectField, TextField } from "@/shared/ui/forms/fields";
 
 type Option = { value: string; label: string };
 type ProcessOption = Option & { councilId: string };
@@ -47,7 +47,7 @@ export function NewAtaForm({
         <TextField name="description" label="Descrição do item" required errors={e["items.0.description"]} />
         <SelectField name="materialId" label="Material (opcional)" options={materials} optional placeholder="Sem material" errors={e["items.0.materialId"]} />
         <TextField name="registeredQuantity" label="Quantidade registrada" type="number" step="0.001" min="0" required errors={e["items.0.registeredQuantity"]} />
-        <TextField name="unitPrice" label="Preço unitário (R$)" type="number" step="0.01" min="0" required errors={e["items.0.unitPrice"]} />
+        <CurrencyField name="unitPrice" label="Preço unitário (R$)" required errors={e["items.0.unitPrice"]} />
       </>)}
     </ActionForm>
   );

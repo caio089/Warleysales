@@ -19,6 +19,7 @@ import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { FormField, TextareaControl } from "@/shared/ui/form-field";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { TextField } from "@/shared/ui/forms/fields";
+import { CurrencyInput } from "@/shared/ui/forms/currency-input";
 import { StatusBadge } from "@/shared/ui/status-badge";
 import { toast } from "@/shared/ui/toast-store";
 
@@ -64,16 +65,6 @@ function auctionLabel(formalization: ProcessFormalization): string | null {
   return null;
 }
 
-function parseMoneyInput(val: string): number {
-  if (!val) return 0;
-  const str = val.replace(/R\$\s?/gi, "").trim();
-  if (!str) return 0;
-  if (str.includes(",") && str.includes(".")) {
-    return Number(str.replace(/\./g, "").replace(",", ".")) || 0;
-  }
-  return Number(str.replace(",", ".")) || 0;
-}
-
 export function FormalizationCard({
   processId,
   councilId,
@@ -115,8 +106,8 @@ export function FormalizationCard({
   const supplierCnpj = currentSupplier?.cnpj ? `CNPJ: ${currentSupplier.cnpj}` : null;
 
   // Cálculo de economia em tempo real para o formulário
-  const estimatedNum = parseMoneyInput(estimatedInput);
-  const contractedNum = parseMoneyInput(contractedInput);
+  const estimatedNum = Number(estimatedInput) || 0;
+  const contractedNum = Number(contractedInput) || 0;
 
   const { savingsValue, savingsPercent } = useMemo(() => {
     if (estimatedNum > 0 && contractedNum >= 0) {
@@ -569,15 +560,12 @@ export function FormalizationCard({
                   hint="Valor estimado antes do pregão"
                 >
                   {(p) => (
-                    <Input
+                    <CurrencyInput
                       {...p}
                       name="estimatedValue"
-                      type="number"
-                      step="0.01"
-                      min="0"
                       required
                       value={estimatedInput}
-                      onChange={(e) => setEstimatedInput(e.target.value)}
+                      onValueChange={setEstimatedInput}
                       placeholder="0,00"
                     />
                   )}
@@ -650,15 +638,12 @@ export function FormalizationCard({
                 hint="Valor final da proposta vencedora"
               >
                 {(p) => (
-                  <Input
+                  <CurrencyInput
                     {...p}
                     name="contractedValue"
-                    type="number"
-                    step="0.01"
-                    min="0"
                     required
                     value={contractedInput}
-                    onChange={(e) => setContractedInput(e.target.value)}
+                    onValueChange={setContractedInput}
                     placeholder="0,00"
                   />
                 )}
