@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AtaValidityField } from "@/app/(app)/atas/nova/ata-validity-field";
 import { computeInitialEndDate } from "@/modules/atas/domain/validity";
 import type { ExtractedContract } from "@/modules/contracts/pdf-extraction";
 import { createContractFormAction } from "@/modules/contracts/actions";
-import { formatCurrency } from "@/shared/lib/format";
+import { formatCurrency, formatNumber } from "@/shared/lib/format";
 import { formatDateOnly } from "@/shared/lib/time";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { CurrencyField, SelectField, TextField } from "@/shared/ui/forms/fields";
@@ -14,6 +14,19 @@ import { CurrencyField, SelectField, TextField } from "@/shared/ui/forms/fields"
 type Option = { value: string; label: string };
 type ProcessOption = Option & { councilId: string };
 type SupplierOption = Option & { cnpj: string | null };
+
+export type ContractAtaOption = {
+  id: string;
+  number: string;
+  status: string;
+  items: Array<{
+    itemId: string;
+    description: string;
+    materialLabel: string;
+    balance: number;
+    unitPrice: number;
+  }>;
+};
 
 export function NewContractForm({
   councils,
@@ -37,6 +50,8 @@ export function NewContractForm({
     defaultValue?: number | null;
     validityStartDate?: string | null;
     requestMaterials?: { materialId: string; name: string; quantity: number }[];
+    /** Atas do processo para consumir saldo (registro de preços). */
+    atas?: ContractAtaOption[];
   };
 }) {
   const initial = processes.find((process) => process.value === defaultProcessId);
@@ -46,7 +61,35 @@ export function NewContractForm({
   const [supplierId, setSupplierId] = useState("");
   const [reading, setReading] = useState(false);
   const [message, setMessage] = useState("");
+  const atas = lockedProcess?.atas ?? [];
+  const vigenteAtas = atas.filter((ata) => ata.status === "Vigente");
+  const [ataId, setAtaId] = useState(vigenteAtas[0]?.id ?? atas[0]?.id ?? "");
+  /** Quantidades do contrato por item da ata — o valor total é calculado ao vivo. */
+  const [qtyDrafts, setQtyDrafts] = useState<Record<string, string>>({});
   const visibleProcesses = processes.filter((process) => !councilId || process.councilId === councilId);
+  const selectedAta = useMemo(
+    () => atas.find((ata) => ata.id === ataId) ?? null,
+    [ataId, atas],
+  );
+  const ataLines = selectedAta?.items ?? [];
+  const contractLines = useMemo(
+    () =>
+      ataLines.map((item, index) => {
+        const raw = qtyDrafts[item.itemId];
+        const fromState = raw !== undefined ? Number(String(raw).replace(",", ".")) : NaN;
+        const pdfQty = extracted?.items?.[index]?.quantity;
+        const fallback =
+          pdfQty != null && pdfQty > 0 ? Math.min(pdfQty, item.balance) : 0;
+        const quantity = Number.isFinite(fromState) && fromState >= 0 ? fromState : fallback;
+        const lineTotal = Math.round(quantity * item.unitPrice * 100) / 100;
+        return { ...item, quantity, lineTotal, draft: raw ?? (fallback > 0 ? String(fallback) : "") };
+      }),
+    [ataLines, extracted, qtyDrafts],
+  );
+  const computedContractValue = useMemo(
+    () => Math.round(contractLines.reduce((sum, line) => sum + line.lineTotal, 0) * 100) / 100,
+    [contractLines],
+  );
 
   async function readPdf() {
     if (!pdfFile) return;
@@ -67,7 +110,12 @@ export function NewContractForm({
       const match = suppliers.find((supplier) => fields.supplierCnpj && supplier.cnpj === fields.supplierCnpj.replace(/\D/g, ""))
         ?? suppliers.find((supplier) => fields.supplierName && supplier.label.toLocaleLowerCase("pt-BR") === fields.supplierName.toLocaleLowerCase("pt-BR") && (!fields.supplierCnpj || supplier.cnpj === fields.supplierCnpj.replace(/\D/g, "")));
       setSupplierId(match?.value ?? "");
-      setMessage(`PDF lido (${payload.pages} página(s)). Confira cada campo antes de cadastrar.${payload.truncated ? " Documento longo: apenas o início foi analisado." : ""}`);
+      const itemCount = (fields.items?.length ?? 0);
+      setMessage(
+        `PDF lido (${payload.pages} página(s)${itemCount ? ` · ${itemCount} item(ns)` : ""}). Confira cada campo antes de cadastrar.${
+          payload.truncated ? " Documento longo: apenas o início foi analisado." : ""
+        }`,
+      );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Falha na leitura do PDF.");
     } finally {
@@ -83,85 +131,194 @@ export function NewContractForm({
     const object =
       lockedProcess.object
       ?? (materials.length === 1 ? materials[0]!.name : lockedProcess.processLabel);
+    const valueFromQuantities = atas.length > 0 && ataLines.length > 0;
 
     return (
-      <ActionForm
-        action={createContractFormAction}
-        submitLabel="Registrar contrato"
-        hiddenFields={{
-          councilId: lockedProcess.councilId,
-          processId: lockedProcess.processId,
-          number: suggestedNumber,
-          object,
-          returnTo: `/processos/${lockedProcess.processId}`,
-        }}
-      >
-        {(e) => (
-          <div className="space-y-4">
-            <div className="rounded-xl border border-border/70 bg-muted/15 px-3.5 py-3 text-sm">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Dados puxados do processo
-              </p>
-              <p className="mt-1 text-foreground">{lockedProcess.processLabel}</p>
-              {materials.length > 0 ? (
-                <ul className="mt-2 space-y-1 text-muted-foreground">
-                  {materials.map((item) => (
-                    <li key={`${item.materialId}-${item.name}`}>
-                      {item.name} · qtd {item.quantity}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              {start ? (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Vigência do TR: {formatDateOnly(start)}
-                  {end ? ` até ${formatDateOnly(end)}` : ""}
+      <div className="space-y-4">
+        <section className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-4" aria-label="Ler contrato em PDF">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Anexar contrato (PDF)</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              A IA lê empresa, itens e quantidades. O valor do contrato é a soma das quantidades × preço da ata.
+            </p>
+          </div>
+          <input
+            type="file"
+            accept="application/pdf,.pdf"
+            onChange={(event) => setPdfFile(event.target.files?.[0] ?? null)}
+            className="block w-full text-sm"
+          />
+          <Button type="button" variant="outline" disabled={!pdfFile || reading} onClick={readPdf}>
+            {reading ? "Lendo PDF…" : "Ler contrato com IA"}
+          </Button>
+          {message ? <p role="status" className="text-sm text-muted-foreground">{message}</p> : null}
+        </section>
+
+        <ActionForm
+          key={`ctr-${ataId}-${extracted?.number ?? "manual"}`}
+          action={createContractFormAction}
+          submitLabel="Registrar contrato e descontar da ata"
+          hiddenFields={{
+            councilId: lockedProcess.councilId,
+            processId: lockedProcess.processId,
+            number: (extracted?.number?.trim() || suggestedNumber).slice(0, 40),
+            object: extracted?.object?.trim() || object,
+            returnTo: `/processos/${lockedProcess.processId}`,
+            ...(valueFromQuantities ? { value: String(computedContractValue) } : {}),
+          }}
+        >
+          {(e) => (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-border/70 bg-muted/15 px-3.5 py-3 text-sm">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Dados puxados do processo
                 </p>
+                <p className="mt-1 text-foreground">{lockedProcess.processLabel}</p>
+                {start ? (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Vigência do TR: {formatDateOnly(start)}
+                    {end ? ` até ${formatDateOnly(end)}` : ""}
+                  </p>
+                ) : null}
+              </div>
+
+              {atas.length > 0 ? (
+                <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Itens e quantidades do contrato</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Informe quantas unidades entram neste contrato. O valor é calculado sozinho (qtd × unitário da ata).
+                    </p>
+                  </div>
+                  <SelectField
+                    name="ataId"
+                    label="Ata de registro de preços"
+                    required
+                    options={atas.map((ata) => ({
+                      value: ata.id,
+                      label: `${ata.number} · ${ata.status}`,
+                    }))}
+                    defaultValue={ataId}
+                    onChange={(next) => {
+                      setAtaId(next);
+                      setQtyDrafts({});
+                    }}
+                    errors={e.ataId}
+                  />
+                  {selectedAta?.status === "Rascunho" ? (
+                    <p className="text-xs text-amber-700">Ative a ata antes de consumir saldo com o contrato.</p>
+                  ) : null}
+                  {contractLines.length > 0 ? (
+                    <>
+                      <ul className="space-y-2">
+                        {contractLines.map((item, index) => (
+                          <li
+                            key={item.itemId}
+                            className="grid gap-3 rounded-lg border border-border/60 bg-card p-3 sm:grid-cols-[minmax(0,1fr)_7rem_8rem]"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground">{item.materialLabel || item.description}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Saldo na ata: {formatNumber(item.balance)} · unitário {formatCurrency(item.unitPrice)}
+                              </p>
+                              <input type="hidden" name={`ataItems.${index}.ataItemId`} value={item.itemId} />
+                              <input type="hidden" name={`ataItems.${index}.unitPrice`} value={String(item.unitPrice)} />
+                            </div>
+                            <TextField
+                              name={`ataItems.${index}.quantity`}
+                              label="Qtd."
+                              type="text"
+                              inputMode="decimal"
+                              value={item.draft}
+                              onChange={(event) => {
+                                const next = event.currentTarget.value;
+                                setQtyDrafts((current) => ({ ...current, [item.itemId]: next }));
+                              }}
+                              hint={`máx. ${formatNumber(item.balance)}`}
+                              errors={e[`ataItems.${index}.quantity`] ?? e.ataItems}
+                            />
+                            <div className="flex flex-col justify-end rounded-xl border border-primary/15 bg-primary/5 px-3 py-2">
+                              <p className="text-[0.68rem] font-medium uppercase tracking-wide text-muted-foreground">
+                                Subtotal
+                              </p>
+                              <p className="mt-0.5 text-sm font-semibold tabular-nums text-primary">
+                                {formatCurrency(item.lineTotal)}
+                              </p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-3.5 py-3">
+                        <span className="text-sm font-medium text-foreground">Valor do contrato</span>
+                        <span className="text-base font-semibold tabular-nums text-primary">
+                          {formatCurrency(computedContractValue)}
+                        </span>
+                      </div>
+                      {e.value ? (
+                        <p role="alert" className="text-sm text-destructive">
+                          {e.value.join(" ")}
+                        </p>
+                      ) : null}
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Esta ata ainda não tem itens.</p>
+                  )}
+                </div>
               ) : (
-                <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
-                  Ainda sem vigência no TR — informe abaixo ou salve antes na aba Documentos (TR).
+                <p className="rounded-xl border border-dashed border-border/70 px-3 py-2 text-xs text-muted-foreground">
+                  Sem ata neste processo — o contrato será registrado sem desconto de saldo de ata.
                 </p>
               )}
+
+              <SelectField
+                key={`supplier-${supplierId || extracted?.supplierName || ""}`}
+                name="supplierId"
+                label="Empresa vencedora"
+                required={suppliers.length > 0}
+                options={suppliers.map((supplier) => ({
+                  value: supplier.value,
+                  label: supplier.cnpj ? `${supplier.label} · ${supplier.cnpj}` : supplier.label,
+                }))}
+                defaultValue={supplierId}
+                onChange={setSupplierId}
+                placeholder="Selecione a empresa"
+                errors={e.supplierId}
+              />
+              {!supplierId ? (
+                <TextField
+                  name="supplierName"
+                  label="Ou digite o nome da empresa"
+                  defaultValue={extracted?.supplierName ?? ""}
+                  errors={e.supplierName}
+                />
+              ) : null}
+
+              <AtaValidityField
+                errors={e.startDate}
+                defaultStartDate={extracted?.startDate ?? start}
+                endFieldName="endDate"
+                hint={
+                  extracted?.startDate
+                    ? "Puxada do PDF do contrato."
+                    : start
+                      ? "Puxada do Termo de Referência. O fim do contrato acompanha 1 ano."
+                      : "Informe o início da vigência."
+                }
+              />
+
+              {!valueFromQuantities ? (
+                <CurrencyField
+                  name="value"
+                  label="Valor do contrato (R$)"
+                  required
+                  defaultValue={extracted?.value ?? lockedProcess.defaultValue ?? undefined}
+                  errors={e.value}
+                />
+              ) : null}
             </div>
-
-            <SelectField
-              name="supplierId"
-              label="Empresa vencedora"
-              required
-              options={suppliers.map((supplier) => ({
-                value: supplier.value,
-                label: supplier.cnpj ? `${supplier.label} · ${supplier.cnpj}` : supplier.label,
-              }))}
-              placeholder="Selecione a empresa"
-              errors={e.supplierId}
-            />
-
-            <AtaValidityField
-              errors={e.startDate}
-              defaultStartDate={start}
-              endFieldName="endDate"
-              hint={
-                start
-                  ? "Puxada do Termo de Referência. O fim do contrato acompanha 1 ano."
-                  : "Informe o início. Ideal: salvar antes no TR para reutilizar na ata e no contrato."
-              }
-            />
-
-            <CurrencyField
-              name="value"
-              label="Valor do contrato (R$)"
-              required
-              defaultValue={lockedProcess.defaultValue ?? undefined}
-              hint={
-                lockedProcess.defaultValue != null
-                  ? `Sugestão do processo/PP: ${formatCurrency(lockedProcess.defaultValue)}`
-                  : undefined
-              }
-              errors={e.value}
-            />
-          </div>
-        )}
-      </ActionForm>
+          )}
+        </ActionForm>
+      </div>
     );
   }
 
@@ -189,6 +346,25 @@ export function NewContractForm({
         <TextField key={`start-${extracted?.startDate ?? ""}`} name="startDate" label="Início" type="date" required defaultValue={extracted?.startDate ?? ""} errors={e.startDate} />
         <TextField key={`end-${extracted?.endDate ?? ""}`} name="endDate" label="Fim/validade" type="date" required defaultValue={extracted?.endDate ?? ""} errors={e.endDate} />
         <CurrencyField key={`value-${extracted?.value ?? ""}`} name="value" label="Valor global (R$)" defaultValue={extracted?.value} errors={e.value} />
+        {extracted?.items && extracted.items.length > 0 ? (
+          <div className="rounded-xl border border-border/70 bg-muted/20 p-4">
+            <p className="text-sm font-semibold text-foreground">Itens lidos do PDF</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Conferência — a soma alimenta o valor global. Na próxima etapa, essas quantidades descontarão o saldo da ata.
+            </p>
+            <ul className="mt-3 space-y-2 text-sm">
+              {extracted.items.map((item, index) => (
+                <li key={`${item.description}-${index}`} className="flex flex-wrap items-baseline justify-between gap-2 rounded-lg bg-card px-3 py-2 ring-1 ring-border/60">
+                  <span className="font-medium text-foreground">{item.description ?? `Item ${index + 1}`}</span>
+                  <span className="tabular-nums text-muted-foreground">
+                    {item.quantity != null ? `${item.quantity} un` : "—"}
+                    {item.lineTotal != null ? ` · ${formatCurrency(item.lineTotal)}` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </>)}
       </ActionForm>
     </div>

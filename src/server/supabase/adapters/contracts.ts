@@ -10,6 +10,7 @@ interface ContractRow {
   number: string;
   supplier_id: string | null;
   process_id?: string | null;
+  ata_id?: string | null;
   object: string;
   start_date: string;
   end_date: string;
@@ -26,9 +27,15 @@ interface ContractRow {
     next_end_date: string;
     next_value: number | string;
   }[];
+  contract_ata_items?: {
+    id: string;
+    ata_item_id: string;
+    quantity: number | string;
+    unit_price: number | string;
+  }[];
 }
 
-const SELECT = "*, contract_amendments(*)";
+const SELECT = "*, contract_amendments(*), contract_ata_items(*)";
 
 const toContract = (row: ContractRow): Contract => ({
   id: row.id,
@@ -36,6 +43,7 @@ const toContract = (row: ContractRow): Contract => ({
   number: row.number,
   supplierId: row.supplier_id,
   processId: row.process_id ?? null,
+  ataId: row.ata_id ?? null,
   object: row.object,
   original: { startDate: row.start_date, endDate: row.end_date, value: toNumber(row.value) },
   amendments: [...row.contract_amendments].sort((a, b) => a.sequence - b.sequence).map((a) => ({
@@ -45,16 +53,43 @@ const toContract = (row: ContractRow): Contract => ({
     previous: { startDate: a.previous_start_date, endDate: a.previous_end_date, value: toNumber(a.previous_value) },
     next: { startDate: a.next_start_date, endDate: a.next_end_date, value: toNumber(a.next_value) },
   })),
+  ataItems: (row.contract_ata_items ?? []).map((item) => ({
+    id: item.id,
+    ataItemId: item.ata_item_id,
+    quantity: toNumber(item.quantity),
+    unitPrice: toNumber(item.unit_price),
+  })),
   createdAt: toDate(row.created_at),
 });
 
 const toPayload = (c: Contract) => ({
-  id: c.id, council_id: c.councilId, number: c.number, supplier_id: c.supplierId, process_id: c.processId ?? null, object: c.object,
-  start_date: c.original.startDate, end_date: c.original.endDate, value: c.original.value, created_at: toIso(c.createdAt),
+  id: c.id,
+  council_id: c.councilId,
+  number: c.number,
+  supplier_id: c.supplierId,
+  process_id: c.processId ?? null,
+  ata_id: c.ataId ?? null,
+  object: c.object,
+  start_date: c.original.startDate,
+  end_date: c.original.endDate,
+  value: c.original.value,
+  created_at: toIso(c.createdAt),
   amendments: c.amendments.map((a) => ({
-    sequence: a.sequence, reason: a.reason, signed_at: a.signedAt,
-    previous_start_date: a.previous.startDate, previous_end_date: a.previous.endDate, previous_value: a.previous.value,
-    next_start_date: a.next.startDate, next_end_date: a.next.endDate, next_value: a.next.value,
+    sequence: a.sequence,
+    reason: a.reason,
+    signed_at: a.signedAt,
+    previous_start_date: a.previous.startDate,
+    previous_end_date: a.previous.endDate,
+    previous_value: a.previous.value,
+    next_start_date: a.next.startDate,
+    next_end_date: a.next.endDate,
+    next_value: a.next.value,
+  })),
+  ata_items: (c.ataItems ?? []).map((item) => ({
+    id: item.id,
+    ata_item_id: item.ataItemId,
+    quantity: item.quantity,
+    unit_price: item.unitPrice,
   })),
 });
 

@@ -18,8 +18,13 @@ export const isUniqueViolation = (error: DbErrorShape | null): boolean => error?
 
 /** Erro técnico: detalhes vão para o log; o serviço o converte em mensagem genérica ao usuário. */
 export class DatabaseError extends Error {
+  readonly code?: string;
+  readonly operation: string;
+
   constructor(operation: string, cause: DbErrorShape) {
     super(`Falha de banco em ${operation}`);
+    this.operation = operation;
+    this.code = cause.code;
     log("error", "db.erro", { operation, code: cause.code, message: cause.message });
   }
 }

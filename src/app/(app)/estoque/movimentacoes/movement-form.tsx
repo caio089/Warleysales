@@ -290,7 +290,7 @@ function EntryFromProcessForm({
             onChange={onCouncilChange}
           />
         </div>
-        Nenhum processo deste órgão está pronto para entrada no estoque. Aprove a solicitação e avance a contratação para liberar os itens aqui.
+        Nenhum processo deste órgão está pronto para entrada no estoque. Aprove a solicitação e registre o contrato (vinculado à ata, no registro de preços) para liberar os itens aqui.
       </div>
     );
   }

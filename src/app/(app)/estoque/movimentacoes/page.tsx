@@ -28,16 +28,18 @@ const TYPE_LABEL: Record<string, string> = {
 
 export async function Content() {
   const result = await loadScreen(async (ctx) => {
-    const [lookups, requests, processes, atas] = await Promise.all([
+    const [lookups, requests, processes, atas, contracts] = await Promise.all([
       loadLookups(ctx),
       ctx.services.purchases.list(ctx.actor),
       ctx.services.processes.list(ctx.actor),
       ctx.services.atas.list(ctx.actor),
+      ctx.services.contracts.list(ctx.actor),
     ]);
     if (!lookups.ok) return lookups;
     if (!requests.ok) return requests;
     if (!processes.ok) return processes;
     if (!atas.ok) return atas;
+    if (!contracts.ok) return contracts;
     const lists = await Promise.all(lookups.data.councils.map((c) => ctx.services.inventory.listMovements(ctx.actor, c.id)));
     const failed = lists.find((list) => !list.ok);
     if (failed && !failed.ok) return failed;
@@ -50,6 +52,14 @@ export async function Content() {
         processes: processes.data,
         atas: atas.data,
         materialLabel: lookups.data.materialLabel,
+        contracts: contracts.data.map((view) => ({
+          processId: view.contract.processId ?? null,
+          ataId: view.contract.ataId ?? null,
+          ataItems: (view.contract.ataItems ?? []).map((item) => ({
+            ataItemId: item.ataItemId,
+            quantity: item.quantity,
+          })),
+        })),
       }),
       canMove: canInAnyCouncil(ctx.actor, "stock.move"),
       canAdjust: canInAnyCouncil(ctx.actor, "stock.adjust"),

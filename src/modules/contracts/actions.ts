@@ -26,10 +26,37 @@ export async function createContractFormAction(_previous: ActionState, formData:
     endDateRaw ||
     (isValidDateOnly(startDateRaw) ? computeInitialEndDate(startDateRaw) : endDateRaw);
 
+  const ataItems: { ataItemId: string; quantity: number; unitPrice?: number }[] = [];
+  for (let index = 0; index < 40; index += 1) {
+    const ataItemId = optionalText(formData.get(`ataItems.${index}.ataItemId`));
+    const quantity = optionalNumber(formData.get(`ataItems.${index}.quantity`));
+    if (!ataItemId && (quantity == null || quantity <= 0)) continue;
+    if (!ataItemId || quantity == null || quantity <= 0) continue;
+    ataItems.push({
+      ataItemId,
+      quantity,
+      unitPrice: optionalNumber(formData.get(`ataItems.${index}.unitPrice`)) ?? 0,
+    });
+  }
+
+  // Com itens da ata, o valor do contrato é sempre a soma qtd × unitário (não digitado à mão).
+  const valueFromAtaItems = ataItems.reduce(
+    (sum, item) => sum + item.quantity * (item.unitPrice ?? 0),
+    0,
+  );
   const input = {
-    councilId: formData.get("councilId"), number: formData.get("number"), object: formData.get("object"),
+    councilId: formData.get("councilId"),
+    number: formData.get("number"),
+    object: formData.get("object"),
     processId: optionalText(formData.get("processId")) ?? null,
-    startDate: startDateRaw, endDate, value: optionalNumber(formData.get("value")) ?? 0,
+    ataId: optionalText(formData.get("ataId")) ?? null,
+    startDate: startDateRaw,
+    endDate,
+    value:
+      ataItems.length > 0
+        ? Math.round(valueFromAtaItems * 100) / 100
+        : (optionalNumber(formData.get("value")) ?? 0),
+    ataItems,
   };
   const result = await runAction(async ({ services, actor }) => {
     const parsed = createContractSchema.safeParse(input);
@@ -57,9 +84,11 @@ export async function createContractFormAction(_previous: ActionState, formData:
       }
     }
     return services.contracts.create(actor, { ...parsed.data, supplierId });
-  }, "Contrato cadastrado.");
+  }, "Contrato cadastrado e saldo da ata atualizado.");
   if (result.status !== "success" || !result.data) return result.status === "success" ? result : result;
   revalidatePath("/contratos");
+  revalidatePath("/atas");
+  if (input.ataId) revalidatePath(`/atas/${String(input.ataId)}`);
   const backToProcess = processReturnPath(formData);
   if (backToProcess) {
     revalidatePath(backToProcess.split("?")[0] ?? backToProcess);

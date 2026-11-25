@@ -3,6 +3,8 @@ import { InMemoryAtaRepository } from "@/modules/atas/repository.memory";
 import { AtaService } from "@/modules/atas/service";
 import { InMemoryAuditRepository } from "@/modules/audit/repository.memory";
 import { AuditService } from "@/modules/audit/service";
+import { InMemoryContractRepository } from "@/modules/contracts/repository.memory";
+import { ContractService } from "@/modules/contracts/service";
 import { InMemoryDocumentRepository } from "@/modules/documents/repository.memory";
 import { InMemoryInventoryRepository } from "@/modules/inventory/repository.memory";
 import { InventoryService } from "@/modules/inventory/service";
@@ -19,10 +21,29 @@ function setup() {
   const auditRepo = new InMemoryAuditRepository(runtime.now);
   const audit = new AuditService(auditRepo);
   const atas = new AtaService(new InMemoryAtaRepository(), audit, runtime);
+  const contractRepo = new InMemoryContractRepository();
+  const contracts = new ContractService(contractRepo, audit, runtime, undefined, atas);
   const invRepo = new InMemoryInventoryRepository(runtime.now);
   const inventory = new InventoryService(invRepo, audit, runtime);
   const processes = new ProcessService(new InMemoryProcessRepository(), new InMemoryDocumentRepository(), audit, runtime);
-  return { runtime, auditRepo, atas, inventory, processes, service: new PurchaseRequestService(new InMemoryPurchaseRequestRepository(), atas, inventory, processes, audit, runtime) };
+  return {
+    runtime,
+    auditRepo,
+    atas,
+    contracts,
+    contractRepo,
+    inventory,
+    processes,
+    service: new PurchaseRequestService(
+      new InMemoryPurchaseRequestRepository(),
+      atas,
+      inventory,
+      processes,
+      audit,
+      runtime,
+      contracts,
+    ),
+  };
 }
 let ctx: ReturnType<typeof setup>;
 const manager = () => managerOf(COUNCIL_A);
@@ -33,9 +54,16 @@ const stockOf = async () => {
   return l.ok ? l.data.find((x) => x.materialId === MATERIAL)?.physical ?? 0 : -1;
 };
 
+let ataSeq = 0;
 async function ataItem(quantity: number) {
-  const created = await ctx.atas.create(manager(), { councilId: COUNCIL_A, number: "01/2026", startDate: "2026-11-01", items: [{ description: "Papel", registeredQuantity: quantity, unitPrice: 1 }] });
-  if (!created.ok) throw new Error();
+  ataSeq += 1;
+  const created = await ctx.atas.create(manager(), {
+    councilId: COUNCIL_A,
+    number: `01/${ataSeq}/2026`,
+    startDate: "2026-11-01",
+    items: [{ description: "Papel", registeredQuantity: quantity, unitPrice: 1 }],
+  });
+  if (!created.ok) throw new Error(created.message);
   await ctx.atas.activate(manager(), { ataId: created.data.id });
   return created.data.items[0]!.id;
 }
@@ -46,7 +74,10 @@ async function submitted(items: { quantity: number; ataItemId?: string }[]) {
   await ctx.service.startReview(approver(), { requestId: r.data.id });
   return r.data.id;
 }
-beforeEach(() => { ctx = setup(); });
+beforeEach(() => {
+  ataSeq = 0;
+  ctx = setup();
+});
 
 describe("PurchaseRequestService", () => {
   it("fluxo até aprovação NÃO altera estoque (R11)", async () => {
@@ -67,6 +98,76 @@ describe("PurchaseRequestService", () => {
     const total = await ctx.service.receive(operatorOf(COUNCIL_A), { requestId: id, receiptKey: "recebimento-2", lines: [{ itemId, received: 6 }] });
     expect(total.ok && total.data.status).toBe("atendida");
     expect(await stockOf()).toBe(10);
+  });
+  it("com ata, só libera estoque após contrato e respeita a quantidade contratada", async () => {
+    const ata = await ctx.atas.create(manager(), {
+      councilId: COUNCIL_A,
+      number: "ARP-GATE/2026",
+      startDate: "2026-11-01",
+      items: [{ description: "Papel", registeredQuantity: 20, unitPrice: 10 }],
+    });
+    if (!ata.ok) throw new Error(ata.message);
+    await ctx.atas.activate(manager(), { ataId: ata.data.id });
+    const ataItemId = ata.data.items[0]!.id;
+
+    const created = await ctx.service.create(operatorOf(COUNCIL_A), {
+      councilId: COUNCIL_A,
+      title: "Material com ata",
+      createProcess: true,
+      items: [{ materialId: MATERIAL, quantity: 10, ataItemId }],
+    });
+    if (!created.ok) throw new Error(created.message);
+    const processId = created.data.processId!;
+    await ctx.service.submit(operatorOf(COUNCIL_A), { requestId: created.data.id });
+    await ctx.service.startReview(approver(), { requestId: created.data.id });
+    await ctx.service.approve(approver(), { requestId: created.data.id });
+    const itemId = created.data.items[0]!.id;
+
+    const blocked = await ctx.service.receive(operatorOf(COUNCIL_A), {
+      requestId: created.data.id,
+      receiptKey: "gate-blocked",
+      lines: [{ itemId, received: 2 }],
+    });
+    expect(!blocked.ok && blocked.code).toBe("INVALID_STATE");
+    expect(await stockOf()).toBe(0);
+
+    await ctx.contractRepo.insert({
+      id: ctx.runtime.newId(),
+      councilId: COUNCIL_A,
+      number: "CTR-GATE/2026",
+      supplierId: null,
+      processId,
+      ataId: ata.data.id,
+      object: "Fornecimento de papel",
+      original: { startDate: "2026-11-01", endDate: "2027-10-31", value: 30 },
+      amendments: [],
+      ataItems: [{ id: ctx.runtime.newId(), ataItemId, quantity: 3, unitPrice: 10 }],
+      createdAt: ctx.runtime.now(),
+    });
+
+    const partial = await ctx.service.receive(operatorOf(COUNCIL_A), {
+      requestId: created.data.id,
+      receiptKey: "gate-ok-1",
+      lines: [{ itemId, received: 2 }],
+    });
+    expect(partial.ok).toBe(true);
+    expect(await stockOf()).toBe(2);
+
+    const over = await ctx.service.receive(operatorOf(COUNCIL_A), {
+      requestId: created.data.id,
+      receiptKey: "gate-over",
+      lines: [{ itemId, received: 2 }],
+    });
+    expect(over.ok).toBe(false);
+    expect(await stockOf()).toBe(2);
+
+    const rest = await ctx.service.receive(operatorOf(COUNCIL_A), {
+      requestId: created.data.id,
+      receiptKey: "gate-ok-2",
+      lines: [{ itemId, received: 1 }],
+    });
+    expect(rest.ok).toBe(true);
+    expect(await stockOf()).toBe(3);
   });
   it("reenvio do mesmo recebimento não duplica entrada (idempotência)", async () => {
     const id = await submitted([{ quantity: 10 }]);

@@ -1,4 +1,5 @@
 import type { AuditRecorder } from "@/modules/audit/service";
+import type { AtaService } from "@/modules/atas/service";
 import type { ProcessRepository } from "@/modules/processes/repository";
 import { guard } from "@/shared/lib/authz/guard";
 import { can, readableCouncilIds, type Actor } from "@/shared/lib/authz/policy";
@@ -7,7 +8,7 @@ import { parseInput, type RuntimeDeps } from "@/shared/lib/service-support";
 import { diffInDays, toFortalezaDate } from "@/shared/lib/time";
 import { addAmendment, currentTerms, elapsedPercent, remainingDays, type ContractTerms } from "./domain/terms";
 import type { ContractRepository } from "./repository";
-import { addAmendmentSchema, createContractSchema, linkContractProcessSchema, type Contract } from "./schemas";
+import { addAmendmentSchema, createContractSchema, linkContractProcessSchema, type Contract, type ContractAtaItem } from "./schemas";
 
 export interface ContractView {
   contract: Contract;
@@ -23,6 +24,7 @@ export class ContractService {
     private readonly audit: AuditRecorder,
     private readonly runtime: RuntimeDeps,
     private readonly processes?: ProcessRepository,
+    private readonly atas?: AtaService,
   ) {}
 
   private async sameCouncilProcess(councilId: string, processId: string | null | undefined): Promise<Result<string | null>> {
@@ -40,15 +42,101 @@ export class ContractService {
     const d = parsed.data;
     const allowed = await guard(this.audit, actor, "contract.manage", d.councilId, "contract");
     if (!allowed.ok) return allowed;
-    if (diffInDays(d.startDate, d.endDate) < 0) return fail("VALIDATION", "A data final não pode ser anterior ao início.", { endDate: ["Data final anterior ao início."] });
+    if (diffInDays(d.startDate, d.endDate) < 0) {
+      return fail("VALIDATION", "A data final não pode ser anterior ao início.", { endDate: ["Data final anterior ao início."] });
+    }
     const processId = await this.sameCouncilProcess(d.councilId, d.processId);
     if (!processId.ok) return processId;
 
+    const ataId = d.ataId ?? null;
+    const ataLines = (d.ataItems ?? []).filter((item) => item.quantity > 0);
+    if (ataId && ataLines.length === 0) {
+      return fail("VALIDATION", "Informe a quantidade de pelo menos um item da ata.", {
+        ataItems: ["Informe a quantidade do contrato."],
+      });
+    }
+    if (ataLines.length > 0 && !ataId) {
+      return fail("VALIDATION", "Informe a ata para descontar as quantidades do contrato.", {
+        ataId: ["Selecione a ata."],
+      });
+    }
+    if (ataId) {
+      if (!this.atas) return fail("UNAVAILABLE", "Não foi possível conferir a ata.");
+      const ata = await this.atas.get(actor, ataId);
+      if (!ata.ok) return ata;
+      if (ata.data.ata.councilId !== d.councilId) {
+        return fail("VALIDATION", "A ata precisa ser do mesmo órgão do contrato.");
+      }
+      if (ata.data.ata.status !== "vigente") {
+        return fail("INVALID_STATE", "Ative a ata antes de consumir saldo com o contrato.");
+      }
+      for (const line of ataLines) {
+        const item = ata.data.items.find((row) => row.itemId === line.ataItemId);
+        if (!item) return fail("NOT_FOUND", "Item da ata não encontrado.");
+        if (line.quantity > item.balance.balance) {
+          return fail(
+            "VALIDATION",
+            `Quantidade acima do saldo da ata (disponível: ${item.balance.balance}).`,
+            { ataItems: [`Saldo insuficiente em ${item.description}.`] },
+          );
+        }
+      }
+    }
+
+    const contractId = this.runtime.newId();
+    const ataItems: ContractAtaItem[] = ataLines.map((line) => ({
+      id: this.runtime.newId(),
+      ataItemId: line.ataItemId,
+      quantity: line.quantity,
+      unitPrice: line.unitPrice ?? 0,
+    }));
+
+    const committed: { itemId: string; quantity: number }[] = [];
+    if (ataId && ataItems.length > 0 && this.atas) {
+      for (const line of ataItems) {
+        const result = await this.atas.commitInternal({
+          itemId: line.ataItemId,
+          councilId: d.councilId,
+          quantity: line.quantity,
+          reference: `contract:${contractId}`,
+        });
+        if (!result.ok) {
+          for (const done of committed) {
+            await this.atas.releaseInternal({
+              itemId: done.itemId,
+              councilId: d.councilId,
+              quantity: done.quantity,
+              reason: `rollback contrato ${contractId}`,
+            });
+          }
+          return result;
+        }
+        committed.push({ itemId: line.ataItemId, quantity: line.quantity });
+      }
+    }
+
     const saved = await this.repository.insert({
-      id: this.runtime.newId(), councilId: d.councilId, number: d.number, supplierId: d.supplierId ?? null, processId: processId.data, object: d.object,
-      original: { startDate: d.startDate, endDate: d.endDate, value: d.value }, amendments: [], createdAt: this.runtime.now(),
+      id: contractId,
+      councilId: d.councilId,
+      number: d.number,
+      supplierId: d.supplierId ?? null,
+      processId: processId.data,
+      ataId,
+      object: d.object,
+      original: { startDate: d.startDate, endDate: d.endDate, value: d.value },
+      amendments: [],
+      ataItems,
+      createdAt: this.runtime.now(),
     });
-    await this.audit.record({ actorId: actor.userId, action: "contract.create", entity: "contract", entityId: saved.id, councilId: d.councilId, result: "success", details: { number: d.number } });
+    await this.audit.record({
+      actorId: actor.userId,
+      action: "contract.create",
+      entity: "contract",
+      entityId: saved.id,
+      councilId: d.councilId,
+      result: "success",
+      details: { number: d.number, ataId, ataItemCount: ataItems.length },
+    });
     return ok(saved);
   }
 
@@ -87,7 +175,15 @@ export class ContractService {
     const amendments = addAmendment(contract.original, contract.amendments, parsed.data);
     if (!amendments.ok) return amendments;
     const saved = await this.repository.save({ ...contract, amendments: amendments.data });
-    await this.audit.record({ actorId: actor.userId, action: "contract.amend", entity: "contract", entityId: contract.id, councilId: contract.councilId, result: "success", details: { sequence: amendments.data.length, reason: parsed.data.reason } });
+    await this.audit.record({
+      actorId: actor.userId,
+      action: "contract.amend",
+      entity: "contract",
+      entityId: contract.id,
+      councilId: contract.councilId,
+      result: "success",
+      details: { sequence: amendments.data.length, reason: parsed.data.reason },
+    });
     return ok(saved);
   }
 
@@ -107,6 +203,12 @@ export class ContractService {
     const terms = currentTerms(contract.original, contract.amendments);
     const today = toFortalezaDate(this.runtime.now());
     const days = remainingDays(terms, today);
-    return { contract, terms, remainingDays: days, elapsedPercent: elapsedPercent(terms, today), status: days >= 0 ? "vigente" : "vencido" };
+    return {
+      contract: { ...contract, ataItems: contract.ataItems ?? [] },
+      terms,
+      remainingDays: days,
+      elapsedPercent: elapsedPercent(terms, today),
+      status: days >= 0 ? "vigente" : "vencido",
+    };
   }
 }

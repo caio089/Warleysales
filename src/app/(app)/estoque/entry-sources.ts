@@ -1,4 +1,10 @@
 import type { AtaView } from "@/modules/atas/service";
+import {
+  assertContractAllowsReceive,
+  contractedQuantityByAtaItem,
+  maxReceivableAgainstContract,
+  type ContractForReceiveGate,
+} from "@/modules/purchases/domain/receive-contract-gate";
 import type { PurchaseRequest } from "@/modules/purchases/schemas";
 import type { ProcessView } from "@/modules/processes/service";
 
@@ -28,12 +34,14 @@ const RECEIVABLE = new Set(["aprovada", "em_atendimento", "parcialmente_atendida
 
 /**
  * Monta as entradas possíveis: órgão + processo → itens, quantidades pendentes e valores.
+ * Registro de preços: só aparece depois do contrato↔ata, limitado às quantidades contratadas.
  */
 export function buildStockEntrySources(input: {
   requests: PurchaseRequest[];
   processes: ProcessView[];
   atas: AtaView[];
   materialLabel: Record<string, string>;
+  contracts?: ContractForReceiveGate[];
 }): StockEntrySource[] {
   const processById = new Map(input.processes.map((view) => [view.process.id, view]));
   const ataUnitByItemId = new Map<string, number>();
@@ -42,22 +50,35 @@ export function buildStockEntrySources(input: {
       ataUnitByItemId.set(item.id, item.unitPrice);
     }
   }
+  const allContracts = input.contracts ?? [];
 
   const sources: StockEntrySource[] = [];
   for (const request of input.requests) {
     if (!request.processId || !RECEIVABLE.has(request.status)) continue;
+    const process = processById.get(request.processId);
+    if (!process) continue;
+
+    const processContracts = allContracts.filter(
+      (contract) => !contract.processId || contract.processId === request.processId,
+    );
+    const gate = assertContractAllowsReceive({
+      processId: request.processId,
+      contractingMode: process.process.contractingMode ?? null,
+      requestItems: request.items,
+      contracts: processContracts,
+    });
+    if (!gate.ok) continue;
+
+    const contractedByAtaItem = contractedQuantityByAtaItem(processContracts, request.processId);
     const pendingItems = request.items
       .map((item) => {
-        const pending = Math.max(0, item.quantity - item.receivedTotal);
+        const pending = maxReceivableAgainstContract(item, contractedByAtaItem);
         if (pending <= 0 || !item.materialId) return null;
         const unitFromAta = item.ataItemId ? (ataUnitByItemId.get(item.ataItemId) ?? null) : null;
         return { item, pending, unitFromAta };
       })
       .filter((row): row is NonNullable<typeof row> => row != null);
     if (pendingItems.length === 0) continue;
-
-    const process = processById.get(request.processId);
-    if (!process) continue;
 
     const totalQty = pendingItems.reduce((sum, row) => sum + row.pending, 0);
     const estimated = request.estimatedValue ?? process.process.estimatedValue ?? null;

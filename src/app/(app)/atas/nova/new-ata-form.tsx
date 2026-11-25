@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { createAtaFormAction } from "@/modules/atas/actions";
+import type { ExtractedAta } from "@/modules/atas/pdf-extraction";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { CurrencyField, SelectField, TextField } from "@/shared/ui/forms/fields";
 import { AtaMaterialsValues } from "./ata-materials-values";
@@ -11,6 +13,18 @@ type Option = { value: string; label: string };
 type ProcessOption = Option & { councilId: string };
 type SupplierOption = { value: string; label: string; cnpj: string | null };
 type RequestMaterial = { materialId: string; name: string; quantity: number };
+
+/** Garante número único no órgão (constraint council_id + number). */
+export function suggestAtaNumber(preferred: string, existingNumbers: string[]): string {
+  const used = new Set(existingNumbers.map((number) => number.trim().toLocaleLowerCase("pt-BR")));
+  const base = preferred.trim().slice(0, 40) || "ARP";
+  if (!used.has(base.toLocaleLowerCase("pt-BR"))) return base;
+  for (let index = 2; index < 100; index += 1) {
+    const candidate = `${base} (${index})`.slice(0, 40);
+    if (!used.has(candidate.toLocaleLowerCase("pt-BR"))) return candidate;
+  }
+  return `${base.slice(0, 32)}-${Date.now().toString(36)}`.slice(0, 40);
+}
 
 export function NewAtaForm({
   councils,
@@ -34,91 +48,203 @@ export function NewAtaForm({
     suppliers: SupplierOption[];
     defaultValue?: number | null;
     validityStartDate?: string | null;
+    /** Números já usados no órgão/processo — evita colidir com a unique (council, number). */
+    existingAtaNumbers?: string[];
   };
 }) {
   const initial = processes.find((process) => process.value === defaultProcessId);
   const [councilId, setCouncilId] = useState(lockedProcess?.councilId ?? initial?.councilId ?? "");
   const visibleProcesses = processes.filter((process) => !councilId || process.councilId === councilId);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [extracted, setExtracted] = useState<ExtractedAta | null>(null);
+  const [reading, setReading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [supplierId, setSupplierId] = useState("");
 
-  if (lockedProcess) {
+  async function readPdf() {
+    if (!pdfFile) return;
+    if (pdfFile.type !== "application/pdf" || pdfFile.size > 10 * 1024 * 1024) {
+      setMessage("Selecione um PDF de até 10 MB.");
+      return;
+    }
+    setReading(true);
+    setMessage("");
+    try {
+      const body = new FormData();
+      body.set("file", pdfFile);
+      const response = await fetch("/api/atas/extract-pdf", { method: "POST", body });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error ?? "Falha na leitura do PDF.");
+      const fields = payload.fields as ExtractedAta;
+      setExtracted(fields);
+      if (lockedProcess) {
+        const match =
+          lockedProcess.suppliers.find(
+            (supplier) =>
+              fields.supplierCnpj &&
+              supplier.cnpj === fields.supplierCnpj.replace(/\D/g, ""),
+          ) ??
+          lockedProcess.suppliers.find(
+            (supplier) =>
+              fields.supplierName &&
+              supplier.label.toLocaleLowerCase("pt-BR") === fields.supplierName.toLocaleLowerCase("pt-BR"),
+          );
+        setSupplierId(match?.value ?? "");
+      }
+      const itemCount = fields.items?.length ?? 0;
+      setMessage(
+        `PDF lido (${payload.pages} página(s)${itemCount ? ` · ${itemCount} item(ns)` : ""}). Confira empresa, valores e vigência antes de registrar.${
+          payload.truncated ? " Documento longo: apenas o início foi analisado." : ""
+        }`,
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Falha na leitura do PDF.");
+    } finally {
+      setReading(false);
+    }
+  }
+
+  const lockedLines = useMemo(() => {
+    if (!lockedProcess) return [];
     const processMaterials = lockedProcess.materials ?? [];
-    const lines =
+    const base =
       processMaterials.length > 0
         ? processMaterials
         : [{ materialId: "", name: lockedProcess.processLabel, quantity: 1 }];
-    const suggestedNumber = `ARP ${lockedProcess.processNumber || "sem-número"}`.slice(0, 40);
+    if (!extracted?.items?.length) return base;
+    return base.map((line, index) => {
+      const fromPdf = extracted.items[index];
+      if (!fromPdf) return line;
+      return {
+        ...line,
+        name: fromPdf.description?.trim() || line.name,
+        quantity: fromPdf.quantity && fromPdf.quantity > 0 ? fromPdf.quantity : line.quantity,
+      };
+    });
+  }, [extracted, lockedProcess]);
+
+  if (lockedProcess) {
+    const lines = lockedLines;
+    const defaultLineTotals = extracted?.items?.map((item) => item.lineTotal) ?? undefined;
+    const suggestedNumber = suggestAtaNumber(
+      extracted?.number?.trim() || `ARP ${lockedProcess.processNumber || "sem-número"}`,
+      lockedProcess.existingAtaNumbers ?? [],
+    );
+    const startDate = extracted?.startDate ?? lockedProcess.validityStartDate ?? undefined;
 
     return (
-      <ActionForm
-        action={createAtaFormAction}
-        submitLabel="Registrar ata"
-        hiddenFields={{
-          councilId: lockedProcess.councilId,
-          processId: lockedProcess.processId,
-          processNumber: lockedProcess.processNumber,
-          number: suggestedNumber,
-          itemCount: String(lines.length),
-          returnTo: `/processos/${lockedProcess.processId}`,
-          ...Object.fromEntries(
-            lines.flatMap((line, index) => [
-              [`items.${index}.description`, line.name],
-              [`items.${index}.materialId`, line.materialId],
-              [`items.${index}.registeredQuantity`, String(line.quantity)],
-            ]),
-          ),
-        }}
-      >
-        {(e) => (
-          <div className="space-y-4">
-            <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
-              <div>
-                <p className="text-sm font-semibold text-foreground">1. Empresa vencedora</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Digite o nome da empresa. Se já existir, reutilizamos; se não, cadastramos.
-                </p>
-              </div>
-              <TextField
-                name="supplierName"
-                label="Nome da empresa"
-                required
-                placeholder="Ex.: Fornecedor Alfa Ltda"
-                errors={e.supplierName ?? e.supplierId}
-              />
-              {lockedProcess.suppliers.length > 0 ? (
-                <SelectField
-                  name="supplierId"
-                  label="Ou escolha uma já cadastrada (opcional)"
-                  optional
-                  options={lockedProcess.suppliers.map((supplier) => ({
-                    value: supplier.value,
-                    label: supplier.cnpj ? `${supplier.label} · ${supplier.cnpj}` : supplier.label,
-                  }))}
-                  placeholder="Deixe em branco se digitou o nome acima"
-                  errors={e.supplierId}
-                />
-              ) : null}
-            </div>
-
-            <AtaMaterialsValues
-              lines={lines}
-              councilLabel={lockedProcess.councilLabel}
-              processLabel={lockedProcess.processLabel}
-              defaultTotal={lockedProcess.defaultValue}
-              errors={e}
-            />
-
-            <AtaValidityField
-              errors={e.startDate}
-              defaultStartDate={lockedProcess.validityStartDate ?? undefined}
-              hint={
-                lockedProcess.validityStartDate
-                  ? "Puxada do Termo de Referência. Ajuste só se necessário."
-                  : "Se ainda não preencheu no TR, informe aqui. Depois salve também no TR para reutilizar."
-              }
-            />
+      <div className="space-y-4">
+        <section className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-4" aria-label="Anexar e ler ata em PDF">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Anexar ata (PDF)</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              A IA lê empresa, itens, quantidades e valores. Confira tudo antes de registrar.
+            </p>
           </div>
-        )}
-      </ActionForm>
+          <input
+            type="file"
+            accept="application/pdf,.pdf"
+            onChange={(event) => setPdfFile(event.target.files?.[0] ?? null)}
+            className="block w-full text-sm"
+          />
+          <Button type="button" variant="outline" disabled={!pdfFile || reading} onClick={readPdf}>
+            {reading ? "Lendo PDF…" : "Ler ata com IA"}
+          </Button>
+          {message ? (
+            <p role="status" className="text-sm text-muted-foreground">
+              {message}
+            </p>
+          ) : null}
+        </section>
+
+        <ActionForm
+          key={`ata-form-${suggestedNumber}-${extracted?.totalValue ?? "x"}`}
+          action={createAtaFormAction}
+          submitLabel="Registrar ata"
+          hiddenFields={{
+            councilId: lockedProcess.councilId,
+            processId: lockedProcess.processId,
+            processNumber: lockedProcess.processNumber,
+            itemCount: String(lines.length),
+            returnTo: `/processos/${lockedProcess.processId}`,
+            ...Object.fromEntries(
+              lines.flatMap((line, index) => [
+                [`items.${index}.description`, line.name],
+                [`items.${index}.materialId`, line.materialId],
+                [`items.${index}.registeredQuantity`, String(line.quantity)],
+              ]),
+            ),
+          }}
+        >
+          {(e) => (
+            <div className="space-y-4">
+              <TextField
+                name="number"
+                label="Número da ata"
+                required
+                defaultValue={suggestedNumber}
+                hint="Cada ata precisa de um número único no órgão."
+                errors={e.number}
+              />
+
+              <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">1. Empresa vencedora</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Digite o nome ou use o que a IA leu do PDF.
+                  </p>
+                </div>
+                <TextField
+                  name="supplierName"
+                  label="Nome da empresa"
+                  required
+                  placeholder="Ex.: Fornecedor Alfa Ltda"
+                  defaultValue={extracted?.supplierName ?? ""}
+                  errors={e.supplierName ?? e.supplierId}
+                />
+                {lockedProcess.suppliers.length > 0 ? (
+                  <SelectField
+                    key={`supplier-${supplierId}`}
+                    name="supplierId"
+                    label="Ou escolha uma já cadastrada (opcional)"
+                    optional
+                    options={lockedProcess.suppliers.map((supplier) => ({
+                      value: supplier.value,
+                      label: supplier.cnpj ? `${supplier.label} · ${supplier.cnpj}` : supplier.label,
+                    }))}
+                    defaultValue={supplierId}
+                    onChange={setSupplierId}
+                    placeholder="Deixe em branco se digitou o nome acima"
+                    errors={e.supplierId}
+                  />
+                ) : null}
+              </div>
+
+              <AtaMaterialsValues
+                key={`values-${extracted?.totalValue ?? "base"}-${defaultLineTotals?.join("-") ?? "none"}`}
+                lines={lines}
+                councilLabel={lockedProcess.councilLabel}
+                processLabel={lockedProcess.processLabel}
+                defaultTotal={extracted?.totalValue ?? lockedProcess.defaultValue}
+                defaultLineTotals={defaultLineTotals}
+                errors={e}
+              />
+
+              <AtaValidityField
+                errors={e.startDate}
+                defaultStartDate={startDate}
+                hint={
+                  extracted?.startDate
+                    ? "Puxada do PDF da ata. Ajuste só se necessário."
+                    : lockedProcess.validityStartDate
+                      ? "Puxada do Termo de Referência. Ajuste só se necessário."
+                      : "Se ainda não preencheu no TR, informe aqui."
+                }
+              />
+            </div>
+          )}
+        </ActionForm>
+      </div>
     );
   }
 

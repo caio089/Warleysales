@@ -3,8 +3,8 @@ import { idSchema } from "@/shared/lib/service-support";
 import type { AtaRepository } from "@/modules/atas/repository";
 import type { AtaStatus, PriceRegistrationAta } from "@/modules/atas/schemas";
 import type { CommitmentEvent } from "@/modules/atas/domain/balance";
-import { fail, type Result } from "@/shared/lib/result";
-import { MAX_CAS_ATTEMPTS, callRpc, selectAll, toDate, toIso, toNumber, unwrap } from "../db";
+import { fail, ok, type Result } from "@/shared/lib/result";
+import { MAX_CAS_ATTEMPTS, callRpc, isUniqueViolation, selectAll, toDate, toIso, toNumber, unwrap, type DbResponse } from "../db";
 
 interface AtaRow {
   id: string;
@@ -82,8 +82,14 @@ export class SupabaseAtaRepository implements AtaRepository {
   constructor(private readonly db: SupabaseClient) {}
 
   async insert(ata: PriceRegistrationAta) {
-    await callRpc(this.db, "save_ata", { p: toPayload(ata) });
-    return ata;
+    const response = (await this.db.rpc("save_ata", { p: toPayload(ata) })) as DbResponse<null>;
+    if (isUniqueViolation(response.error)) {
+      return fail("CONFLICT", "Já existe uma ata com este número neste órgão. Altere o número.", {
+        number: ["Número já cadastrado."],
+      });
+    }
+    unwrap("rpc.save_ata", response);
+    return ok(ata);
   }
 
   /** Persiste a ata de forma transacional (RPC): itens são imutáveis, alocações são substituídas, prorrogações são acrescentadas. */

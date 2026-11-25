@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { InMemoryAtaRepository } from "@/modules/atas/repository.memory";
+import { AtaService } from "@/modules/atas/service";
 import { InMemoryAuditRepository } from "@/modules/audit/repository.memory";
 import { AuditService } from "@/modules/audit/service";
 import { COUNCIL_A, COUNCIL_B, centralAdmin, makeRuntime, managerOf, operatorOf } from "@/shared/testing/fixtures";
@@ -8,7 +10,12 @@ import { ContractService } from "./service";
 function setup() {
   const runtime = makeRuntime("2026-07-02T15:00:00Z");
   const audit = new AuditService(new InMemoryAuditRepository(runtime.now));
-  return { runtime, service: new ContractService(new InMemoryContractRepository(), audit, runtime) };
+  const atas = new AtaService(new InMemoryAtaRepository(), audit, runtime);
+  return {
+    runtime,
+    atas,
+    service: new ContractService(new InMemoryContractRepository(), audit, runtime, undefined, atas),
+  };
 }
 const input = { councilId: COUNCIL_A, number: "10/2026", object: "Fornecimento de material de expediente", startDate: "2026-01-01", endDate: "2026-12-31", value: 1000 };
 
@@ -60,6 +67,50 @@ describe("ContractService", () => {
     expect(await service.list(managerOf(COUNCIL_B), { id, councilId: COUNCIL_A }))
       .toEqual({ ok: true, data: [] });
   });
+  it("desconta saldo da ata ao criar contrato e permite vários contratos na mesma ata", async () => {
+    const { service, atas } = setup();
+    const manager = managerOf(COUNCIL_A);
+    const createdAta = await atas.create(manager, {
+      councilId: COUNCIL_A,
+      number: "ARP-99/2026",
+      startDate: "2026-01-01",
+      items: [{ description: "Papel A4", registeredQuantity: 100, unitPrice: 10 }],
+    });
+    if (!createdAta.ok) throw new Error(createdAta.message);
+    await atas.activate(manager, { ataId: createdAta.data.id });
+    const itemId = createdAta.data.items[0]!.id;
+
+    const first = await service.create(manager, {
+      ...input,
+      number: "C1/2026",
+      ataId: createdAta.data.id,
+      ataItems: [{ ataItemId: itemId, quantity: 40, unitPrice: 10 }],
+      value: 400,
+    });
+    expect(first.ok).toBe(true);
+
+    const second = await service.create(manager, {
+      ...input,
+      number: "C2/2026",
+      ataId: createdAta.data.id,
+      ataItems: [{ ataItemId: itemId, quantity: 30, unitPrice: 10 }],
+      value: 300,
+    });
+    expect(second.ok).toBe(true);
+
+    const view = await atas.get(manager, createdAta.data.id);
+    expect(view.ok && view.data.items[0]!.balance).toMatchObject({ committed: 70, balance: 30 });
+
+    const excess = await service.create(manager, {
+      ...input,
+      number: "C3/2026",
+      ataId: createdAta.data.id,
+      ataItems: [{ ataItemId: itemId, quantity: 50, unitPrice: 10 }],
+      value: 500,
+    });
+    expect(excess.ok).toBe(false);
+  });
+
   it("vincula processo do mesmo órgão e recusa o de outro", async () => {
     const same = "11111111-1111-4111-8111-111111111111";
     const other = "22222222-2222-4222-8222-222222222222";

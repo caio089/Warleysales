@@ -1,11 +1,17 @@
 import type { AtaService } from "@/modules/atas/service";
 import type { AuditRecorder } from "@/modules/audit/service";
+import type { ContractService } from "@/modules/contracts/service";
 import type { InventoryService } from "@/modules/inventory/service";
 import type { ProcessService } from "@/modules/processes/service";
 import { guard } from "@/shared/lib/authz/guard";
 import { can, readableCouncilIds, type Actor, type PermissionAction } from "@/shared/lib/authz/policy";
 import { fail, ok, type Result } from "@/shared/lib/result";
 import { parseInput, type RuntimeDeps } from "@/shared/lib/service-support";
+import {
+  assertContractAllowsReceive,
+  assertReceiveLinesWithinContract,
+  contractedQuantityByAtaItem,
+} from "./domain/receive-contract-gate";
 import { applyReceipt } from "./domain/receipt";
 import { changeRequestStatus, reopenRejected, type PurchaseRequestStatus } from "./domain/request-status";
 import type { PurchaseRequestRepository } from "./repository";
@@ -19,6 +25,7 @@ export class PurchaseRequestService {
     private readonly processes: ProcessService,
     private readonly audit: AuditRecorder,
     private readonly runtime: RuntimeDeps,
+    private readonly contracts?: ContractService,
   ) {}
 
   async create(actor: Actor, input: unknown): Promise<Result<PurchaseRequest>> {
@@ -196,6 +203,38 @@ export class PurchaseRequestService {
     if (!["aprovada", "em_atendimento", "parcialmente_atendida"].includes(request.status)) {
       return fail("INVALID_STATE", "A solicitação não está em fase de recebimento.");
     }
+
+    // Parte 3: entrada no estoque só após contrato (e, no registro de preços, contrato↔ata).
+    if (this.contracts && request.processId) {
+      const processView = await this.processes.get(actor, request.processId);
+      const contractingMode = processView.ok ? (processView.data.process.contractingMode ?? null) : null;
+      const listed = await this.contracts.list(actor, { id: request.processId, councilId: request.councilId });
+      const contracts = listed.ok
+        ? listed.data.map((view) => ({
+            processId: view.contract.processId ?? null,
+            ataId: view.contract.ataId ?? null,
+            ataItems: (view.contract.ataItems ?? []).map((item) => ({
+              ataItemId: item.ataItemId,
+              quantity: item.quantity,
+            })),
+          }))
+        : [];
+      const gate = assertContractAllowsReceive({
+        processId: request.processId,
+        contractingMode,
+        requestItems: request.items,
+        contracts,
+      });
+      if (!gate.ok) return gate;
+      const contractedByAtaItem = contractedQuantityByAtaItem(contracts, request.processId);
+      const within = assertReceiveLinesWithinContract({
+        items: request.items,
+        lines: parsed.data.lines,
+        contractedByAtaItem,
+      });
+      if (!within.ok) return within;
+    }
+
     const outcome = applyReceipt(request.items.map((i) => ({ itemId: i.id, expected: i.quantity, receivedBefore: i.receivedTotal })), parsed.data.lines);
     if (!outcome.ok) return outcome;
 

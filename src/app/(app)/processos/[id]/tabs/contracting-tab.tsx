@@ -27,6 +27,13 @@ export interface LinkedAtaItem {
   balance?: number;
   totalValue?: number;
   itemCount?: number;
+  items?: Array<{
+    itemId: string;
+    description: string;
+    materialLabel: string;
+    balance: number;
+    unitPrice: number;
+  }>;
 }
 
 export interface LinkedContractItem {
@@ -216,10 +223,13 @@ export function ContractingTab({
             )}
             {canLink ? (
               <div className="space-y-4 rounded-xl border border-border/70 bg-muted/10 p-4">
+                <p className="text-xs text-muted-foreground">
+                  No registro de preços, anexe a ata em PDF para a IA ler itens, quantidades e valores. Depois, cada contrato desconta do saldo dessa ata.
+                </p>
                 {availableAtas.length > 0 ? (
-                  <LinkAtaToProcessForm processId={processId} atas={availableAtas} submitLabel="Anexar ata" />
+                  <LinkAtaToProcessForm processId={processId} atas={availableAtas} submitLabel="Vincular ata existente" />
                 ) : (
-                  <p className="text-xs text-muted-foreground">Não há ata livre deste órgão para anexar.</p>
+                  <p className="text-xs text-muted-foreground">Não há ata livre deste órgão para vincular.</p>
                 )}
                 {draft ? (
                   <NewAtaForm
@@ -236,6 +246,7 @@ export function ContractingTab({
                       suppliers: draft.suppliers,
                       defaultValue: draft.defaultValue,
                       validityStartDate: draft.validityStartDate,
+                      existingAtaNumbers: linkedAtas.map((ata) => ata.number),
                     }}
                   />
                 ) : (
@@ -330,6 +341,12 @@ export function ContractingTab({
                       defaultValue: draft.defaultValue,
                       validityStartDate: draft.validityStartDate,
                       requestMaterials: draft.requestMaterials,
+                      atas: linkedAtas.map((ata) => ({
+                        id: ata.id,
+                        number: ata.number,
+                        status: ata.status,
+                        items: ata.items ?? [],
+                      })),
                     }}
                   />
                 ) : (

@@ -19,32 +19,42 @@ function parseMoney(draft: string): number {
   return Number.isFinite(value) ? value : 0;
 }
 
+function buildDrafts(
+  lines: AtaMaterialLine[],
+  defaultTotal?: number | null,
+  defaultLineTotals?: Array<number | null | undefined>,
+): string[] {
+  return lines.map((line, index) => {
+    const fromPdf = defaultLineTotals?.[index];
+    if (fromPdf != null && Number.isFinite(fromPdf)) return Number(fromPdf).toFixed(2);
+    if (lines.length === 1 && defaultTotal != null) return defaultTotal.toFixed(2);
+    if (defaultTotal != null && lines.length > 1) {
+      const sumQty = lines.reduce((total, item) => total + item.quantity, 0);
+      if (sumQty <= 0) return "";
+      return ((defaultTotal * line.quantity) / sumQty).toFixed(2);
+    }
+    return "";
+  });
+}
+
 /** Materiais da ata com valor total por item e unitário (total ÷ qtd) ao vivo. */
 export function AtaMaterialsValues({
   lines,
   councilLabel,
   processLabel,
   defaultTotal,
+  defaultLineTotals,
   errors = {},
 }: {
   lines: AtaMaterialLine[];
   councilLabel: string;
   processLabel: string;
   defaultTotal?: number | null;
+  /** Totais por linha (ex.: lidos do PDF). Tem prioridade sobre rateio do defaultTotal. */
+  defaultLineTotals?: Array<number | null | undefined>;
   errors?: Record<string, string[]>;
 }) {
-  const [drafts, setDrafts] = useState(() =>
-    lines.map((line, index) => {
-      if (lines.length === 1 && defaultTotal != null) return defaultTotal.toFixed(2);
-      if (defaultTotal != null && lines.length > 1) {
-        const sumQty = lines.reduce((total, item) => total + item.quantity, 0);
-        if (sumQty <= 0) return "";
-        const share = (defaultTotal * line.quantity) / sumQty;
-        return share.toFixed(2);
-      }
-      return index === 0 && defaultTotal != null ? defaultTotal.toFixed(2) : "";
-    }),
-  );
+  const [drafts, setDrafts] = useState(() => buildDrafts(lines, defaultTotal, defaultLineTotals));
 
   const computed = useMemo(
     () =>

@@ -51,6 +51,15 @@ export class AtaService {
     const processId = await this.sameCouncilProcess(d.councilId, d.processId);
     if (!processId.ok) return processId;
 
+    const sameNumber = (await this.repository.listByCouncils([d.councilId])).some(
+      (ata) => ata.number.trim().toLocaleLowerCase("pt-BR") === d.number.trim().toLocaleLowerCase("pt-BR"),
+    );
+    if (sameNumber) {
+      return fail("CONFLICT", "Já existe uma ata com este número neste órgão. Altere o número.", {
+        number: ["Número já cadastrado."],
+      });
+    }
+
     // Nasce como rascunho: rascunho não consome saldo e não aceita comprometimento (R9).
     const saved = await this.repository.insert({
       id: this.runtime.newId(),
@@ -64,8 +73,9 @@ export class AtaService {
       extensions: [],
       createdAt: this.runtime.now(),
     });
-    await this.audit.record({ actorId: actor.userId, action: "ata.create", entity: "price_registration_ata", entityId: saved.id, councilId: d.councilId, result: "success", details: { number: d.number } });
-    return ok(saved);
+    if (!saved.ok) return saved;
+    await this.audit.record({ actorId: actor.userId, action: "ata.create", entity: "price_registration_ata", entityId: saved.data.id, councilId: d.councilId, result: "success", details: { number: d.number } });
+    return saved;
   }
 
   /** Vincula ou remove o processo. Contratos com o mesmo processo passam a aparecer nesta ata. */

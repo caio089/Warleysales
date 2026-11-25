@@ -24,12 +24,13 @@ export const metadata: Metadata = { title: "Gestão de Estoque" };
 
 async function Content() {
   const result = await loadScreen(async (ctx) => {
-    const [levels, lookups, requests, processes, atas, pendingFormalizations, homologatedFormalizations] = await Promise.all([
+    const [levels, lookups, requests, processes, atas, contracts, pendingFormalizations, homologatedFormalizations] = await Promise.all([
       ctx.services.inventory.listLevels(ctx.actor),
       loadLookups(ctx),
       ctx.services.purchases.list(ctx.actor),
       ctx.services.processes.list(ctx.actor),
       ctx.services.atas.list(ctx.actor),
+      ctx.services.contracts.list(ctx.actor),
       ctx.services.formalizations.listPending(ctx.actor),
       ctx.services.formalizations.listHomologated(ctx.actor),
     ]);
@@ -38,6 +39,7 @@ async function Content() {
     if (!requests.ok) return requests;
     if (!processes.ok) return processes;
     if (!atas.ok) return atas;
+    if (!contracts.ok) return contracts;
     const summary = calculateStockSummary(levels.data);
     const formalizations = [
       ...(pendingFormalizations.ok ? pendingFormalizations.data : []),
@@ -94,6 +96,14 @@ async function Content() {
         processes: processes.data,
         atas: atas.data,
         materialLabel: lookups.data.materialLabel,
+        contracts: contracts.data.map((view) => ({
+          processId: view.contract.processId ?? null,
+          ataId: view.contract.ataId ?? null,
+          ataItems: (view.contract.ataItems ?? []).map((item) => ({
+            ataItemId: item.ataItemId,
+            quantity: item.quantity,
+          })),
+        })),
       }),
       canMove: canInAnyCouncil(ctx.actor, "stock.move"),
       canAdjust: canInAnyCouncil(ctx.actor, "stock.adjust"),

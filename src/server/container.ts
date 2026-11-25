@@ -78,7 +78,7 @@ export function createServices(repos: Repositories, runtime: RuntimeDeps): Servi
   const audit = new AuditService(repos.audit);
   const inventory = new InventoryService(repos.inventory, audit, runtime);
   const atas = new AtaService(repos.atas, audit, runtime, repos.processes);
-  const contracts = new ContractService(repos.contracts, audit, runtime, repos.processes);
+  const contracts = new ContractService(repos.contracts, audit, runtime, repos.processes, atas);
   const processes = new ProcessService(repos.processes, repos.documents, audit, runtime);
   const orders = new MaterialOrderService(repos.orders, inventory, audit, runtime);
   const formalizations = new FormalizationService(
@@ -103,7 +103,7 @@ export function createServices(repos: Repositories, runtime: RuntimeDeps): Servi
     transfers: new TransferService(repos.transfers, inventory, audit, runtime),
     atas,
     contracts,
-    purchases: new PurchaseRequestService(repos.purchases, atas, inventory, processes, audit, runtime),
+    purchases: new PurchaseRequestService(repos.purchases, atas, inventory, processes, audit, runtime, contracts),
     suppliers: new SupplierService(repos.suppliers, audit, runtime),
     meetings: new MeetingService(repos.meetings, audit, runtime),
     notifications: new NotificationService(repos.notifications, alertSource, audit, runtime),

@@ -1,6 +1,14 @@
 import { z } from "zod";
-import { dateOnlySchema, idSchema } from "@/shared/lib/service-support";
+import { dateOnlySchema, idSchema, positiveQuantitySchema } from "@/shared/lib/service-support";
 import type { ContractAmendment, ContractTerms } from "./domain/terms";
+
+/** Quantidade do contrato que consome saldo de um item da ata. */
+export interface ContractAtaItem {
+  id: string;
+  ataItemId: string;
+  quantity: number;
+  unitPrice: number;
+}
 
 /** R8: contrato é entidade distinta de ata de registro de preços e de estoque. */
 export interface Contract {
@@ -10,9 +18,12 @@ export interface Contract {
   supplierId: string | null;
   /** Processo administrativo do mesmo órgão. Atas com o mesmo processo ficam ligadas a este contrato. */
   processId?: string | null;
+  /** Ata de registro de preços da qual este contrato consome saldo (vários contratos por ata). */
+  ataId?: string | null;
   object: string;
   original: ContractTerms;
   amendments: ContractAmendment[];
+  ataItems: ContractAtaItem[];
   createdAt: Date;
 }
 
@@ -21,10 +32,21 @@ export const createContractSchema = z.object({
   number: z.string().trim().min(1).max(40),
   supplierId: idSchema.nullable().optional(),
   processId: idSchema.nullable().optional(),
+  ataId: idSchema.nullable().optional(),
   object: z.string().trim().min(3).max(500),
   startDate: dateOnlySchema,
   endDate: dateOnlySchema,
   value: z.number().min(0),
+  ataItems: z
+    .array(
+      z.object({
+        ataItemId: idSchema,
+        quantity: positiveQuantitySchema,
+        unitPrice: z.number().min(0).optional(),
+      }),
+    )
+    .optional()
+    .default([]),
 });
 
 export const linkContractProcessSchema = z.object({

@@ -16,6 +16,21 @@ describe("parseExtractedContract", () => {
     expect(parseExtractedContract(JSON.stringify({ ...valid, value: null }))).toMatchObject({ value: null, number: "24/2026" });
   });
 
+  it("soma itens quando o valor global vem nulo", () => {
+    const parsed = parseExtractedContract(
+      JSON.stringify({
+        ...valid,
+        value: null,
+        items: [
+          { description: "Papel", quantity: 10, unitPrice: 2, lineTotal: null },
+          { description: "Caneta", quantity: 5, unitPrice: 1, lineTotal: null },
+        ],
+      }),
+    );
+    expect(parsed?.value).toBe(25);
+    expect(parsed?.items[0]?.lineTotal).toBe(20);
+  });
+
   it("rejeita datas ou valores incompatíveis sem preencher o cadastro", () => {
     expect(parseExtractedContract(JSON.stringify({ ...valid, endDate: "31/12/2026" }))).toBeNull();
     expect(parseExtractedContract(JSON.stringify({ ...valid, value: "R$ 1.234,56" }))).toBeNull();

@@ -148,6 +148,18 @@ export async function ProcessContent({
             balance,
             totalValue,
             itemCount: item.items.length,
+            items: item.items.map((row) => {
+              const source = item.ata.items.find((ataItem) => ataItem.id === row.itemId);
+              return {
+                itemId: row.itemId,
+                description: row.description,
+                materialLabel: row.materialId
+                  ? (lookups.data.materialLabel[row.materialId] ?? row.description)
+                  : row.description,
+                balance: row.balance.balance,
+                unitPrice: source?.unitPrice ?? 0,
+              };
+            }),
           };
         }),
       linkedContracts: contracts.data

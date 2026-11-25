@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChangeEvent } from "react";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "./currency-input";
 import { FormField, SelectControl, TextareaControl } from "@/shared/ui/form-field";
@@ -30,11 +31,22 @@ export function TextField({
   required,
   type = "text",
   defaultValue,
+  value,
+  onChange,
   placeholder,
   step,
   min,
   inputMode,
-}: BaseFieldProps & { type?: string; defaultValue?: string; placeholder?: string; step?: string; min?: string; inputMode?: "decimal" | "numeric" | "text" | "tel" | "email" }) {
+}: BaseFieldProps & {
+  type?: string;
+  defaultValue?: string;
+  value?: string;
+  onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  step?: string;
+  min?: string;
+  inputMode?: "decimal" | "numeric" | "text" | "tel" | "email";
+}) {
   return (
     <FormField label={label} errors={errors} hint={hint} required={required}>
       {(p) => (
@@ -43,7 +55,7 @@ export function TextField({
           name={name}
           type={type}
           required={required}
-          defaultValue={defaultValue}
+          {...(value !== undefined ? { value, onChange } : { defaultValue, onChange })}
           placeholder={placeholder}
           step={step}
           min={min}

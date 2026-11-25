@@ -33,7 +33,13 @@ export async function POST(request: Request) {
         temperature: 0,
         abortSignal: AbortSignal.timeout(20_000),
         providerOptions: { groq: { reasoningFormat: "hidden", reasoningEffort: "low" } },
-        system: 'Extraia dados de um contrato em português do Brasil. Use somente o texto fornecido. Para dados ausentes ou ambíguos, use null. Não confunda valor global com valor mensal nem início/fim com data de assinatura. Datas em AAAA-MM-DD e valor em número decimal. Responda apenas JSON válido com as chaves supplierName, supplierCnpj, number, object, startDate, endDate, value.',
+        system:
+          "Extraia dados de um contrato em português do Brasil. Use somente o texto fornecido. " +
+          "Para dados ausentes ou ambíguos, use null. Não confunda valor global com valor mensal nem início/fim com data de assinatura. " +
+          "Datas em AAAA-MM-DD e valores em número decimal. " +
+          "Em items, liste cada item/material com description, quantity, unitPrice e lineTotal (quantity*unitPrice quando possível). " +
+          "Some value com a soma dos lineTotal quando o valor global não estiver explícito. " +
+          "Responda apenas JSON válido com as chaves supplierName, supplierCnpj, number, object, startDate, endDate, value, items.",
         prompt: sourceText.slice(0, 35_000),
       });
       const fields = parseExtractedContract(result.text);

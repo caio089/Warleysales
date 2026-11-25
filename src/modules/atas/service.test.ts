@@ -101,4 +101,20 @@ describe("AtaService — vigência (R10) e permissões", () => {
     const r = await ctx.service.create(manager(), { councilId: COUNCIL_A, number: "1", startDate: "01/11/2026", items: [] });
     expect(!r.ok && r.code).toBe("VALIDATION");
   });
+  it("recusa número de ata já usado no mesmo órgão", async () => {
+    const first = await ctx.service.create(manager(), {
+      councilId: COUNCIL_A,
+      number: "ARP 01/2026",
+      startDate: "2026-11-01",
+      items: [{ description: "Papel", registeredQuantity: 1, unitPrice: 1 }],
+    });
+    expect(first.ok).toBe(true);
+    const second = await ctx.service.create(manager(), {
+      councilId: COUNCIL_A,
+      number: "ARP 01/2026",
+      startDate: "2026-11-01",
+      items: [{ description: "Caneta", registeredQuantity: 1, unitPrice: 1 }],
+    });
+    expect(!second.ok && second.code).toBe("CONFLICT");
+  });
 });

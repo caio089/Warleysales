@@ -1,5 +1,5 @@
 import { MemoryTable } from "@/shared/lib/memory-table";
-import type { Result } from "@/shared/lib/result";
+import { fail, ok, type Result } from "@/shared/lib/result";
 import type { CommitmentEvent } from "./domain/balance";
 import type { AtaRepository } from "./repository";
 import type { PriceRegistrationAta } from "./schemas";
@@ -8,7 +8,19 @@ export class InMemoryAtaRepository implements AtaRepository {
   private table = new MemoryTable<PriceRegistrationAta>();
   private events = new Map<string, CommitmentEvent[]>();
 
-  async insert(a: PriceRegistrationAta) { return this.table.insert(a); }
+  async insert(a: PriceRegistrationAta) {
+    const duplicate = this.table.all(
+      (row) =>
+        row.councilId === a.councilId &&
+        row.number.trim().toLocaleLowerCase("pt-BR") === a.number.trim().toLocaleLowerCase("pt-BR"),
+    );
+    if (duplicate.length > 0) {
+      return fail("CONFLICT", "Já existe uma ata com este número neste órgão. Altere o número.", {
+        number: ["Número já cadastrado."],
+      });
+    }
+    return ok(this.table.insert(a));
+  }
   async findById(id: string) { return this.table.get(id); }
   async findByItemId(itemId: string) { return this.table.all((a) => a.items.some((i) => i.id === itemId))[0] ?? null; }
   async listByCouncils(ids: readonly string[] | "all", process?: { id: string; councilId: string }) {
