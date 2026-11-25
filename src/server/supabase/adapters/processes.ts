@@ -18,6 +18,8 @@ interface SnapshotJson {
 
 interface ProcessRow {
   estimated_value?: number | null;
+  validity_start_date?: string | null;
+  contracting_mode?: AdministrativeProcess["contractingMode"];
   document_exceptions?: AdministrativeProcess["documentExceptions"];
   id: string;
   council_id: string;
@@ -35,6 +37,8 @@ interface ProcessRow {
 
 const toProcess = (row: ProcessRow): AdministrativeProcess => ({
   estimatedValue: row.estimated_value ?? null,
+  validityStartDate: row.validity_start_date ?? null,
+  contractingMode: row.contracting_mode ?? null,
   documentExceptions: row.document_exceptions ?? {},
   id: row.id,
   councilId: row.council_id,
@@ -61,6 +65,8 @@ function toProcessChanges(changes: Partial<AdministrativeProcess>): Record<strin
   if (changes.documentalCompletedAt !== undefined) row.documental_completed_at = toIsoOrNull(changes.documentalCompletedAt);
   if (changes.snapshot !== undefined) row.documental_snapshot = snapshotToJson(changes.snapshot);
   if (changes.closingReportRegistered !== undefined) row.closing_report_registered = changes.closingReportRegistered;
+  if (changes.validityStartDate !== undefined) row.validity_start_date = changes.validityStartDate;
+  if (changes.contractingMode !== undefined) row.contracting_mode = changes.contractingMode;
   return row;
 }
 

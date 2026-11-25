@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@/modules/processes/estimated-value-action", () => ({ saveProcessEstimatedValue: vi.fn() }));
+vi.mock("@/modules/processes/validity-start-action", () => ({ saveProcessValidityStartDate: vi.fn() }));
+vi.mock("@/modules/processes/contracting-mode-action", () => ({ saveProcessContractingMode: vi.fn() }));
 vi.mock("@/modules/processes/exception-action", () => ({ documentExceptionAction: vi.fn() }));
 
 vi.mock("next/navigation", () => ({
@@ -92,6 +94,29 @@ describe("DocumentationTab", () => {
 
       // Pendentes devem ter o badge Pendente
       expect(html).toContain("Pendente");
+    });
+
+    it("permite informar a vigência no TR para reutilizar na ata e no contrato", () => {
+      const html = renderToStaticMarkup(
+        <DocumentationTab
+          {...BASE_PROPS}
+          validityStartDate="2026-03-01"
+          canEditValidityStart
+        />,
+      );
+      expect(html).toContain("Vigência no Termo de Referência");
+      expect(html).toContain("Salvar vigência");
+      expect(html).toContain("01/03/2026");
+    });
+
+    it("pergunta se é registro de preços para definir ata ou só contrato", () => {
+      const html = renderToStaticMarkup(
+        <DocumentationTab {...BASE_PROPS} canEditContractingMode contractingMode={null} />,
+      );
+      expect(html).toContain("É registro de preços?");
+      expect(html).toContain("Sim — registro de preços");
+      expect(html).toContain("Não — só contrato");
+      expect(html).toContain("Salvar resposta");
     });
   });
 

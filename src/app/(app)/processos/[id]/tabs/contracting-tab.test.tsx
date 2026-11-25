@@ -132,12 +132,17 @@ describe("ContractingTab", () => {
         suppliers={MOCK_SUPPLIERS}
         isWarley={false}
         canLink
+        contractingMode="registro_precos"
         availableAtas={[{ value: "ata-9", label: "ARP 099/2026" }]}
         availableContracts={[{ value: "ctr-9", label: "CT 099/2026" }]}
         draft={{
           councilLabel: "CRQ18",
           processLabel: "12/2027 — Material de expediente",
+          processNumber: "12/2027",
           materials: [{ value: "mat-1", label: "Papel A4" }],
+          requestMaterials: [{ materialId: "mat-1", name: "Papel A4", quantity: 100 }],
+          defaultValue: 5000,
+          validityStartDate: "2026-03-01",
           suppliers: [{ value: "sup-1", label: "Papelaria Central Ltda", cnpj: null }],
         }}
       />,
@@ -147,10 +152,43 @@ describe("ContractingTab", () => {
     expect(html).toContain("ARP 099/2026");
     expect(html).toContain("Anexar contrato");
     expect(html).toContain("CT 099/2026");
-    expect(html).toContain("Número da ata");
-    expect(html).toContain("Confirmar e cadastrar contrato");
+    expect(html).toContain("Empresa vencedora");
+    expect(html).toContain("Valor da ata");
+    expect(html).toContain("Papel A4");
+    expect(html).not.toContain("Número da ata");
+    expect(html).toContain("Registrar contrato");
+    expect(html).toContain("Puxada do Termo de Referência");
     expect(html).toContain("12/2027 — Material de expediente");
     expect(html.indexOf("1. Ata de registro de preços")).toBeLessThan(html.indexOf("2. Contrato"));
+  });
+
+  it("esconde a ata quando o processo é somente contrato", () => {
+    const html = renderToStaticMarkup(
+      <ContractingTab
+        processId="proc-1"
+        councilId="council-a"
+        documentalComplete={true}
+        formalization={null}
+        suppliers={MOCK_SUPPLIERS}
+        isWarley={false}
+        canLink
+        contractingMode="contrato"
+        availableContracts={[{ value: "ctr-9", label: "CT 099/2026" }]}
+        draft={{
+          councilLabel: "CRQ18",
+          processLabel: "12/2027 — Material de expediente",
+          processNumber: "12/2027",
+          materials: [],
+          requestMaterials: [],
+          suppliers: [{ value: "sup-1", label: "Papelaria Central Ltda", cnpj: null }],
+        }}
+      />,
+    );
+
+    expect(html).toContain("somente contrato");
+    expect(html).toContain("1. Contrato");
+    expect(html).not.toContain("1. Ata de registro de preços");
+    expect(html).not.toContain("Valor da ata");
   });
 
   it("renderiza cards elegantes com links, vigência e valores para atas e contratos vinculados", () => {

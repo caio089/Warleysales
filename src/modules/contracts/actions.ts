@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { runAction } from "@/server/action-runner";
 import { can } from "@/shared/lib/authz/policy";
-import { diffInDays } from "@/shared/lib/time";
+import { computeInitialEndDate } from "@/modules/atas/domain/validity";
+import { diffInDays, isValidDateOnly } from "@/shared/lib/time";
 import { createContractSchema } from "./schemas";
 import type { ActionState } from "@/shared/ui/forms/action-state";
 
@@ -19,10 +20,16 @@ function processReturnPath(formData: FormData): string | null {
 }
 
 export async function createContractFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  const startDateRaw = String(formData.get("startDate") ?? "").trim();
+  const endDateRaw = String(formData.get("endDate") ?? "").trim();
+  const endDate =
+    endDateRaw ||
+    (isValidDateOnly(startDateRaw) ? computeInitialEndDate(startDateRaw) : endDateRaw);
+
   const input = {
     councilId: formData.get("councilId"), number: formData.get("number"), object: formData.get("object"),
     processId: optionalText(formData.get("processId")) ?? null,
-    startDate: formData.get("startDate"), endDate: formData.get("endDate"), value: optionalNumber(formData.get("value")) ?? 0,
+    startDate: startDateRaw, endDate, value: optionalNumber(formData.get("value")) ?? 0,
   };
   const result = await runAction(async ({ services, actor }) => {
     const parsed = createContractSchema.safeParse(input);

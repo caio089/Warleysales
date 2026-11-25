@@ -2,8 +2,12 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { AtaValidityField } from "@/app/(app)/atas/nova/ata-validity-field";
+import { computeInitialEndDate } from "@/modules/atas/domain/validity";
 import type { ExtractedContract } from "@/modules/contracts/pdf-extraction";
 import { createContractFormAction } from "@/modules/contracts/actions";
+import { formatCurrency } from "@/shared/lib/format";
+import { formatDateOnly } from "@/shared/lib/time";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { CurrencyField, SelectField, TextField } from "@/shared/ui/forms/fields";
 
@@ -22,8 +26,18 @@ export function NewContractForm({
   processes: ProcessOption[];
   suppliers: SupplierOption[];
   defaultProcessId?: string;
-  /** Dentro do processo, órgão e pasta já estão definidos. */
-  lockedProcess?: { councilId: string; councilLabel: string; processId: string; processLabel: string };
+  /** Dentro do processo: puxa materiais, vigência do TR e valor do PP. */
+  lockedProcess?: {
+    councilId: string;
+    councilLabel: string;
+    processId: string;
+    processLabel: string;
+    processNumber: string;
+    object?: string;
+    defaultValue?: number | null;
+    validityStartDate?: string | null;
+    requestMaterials?: { materialId: string; name: string; quantity: number }[];
+  };
 }) {
   const initial = processes.find((process) => process.value === defaultProcessId);
   const [councilId, setCouncilId] = useState(lockedProcess?.councilId ?? initial?.councilId ?? "");
@@ -33,6 +47,7 @@ export function NewContractForm({
   const [reading, setReading] = useState(false);
   const [message, setMessage] = useState("");
   const visibleProcesses = processes.filter((process) => !councilId || process.councilId === councilId);
+
   async function readPdf() {
     if (!pdfFile) return;
     if (pdfFile.type !== "application/pdf" || pdfFile.size > 10 * 1024 * 1024) {
@@ -59,6 +74,97 @@ export function NewContractForm({
       setReading(false);
     }
   }
+
+  if (lockedProcess) {
+    const materials = lockedProcess.requestMaterials ?? [];
+    const start = lockedProcess.validityStartDate ?? undefined;
+    const end = start ? computeInitialEndDate(start) : undefined;
+    const suggestedNumber = `CTR ${lockedProcess.processNumber}`.slice(0, 40);
+    const object =
+      lockedProcess.object
+      ?? (materials.length === 1 ? materials[0]!.name : lockedProcess.processLabel);
+
+    return (
+      <ActionForm
+        action={createContractFormAction}
+        submitLabel="Registrar contrato"
+        hiddenFields={{
+          councilId: lockedProcess.councilId,
+          processId: lockedProcess.processId,
+          number: suggestedNumber,
+          object,
+          returnTo: `/processos/${lockedProcess.processId}`,
+        }}
+      >
+        {(e) => (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-border/70 bg-muted/15 px-3.5 py-3 text-sm">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Dados puxados do processo
+              </p>
+              <p className="mt-1 text-foreground">{lockedProcess.processLabel}</p>
+              {materials.length > 0 ? (
+                <ul className="mt-2 space-y-1 text-muted-foreground">
+                  {materials.map((item) => (
+                    <li key={`${item.materialId}-${item.name}`}>
+                      {item.name} · qtd {item.quantity}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {start ? (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Vigência do TR: {formatDateOnly(start)}
+                  {end ? ` até ${formatDateOnly(end)}` : ""}
+                </p>
+              ) : (
+                <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+                  Ainda sem vigência no TR — informe abaixo ou salve antes na aba Documentos (TR).
+                </p>
+              )}
+            </div>
+
+            <SelectField
+              name="supplierId"
+              label="Empresa vencedora"
+              required
+              options={suppliers.map((supplier) => ({
+                value: supplier.value,
+                label: supplier.cnpj ? `${supplier.label} · ${supplier.cnpj}` : supplier.label,
+              }))}
+              placeholder="Selecione a empresa"
+              errors={e.supplierId}
+            />
+
+            <AtaValidityField
+              errors={e.startDate}
+              defaultStartDate={start}
+              endFieldName="endDate"
+              hint={
+                start
+                  ? "Puxada do Termo de Referência. O fim do contrato acompanha 1 ano."
+                  : "Informe o início. Ideal: salvar antes no TR para reutilizar na ata e no contrato."
+              }
+            />
+
+            <CurrencyField
+              name="value"
+              label="Valor do contrato (R$)"
+              required
+              defaultValue={lockedProcess.defaultValue ?? undefined}
+              hint={
+                lockedProcess.defaultValue != null
+                  ? `Sugestão do processo/PP: ${formatCurrency(lockedProcess.defaultValue)}`
+                  : undefined
+              }
+              errors={e.value}
+            />
+          </div>
+        )}
+      </ActionForm>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <section className="space-y-3 rounded-lg border border-border p-4" aria-label="Ler contrato em PDF">
@@ -71,19 +177,10 @@ export function NewContractForm({
       <ActionForm
         action={createContractFormAction}
         submitLabel="Confirmar e cadastrar contrato"
-        hiddenFields={lockedProcess ? {
-          councilId: lockedProcess.councilId,
-          processId: lockedProcess.processId,
-          returnTo: `/processos/${lockedProcess.processId}`,
-        } : undefined}
       >
       {(e) => (<>
-        {lockedProcess ? (
-          <p className="text-sm text-muted-foreground">Órgão {lockedProcess.councilLabel}. Processo {lockedProcess.processLabel}. O contrato fica nesta pasta, depois da ata.</p>
-        ) : (<>
           <SelectField name="councilId" label="Órgão" required options={councils} defaultValue={councilId} errors={e.councilId} onChange={setCouncilId} />
           <SelectField key={`${councilId || "todos"}-${defaultProcessId}`} name="processId" label="Processo" options={visibleProcesses} optional placeholder="Sem processo" defaultValue={visibleProcesses.some((process) => process.value === defaultProcessId) ? defaultProcessId : ""} hint="Use o mesmo processo da ata para os dois ficarem ligados." errors={e.processId} />
-        </>)}
         <SelectField key={`supplier-${supplierId}`} name="supplierId" label="Fornecedor existente" options={suppliers} optional placeholder="Cadastrar pelo nome abaixo" defaultValue={supplierId} onChange={setSupplierId} errors={e.supplierId} />
         <TextField key={`name-${extracted?.supplierName ?? ""}`} name="supplierName" label="Empresa/fornecedor (se novo)" defaultValue={extracted?.supplierName ?? ""} hint="Se não selecionar um fornecedor existente, este nome será cadastrado ao confirmar." errors={e.supplierName} />
         <TextField key={`cnpj-${extracted?.supplierCnpj ?? ""}`} name="supplierCnpj" label="CNPJ (se novo)" defaultValue={extracted?.supplierCnpj ?? ""} errors={e.supplierCnpj} />

@@ -19,17 +19,74 @@ function processReturnPath(formData: FormData): string | null {
   return `${raw}?aba=contratacao`;
 }
 
+function readProcessItems(formData: FormData): {
+  description: string;
+  materialId: string | null;
+  registeredQuantity: number;
+  unitPrice: number;
+}[] | null {
+  const itemCount = Number(formData.get("itemCount") ?? 0);
+  if (!Number.isFinite(itemCount) || itemCount < 1) return null;
+
+  const rows = Array.from({ length: itemCount }, (_, index) => ({
+    description: String(formData.get(`items.${index}.description`) ?? "").trim(),
+    materialId: optionalId(formData.get(`items.${index}.materialId`)),
+    registeredQuantity: toNumber(formData.get(`items.${index}.registeredQuantity`)),
+  }));
+
+  const totalValue = toNumber(formData.get("totalValue"));
+  if (!Number.isFinite(totalValue) || totalValue < 0) return null;
+
+  const sumQty = rows.reduce((total, row) => total + (Number.isFinite(row.registeredQuantity) ? row.registeredQuantity : 0), 0);
+  const unitPrice = sumQty > 0 ? totalValue / sumQty : totalValue;
+
+  return rows.map((row) => ({
+    ...row,
+    unitPrice,
+  }));
+}
+
 export async function createAtaFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
-  const materialId = String(formData.get("materialId") ?? "");
+  const processId = optionalId(formData.get("processId"));
+  const supplierId = optionalId(formData.get("supplierId"));
+  const processItems = readProcessItems(formData);
+
+  let number = String(formData.get("number") ?? "").trim();
+  if (!number && processId) {
+    const processNumber = String(formData.get("processNumber") ?? "").trim();
+    number = processNumber ? `ARP ${processNumber}` : `ARP-${processId.slice(0, 8)}`;
+  }
+
+  const items = processItems ?? [{
+    description: formData.get("description"),
+    materialId: optionalId(formData.get("materialId")),
+    registeredQuantity: toNumber(formData.get("registeredQuantity")),
+    unitPrice: toNumber(formData.get("unitPrice")),
+  }];
+
+  if (processId && !supplierId) {
+    return {
+      status: "error",
+      message: "Selecione a empresa vencedora.",
+      fieldErrors: { supplierId: ["Informe a empresa que ganhou."] },
+    };
+  }
+
+  if (processItems && (!Number.isFinite(toNumber(formData.get("totalValue"))) || toNumber(formData.get("totalValue")) < 0)) {
+    return {
+      status: "error",
+      message: "Informe o valor da ata.",
+      fieldErrors: { totalValue: ["Informe o valor da ata."] },
+    };
+  }
+
   const result = await runAction(({ services, actor }) => services.atas.create(actor, {
-    councilId: formData.get("councilId"), number: formData.get("number"), startDate: formData.get("startDate"),
-    processId: optionalId(formData.get("processId")),
-    items: [{
-      description: formData.get("description"),
-      materialId: materialId || null,
-      registeredQuantity: toNumber(formData.get("registeredQuantity")),
-      unitPrice: toNumber(formData.get("unitPrice")),
-    }],
+    councilId: formData.get("councilId"),
+    number,
+    startDate: formData.get("startDate"),
+    processId,
+    supplierId,
+    items,
   }), "Ata criada como rascunho.");
   if (result.status !== "success" || !result.data) return result.status === "success" ? result : result;
   revalidatePath("/atas");

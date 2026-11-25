@@ -138,7 +138,11 @@ export async function ProcessContent({
       instrumentDraft: {
         councilLabel: lookups.data.councilLabel[councilId] ?? "Órgão",
         processLabel: `${view.process.number} — ${view.process.title}`,
+        processNumber: view.process.number,
         materials: lookups.data.materials.map((material) => ({ value: material.id, label: material.label })),
+        requestMaterials: requestItems,
+        defaultValue: linkedRequest?.estimatedValue ?? view.process.estimatedValue ?? null,
+        validityStartDate: view.process.validityStartDate ?? null,
         suppliers: suppliers.data
           .filter((supplier) => supplier.active)
           .map((supplier) => ({ value: supplier.id, label: supplier.name, cnpj: supplier.cnpj })),

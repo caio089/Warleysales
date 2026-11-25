@@ -2,9 +2,14 @@ import { z } from "zod";
 import { idSchema } from "@/shared/lib/service-support";
 import type { DocumentalSnapshot } from "./domain/completion";
 import type { ProcessStatus } from "./domain/process-status";
+import type { ProcessContractingMode } from "./contracting-mode";
 
 export interface AdministrativeProcess {
   estimatedValue?: number | null;
+  /** Início da vigência informado no TR; reutilizado na ata e no contrato. */
+  validityStartDate?: string | null;
+  /** Registro de preços (ata + contrato) ou somente contrato. */
+  contractingMode?: ProcessContractingMode | null;
   documentExceptions?: Record<string, { justification: string; actorId: string; at: string }>;
   id: string;
   councilId: string;

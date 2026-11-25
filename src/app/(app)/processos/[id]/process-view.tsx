@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { ClipboardCheck, FolderKanban, Handshake, History, ShieldCheck } from "lucide-react";
 import { DOCUMENT_TYPES } from "@/modules/processes/domain/document-types";
+import { needsAta } from "@/modules/processes/contracting-mode";
 import Link from "next/link";
 import type { Attachment } from "@/modules/documents/schemas";
 import type { ProcessAttachment } from "@/modules/processes/domain/progress";
@@ -77,7 +78,11 @@ export interface ProcessViewProps {
   instrumentDraft?: {
     councilLabel: string;
     processLabel: string;
+    processNumber: string;
     materials: { value: string; label: string }[];
+    requestMaterials: { materialId: string; name: string; quantity: number }[];
+    defaultValue?: number | null;
+    validityStartDate?: string | null;
     suppliers: { value: string; label: string; cnpj: string | null }[];
   };
   initialTab?: ProcessTabId;
@@ -168,9 +173,10 @@ export function ProcessView({
     ? `Item ${dossier.itemNumber} do PCA. ${dossier.contractingForm}. Concluir em ${dossier.plannedMonth}. Vencimento atual: ${dossier.expiry?.raw ?? "não informado"}.`
     : "";
   const documentsReady = view.progress.isComplete;
+  const ataRequired = needsAta(view.process.contractingMode);
   const readyToRelease =
     documentsReady &&
-    linkedAtas.length > 0 &&
+    (!ataRequired || linkedAtas.length > 0) &&
     linkedContracts.length > 0 &&
     initialValue != null;
   const releaseStatusText =
@@ -338,6 +344,10 @@ export function ProcessView({
               <DocumentationTab
                 estimatedValue={initialValue}
                 canEditEstimatedValue={canManageDocs && !view.process.snapshot && !["cancelado", "arquivado"].includes(view.process.status)}
+                validityStartDate={view.process.validityStartDate ?? null}
+                canEditValidityStart={canManageDocs && !view.process.snapshot && !["cancelado", "arquivado"].includes(view.process.status)}
+                contractingMode={view.process.contractingMode ?? null}
+                canEditContractingMode={canManageDocs && !view.process.snapshot && !["cancelado", "arquivado"].includes(view.process.status)}
                 processId={view.process.id}
                 documentExceptions={view.process.documentExceptions}
                 validTypes={view.progress.validTypes}
@@ -379,6 +389,7 @@ export function ProcessView({
               availableContracts={availableContracts}
               canLink={canLinkInstruments}
               draft={instrumentDraft}
+              contractingMode={view.process.contractingMode ?? null}
             />
           )}
         </div>

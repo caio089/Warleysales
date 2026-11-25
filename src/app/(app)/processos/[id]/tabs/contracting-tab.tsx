@@ -4,6 +4,8 @@ import Link from "next/link";
 import { ExternalLink, FileCheck2, ScrollText } from "lucide-react";
 import { NewAtaForm } from "@/app/(app)/atas/nova/new-ata-form";
 import { NewContractForm } from "@/app/(app)/contratos/novo/new-contract-form";
+import type { ProcessContractingMode } from "@/modules/processes/contracting-mode";
+import { needsAta } from "@/modules/processes/contracting-mode";
 import { formatCurrency } from "@/shared/lib/format";
 import { formatDateOnly } from "@/shared/lib/time";
 import { LinkAtaToProcessForm, LinkContractToProcessForm } from "@/shared/ui/forms/link-process-form";
@@ -46,11 +48,16 @@ export interface ContractingTabProps {
   availableAtas?: { value: string; label: string }[];
   availableContracts?: { value: string; label: string }[];
   canLink?: boolean;
+  contractingMode?: ProcessContractingMode | null;
   /** Dados para criar ata e contrato sem sair deste processo. */
   draft?: {
     councilLabel: string;
     processLabel: string;
+    processNumber: string;
     materials: { value: string; label: string }[];
+    requestMaterials: { materialId: string; name: string; quantity: number }[];
+    defaultValue?: number | null;
+    validityStartDate?: string | null;
     suppliers: { value: string; label: string; cnpj: string | null }[];
   };
 }
@@ -73,8 +80,11 @@ export function ContractingTab({
   availableContracts = [],
   canLink = false,
   draft,
+  contractingMode = null,
 }: ContractingTabProps) {
-  const instrumentsReady = linkedAtas.length > 0 && linkedContracts.length > 0;
+  const showAta = needsAta(contractingMode);
+  const instrumentsReady =
+    (!showAta || linkedAtas.length > 0) && linkedContracts.length > 0;
   return (
     <div className="space-y-6">
       {/* Seção Superior: Instrumentos Contratuais Vinculados */}
@@ -92,13 +102,28 @@ export function ContractingTab({
                 Instrumentos Contratuais Vinculados
               </h2>
               <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-                Primeiro a ata. Depois o contrato. Os dois podem ser criados aqui ou anexados se já existirem no órgão.
+                {contractingMode === "contrato"
+                  ? "Este processo é somente contrato (sem ata). A escolha foi feita na aba Documentação."
+                  : contractingMode === "registro_precos"
+                    ? "Registro de preços: primeiro a ata, depois o contrato."
+                    : "Defina na aba Documentação se é registro de preços (tem ata) ou só contrato."}
               </p>
             </div>
           </div>
         </header>
 
+        {!contractingMode ? (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-foreground">
+            Ainda não foi informado se é registro de preços. Responda em{" "}
+            <Link href="?aba=documentos" className="font-medium text-primary hover:underline">
+              Documentação
+            </Link>{" "}
+            para liberar o fluxo certo de ata e contrato.
+          </div>
+        ) : null}
+
         <ol className="space-y-8">
+          {showAta ? (
           <li className="space-y-3">
             <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
               <ScrollText className="size-4 text-primary" aria-hidden="true" />
@@ -163,6 +188,11 @@ export function ContractingTab({
                       councilLabel: draft.councilLabel,
                       processId,
                       processLabel: draft.processLabel,
+                      processNumber: draft.processNumber,
+                      materials: draft.requestMaterials,
+                      suppliers: draft.suppliers,
+                      defaultValue: draft.defaultValue,
+                      validityStartDate: draft.validityStartDate,
                     }}
                   />
                 ) : (
@@ -173,11 +203,16 @@ export function ContractingTab({
               </div>
             ) : null}
           </li>
+          ) : (
+            <li className="rounded-xl border border-dashed border-border/80 bg-muted/15 px-4 py-3 text-sm text-muted-foreground">
+              Sem ata neste processo — marcado como somente contrato na Documentação.
+            </li>
+          )}
 
           <li className="space-y-3">
             <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
               <FileCheck2 className="size-4 text-primary" aria-hidden="true" />
-              2. Contrato ({linkedContracts.length})
+              {showAta ? "2. Contrato" : "1. Contrato"} ({linkedContracts.length})
             </h3>
             {linkedContracts.length > 0 ? (
               <div className="space-y-2.5">
@@ -247,6 +282,11 @@ export function ContractingTab({
                       councilLabel: draft.councilLabel,
                       processId,
                       processLabel: draft.processLabel,
+                      processNumber: draft.processNumber,
+                      object: draft.processLabel,
+                      defaultValue: draft.defaultValue,
+                      validityStartDate: draft.validityStartDate,
+                      requestMaterials: draft.requestMaterials,
                     }}
                   />
                 ) : (

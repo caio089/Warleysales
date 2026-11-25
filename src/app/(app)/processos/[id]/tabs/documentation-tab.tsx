@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, CalendarClock, Download, FileText, Loader2, Plus } from "lucide-react";
+import { Archive, CalendarClock, Download, FileText, Loader2, Plus, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   confirmDocumentUploadAction,
@@ -12,15 +12,23 @@ import {
 } from "@/modules/documents/actions";
 import type { ProcessAttachment } from "@/modules/processes/domain/progress";
 import type { AdministrativeProcess } from "@/modules/processes/schemas";
+import {
+  PROCESS_CONTRACTING_MODES,
+  type ProcessContractingMode,
+} from "@/modules/processes/contracting-mode";
+import { saveProcessContractingMode } from "@/modules/processes/contracting-mode-action";
 import { saveProcessEstimatedValue } from "@/modules/processes/estimated-value-action";
+import { saveProcessValidityStartDate } from "@/modules/processes/validity-start-action";
 import { sha256Hex, uploadToSignedUrl } from "@/shared/lib/browser-upload";
 import { formatBytes, formatCurrency } from "@/shared/lib/format";
 import { CurrencyField } from "@/shared/ui/forms/fields";
-import { formatDateTimeFortaleza } from "@/shared/lib/time";
+import { formatDateOnly, formatDateTimeFortaleza } from "@/shared/lib/time";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { toast } from "@/shared/ui/toast-store";
+import { AtaValidityField } from "@/app/(app)/atas/nova/ata-validity-field";
 import { CompactDocumentRow } from "../compact-document-row";
 import { documentPlacementDates } from "../process-history";
+import { cn } from "@/lib/utils";
 
 /** Os 7 documentos obrigatórios na ordem legal da Lei 14.133 / PNCP. */
 export const MANDATORY_DOCUMENTS = [
@@ -51,6 +59,11 @@ export interface DocumentationTabProps {
   processId: string;
   estimatedValue?: number | null;
   canEditEstimatedValue?: boolean;
+  /** Vigência informada no TR (AAAA-MM-DD). */
+  validityStartDate?: string | null;
+  canEditValidityStart?: boolean;
+  contractingMode?: ProcessContractingMode | null;
+  canEditContractingMode?: boolean;
   documentExceptions?: AdministrativeProcess["documentExceptions"];
   validTypes: string[];
   documents: (ProcessAttachment | DocumentationTabDocument)[];
@@ -77,6 +90,10 @@ export function DocumentationTab({
   processId,
   estimatedValue,
   canEditEstimatedValue,
+  validityStartDate,
+  canEditValidityStart,
+  contractingMode = null,
+  canEditContractingMode,
   documentExceptions,
   validTypes,
   documents,
@@ -162,6 +179,83 @@ export function DocumentationTab({
   return (
     <div className="space-y-6">
       <section
+        aria-label="Modo de contratação"
+        className="surface-card space-y-4 p-5 sm:p-6"
+      >
+        <header className="flex items-start gap-3 border-b border-border/60 pb-3">
+          <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
+            <ScrollText className="size-5" aria-hidden />
+          </span>
+          <div>
+            <h2 className="font-heading text-base font-semibold text-foreground sm:text-lg">
+              É registro de preços?
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+              Isso define o que aparece em Atas e contratos: com ata (registro de preços) ou só contrato.
+            </p>
+          </div>
+        </header>
+
+        {canEditContractingMode ? (
+          <ActionForm
+            action={saveProcessContractingMode}
+            submitLabel="Salvar resposta"
+            hiddenFields={{ processId }}
+            resetOnSuccess={false}
+            submitVariant="outline"
+          >
+            {(errors) => (
+              <fieldset className="space-y-3">
+                <legend className="sr-only">Modo de contratação</legend>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {PROCESS_CONTRACTING_MODES.map((mode) => {
+                    const selected = contractingMode === mode.value;
+                    return (
+                      <label
+                        key={mode.value}
+                        className={cn(
+                          "flex cursor-pointer flex-col gap-1 rounded-xl border px-3.5 py-3 transition-colors",
+                          selected
+                            ? "border-primary bg-primary/5"
+                            : "border-border/70 bg-muted/10 hover:border-primary/40",
+                        )}
+                      >
+                        <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                          <input
+                            type="radio"
+                            name="contractingMode"
+                            value={mode.value}
+                            defaultChecked={selected}
+                            required
+                            className="size-4 accent-primary"
+                          />
+                          {mode.label}
+                        </span>
+                        <span className="pl-6 text-xs text-muted-foreground">{mode.description}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {errors.contractingMode ? (
+                  <p className="text-xs text-destructive" role="alert">
+                    {errors.contractingMode.join(" ")}
+                  </p>
+                ) : null}
+              </fieldset>
+            )}
+          </ActionForm>
+        ) : (
+          <p className="text-sm text-foreground">
+            {contractingMode === "registro_precos"
+              ? "Sim — registro de preços (ata + contrato)."
+              : contractingMode === "contrato"
+                ? "Não — somente contrato."
+                : "Ainda não definido."}
+          </p>
+        )}
+      </section>
+
+      <section
         aria-label="Registro de datas dos documentos"
         className="surface-card space-y-4 p-5 sm:p-6"
       >
@@ -246,6 +340,34 @@ export function DocumentationTab({
                 canUpload={canManage}
                 canUnlink={canUnlink}
               >
+                {doc.code === "TR" && validityStartDate !== undefined ? (
+                  <div className="mt-3 border-t pt-3">
+                    {canEditValidityStart ? (
+                      <ActionForm
+                        action={saveProcessValidityStartDate}
+                        submitLabel="Salvar vigência"
+                        hiddenFields={{ processId }}
+                        resetOnSuccess={false}
+                        submitVariant="outline"
+                      >
+                        {(errors) => (
+                          <AtaValidityField
+                            key={validityStartDate ?? "empty"}
+                            defaultStartDate={validityStartDate ?? undefined}
+                            errors={errors.startDate}
+                            label="Vigência no Termo de Referência"
+                            hint="Informe aqui a data de início. A ata e o contrato usam automaticamente esta vigência."
+                          />
+                        )}
+                      </ActionForm>
+                    ) : (
+                      <p className="text-sm">
+                        Vigência no TR:{" "}
+                        {validityStartDate == null ? "A definir" : formatDateOnly(validityStartDate)}
+                      </p>
+                    )}
+                  </div>
+                ) : null}
                 {doc.code === "PP" && estimatedValue !== undefined ? (
                   <div className="mt-3 border-t pt-3">
                     {canEditEstimatedValue ? (
