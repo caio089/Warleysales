@@ -59,7 +59,7 @@ const ROLES_BY_ACTION: Record<Exclude<PermissionAction, "data.delete_manual">, R
   "document.attach": MANAGER_OPERATOR,
   "document.unlink": MANAGER,
   "request.create": MANAGER_OPERATOR,
-  /** Só admin central (Warley / Maria Luiza) — o órgão cria e envia, mas não aprova. */
+  /** Exclusivo do Warley (`isSpecialDeleter`) — o órgão cria/envia; Maria Luiza e demais não decidem. */
   "request.decide": null,
   "transfer.request": MANAGER_OPERATOR,
   "transfer.decide": MANAGER,
@@ -80,12 +80,12 @@ const ROLES_BY_ACTION: Record<Exclude<PermissionAction, "data.delete_manual">, R
 
 /**
  * Decide se o ator pode executar a ação.
- * - `data.delete_manual`: exclusivamente `isSpecialDeleter` (nem admin central, R13).
+ * - `data.delete_manual` e `request.decide`: exclusivamente Warley (`isSpecialDeleter`), R13.
  * - Admin central tem acesso global às demais ações.
  * - Demais: exige vínculo com o conselho alvo e papel suficiente.
  */
 export function can(actor: Actor, action: PermissionAction, councilId?: string): boolean {
-  if (action === "data.delete_manual") return actor.isSpecialDeleter;
+  if (action === "data.delete_manual" || action === "request.decide") return actor.isSpecialDeleter;
   if (actor.isCentralAdmin) return true;
 
   const allowedRoles = ROLES_BY_ACTION[action];
@@ -108,7 +108,7 @@ export function readableCouncilIds(actor: Actor): readonly string[] | "all" {
  * vale se o ator tem o papel exigido em ao menos um conselho (ou é admin central).
  */
 export function canInAnyCouncil(actor: Actor, action: PermissionAction): boolean {
-  if (action === "data.delete_manual") return actor.isSpecialDeleter;
+  if (action === "data.delete_manual" || action === "request.decide") return actor.isSpecialDeleter;
   if (actor.isCentralAdmin) return true;
   return actor.memberships.some((m) => can(actor, action, m.councilId));
 }

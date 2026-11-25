@@ -176,9 +176,9 @@ export function NewRequestForm({
                       <TextField
                         name="quantity"
                         label="Quantidade"
-                        type="number"
-                        step="0.001"
-                        min="0"
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="Ex.: 10"
                         required
                         defaultValue={item?.quantity != null ? String(item.quantity) : ""}
                         errors={e[`items.${index}.quantity`]}

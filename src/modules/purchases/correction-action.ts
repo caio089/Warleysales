@@ -6,6 +6,7 @@ import { runAction } from "@/server/action-runner";
 import { getServiceClient } from "@/server/supabase/client";
 import { can } from "@/shared/lib/authz/policy";
 import { parseCurrencyInput } from "@/shared/lib/money-input";
+import { parseQuantityInput } from "@/shared/lib/quantity-input";
 import { fail, ok } from "@/shared/lib/result";
 import type { ActionState } from "@/shared/ui/forms/action-state";
 
@@ -34,7 +35,7 @@ export async function correctRequestAction(_previous: ActionState, form: FormDat
     councilId: form.get("councilId"), title: form.get("title"), priority: form.get("priority"),
     estimatedValue: parsedValue ? Number(parsedValue) : null, justification: form.get("justification"),
     items: names.map((description, index) => ({
-      materialId: materialIds[index] ?? "", description, unit: units[index], quantity: Number(String(quantities[index]).replace(",", ".")),
+      materialId: materialIds[index] ?? "", description, unit: units[index], quantity: parseQuantityInput(quantities[index]),
     })),
   });
   if (!parsed.success) return { status: "error", message: "Confira os campos. A justificativa deve ter de 10 a 1000 caracteres e cada item precisa de nome, unidade e quantidade positiva." };

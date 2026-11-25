@@ -41,7 +41,7 @@ export function requestNextStep(
         title: "Iniciar a análise",
         description: perms.canDecide
           ? "Clique em Iniciar análise para revisar e decidir (aprovar, pedir correção ou rejeitar)."
-          : "Aguardando Warley ou Maria Luiza iniciar a análise.",
+          : "Aguardando o Warley iniciar a análise.",
         tone: perms.canDecide ? "action" : "info",
       };
     case "em_analise":
@@ -157,7 +157,7 @@ export function processNextStep(input: {
 export const REQUEST_FLOW_STEPS = [
   { title: "Criar", detail: "Informe órgão, título e os materiais e envie para aprovação." },
   { title: "Enviar", detail: "O órgão envia; a solicitação chega na fila da administração central." },
-  { title: "Aprovar", detail: "Só Warley ou Maria Luiza decidem. Se houver ata, o saldo é comprometido — estoque ainda não muda." },
+  { title: "Aprovar", detail: "Só o Warley decide. Se houver ata, o saldo é comprometido — estoque ainda não muda." },
   { title: "Receber", detail: "No recebimento, o estoque sobe. Pronto." },
 ];
 

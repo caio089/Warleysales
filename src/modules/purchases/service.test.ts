@@ -8,7 +8,7 @@ import { InMemoryInventoryRepository } from "@/modules/inventory/repository.memo
 import { InventoryService } from "@/modules/inventory/service";
 import { InMemoryProcessRepository } from "@/modules/processes/repository.memory";
 import { ProcessService } from "@/modules/processes/service";
-import { COUNCIL_A, COUNCIL_B, centralAdmin, makeRuntime, managerOf, operatorOf, viewerOf } from "@/shared/testing/fixtures";
+import { COUNCIL_A, COUNCIL_B, centralAdmin, makeRuntime, managerOf, operatorOf, specialDeleter, viewerOf } from "@/shared/testing/fixtures";
 import { InMemoryPurchaseRequestRepository } from "./repository.memory";
 import { PurchaseRequestService } from "./service";
 
@@ -26,7 +26,8 @@ function setup() {
 }
 let ctx: ReturnType<typeof setup>;
 const manager = () => managerOf(COUNCIL_A);
-const approver = () => centralAdmin();
+/** Warley: admin central + special deleter. */
+const approver = () => specialDeleter();
 const stockOf = async () => {
   const l = await ctx.inventory.listLevels(manager(), COUNCIL_A);
   return l.ok ? l.data.find((x) => x.materialId === MATERIAL)?.physical ?? 0 : -1;
@@ -131,10 +132,11 @@ describe("PurchaseRequestService", () => {
     expect(level?.blocked).toBe(12);
     expect(level?.available).toBe(0);
   });
-  it("permissões: órgão não aprova; operador não aprova; consulta não cria; conselho alheio não vê", async () => {
+  it("permissões: órgão, operador e admin central comum (Maria Luiza) não aprovam; só Warley", async () => {
     const id = await submitted([{ quantity: 1 }]);
     expect((await ctx.service.approve(manager(), { requestId: id })).ok).toBe(false);
     expect((await ctx.service.approve(operatorOf(COUNCIL_A), { requestId: id })).ok).toBe(false);
+    expect((await ctx.service.approve(centralAdmin(), { requestId: id })).ok).toBe(false);
     expect((await ctx.service.startReview(manager(), { requestId: id })).ok).toBe(false);
     expect((await ctx.service.create(viewerOf(COUNCIL_A), { councilId: COUNCIL_A, title: "abc", items: [{ materialId: MATERIAL, quantity: 1 }] })).ok).toBe(false);
     expect((await ctx.service.get(managerOf(COUNCIL_B), id)).ok).toBe(false);

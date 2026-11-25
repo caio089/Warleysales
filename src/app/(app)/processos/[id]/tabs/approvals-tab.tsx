@@ -27,7 +27,7 @@ interface ApprovalsTabProps {
   request: ApprovalsTabRequest | null;
 }
 
-/** Aba de aprovação da solicitação vinculada ao processo (visão Warley / Maria Luiza). */
+/** Aba de aprovação da solicitação vinculada ao processo (decisão exclusiva do Warley). */
 export function ApprovalsTab({ request }: ApprovalsTabProps) {
   if (!request) {
     return (

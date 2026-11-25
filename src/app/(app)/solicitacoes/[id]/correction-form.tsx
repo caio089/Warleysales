@@ -28,7 +28,7 @@ export function CorrectionForm({ requestId, revision, title, councilId, councils
         {rows.map((item) => <fieldset key={item.key} className="grid gap-3 rounded border p-3 sm:grid-cols-3">
           <input type="hidden" name="materialId" value={item.materialId ?? ""} />
           <label className="text-sm">Material<Input name="description" required minLength={2} maxLength={160} defaultValue={item.description} /></label>
-          <label className="text-sm">Quantidade<Input name="quantity" type="number" min="0.001" step="0.001" required defaultValue={item.quantity} /></label>
+          <label className="text-sm">Quantidade<Input name="quantity" type="text" inputMode="decimal" required defaultValue={item.quantity} /></label>
           <label className="text-sm">Unidade<Input name="unit" required maxLength={20} defaultValue={item.unit} /></label>
           <Button type="button" variant="outline" disabled={rows.length === 1} onClick={() => setRows((current) => current.filter((row) => row.key !== item.key))}>Remover item</Button>
         </fieldset>)}

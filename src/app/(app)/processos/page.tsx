@@ -4,12 +4,11 @@ import { Suspense } from "react";
 import { CircleCheck, FileClock, FolderKanban } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { planExpiryFromNotes } from "@/app/(app)/solicitacoes/request-facets";
+import { ApprovalQueue, type PendingApprovalItem } from "@/app/(app)/dashboard/approval-queue";
 import { loadScreen } from "@/server/screen";
 import { canInAnyCouncil } from "@/shared/lib/authz/policy";
 import { ok } from "@/shared/lib/result";
 import { diffInDays, toFortalezaDate } from "@/shared/lib/time";
-import { PROCESS_FLOW_STEPS } from "@/shared/ui/flow-copy";
-import { FlowGuide } from "@/shared/ui/flow-guide";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { KpiCard } from "@/shared/ui/kpi-card";
 import { PageHeader } from "@/shared/ui/page-header";
@@ -22,16 +21,19 @@ export const metadata: Metadata = { title: "Processos" };
 
 async function Content() {
   const result = await loadScreen(async (ctx) => {
-    const [processes, councils, requests] = await Promise.all([
+    const [processes, councils, requests, linkedNotes] = await Promise.all([
       ctx.services.processes.list(ctx.actor),
       ctx.services.councils.list(ctx.actor),
+      ctx.services.purchases.list(ctx.actor),
       ctx.services.purchases.listLinkedNotes(ctx.actor),
     ]);
     if (!processes.ok) return processes;
     if (!councils.ok) return councils;
     if (!requests.ok) return requests;
+    if (!linkedNotes.ok) return linkedNotes;
     const today = toFortalezaDate(new Date());
-    const deadlines = new Map(requests.data.map(({ processId, notes }) =>
+    const councilLabel = Object.fromEntries(councils.data.map((council) => [council.id, council.acronym]));
+    const deadlines = new Map(linkedNotes.data.map(({ processId, notes }) =>
       [processId, planExpiryFromNotes(notes)?.day ?? null] as const,
     ));
     let complete = 0;
@@ -40,20 +42,40 @@ async function Content() {
       if (displayPercent === 100) complete++;
       if (displayPercent < 100) pending++;
     }
+
+    const canApproveRequests = ctx.actor.isSpecialDeleter;
+    const approvalQueue: PendingApprovalItem[] = canApproveRequests
+      ? requests.data
+          .filter((request) => ["enviada", "em_analise", "aguardando_correcao"].includes(request.status))
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+          .map((request) => ({
+            id: request.id,
+            title: request.title,
+            councilName: councilLabel[request.councilId] ?? "Órgão",
+            status: request.status,
+            processId: request.processId ?? null,
+            estimatedValue: request.estimatedValue ?? null,
+            itemsCount: request.items.length,
+            createdAt: request.createdAt.toISOString(),
+          }))
+      : [];
+
     return ok({
       processes: processes.data,
       complete,
       pending,
       deadlines,
       today,
-      councilLabel: Object.fromEntries(councils.data.map((council) => [council.id, council.acronym])),
+      councilLabel,
       canCreate: canInAnyCouncil(ctx.actor, "process.create"),
+      canApproveRequests,
+      approvalQueue,
     });
   });
 
   return (
     <Screen result={result}>
-      {({ processes, complete, pending, councilLabel, canCreate, deadlines, today }) => (
+      {({ processes, complete, pending, councilLabel, canCreate, deadlines, today, canApproveRequests, approvalQueue }) => (
         <>
           <PageHeader
             eyebrow="Documentação"
@@ -72,6 +94,9 @@ async function Content() {
               { label: "Total", value: processes.length },
               { label: "Documentação completa", value: complete },
               { label: "Documentação pendente", value: pending },
+              ...(canApproveRequests
+                ? [{ label: "Aguardando aprovação", value: approvalQueue.length }]
+                : []),
             ]} />
           </Suspense>
           <div className="mb-6 grid gap-3 sm:grid-cols-3" aria-label="Resumo dos processos">
@@ -79,7 +104,13 @@ async function Content() {
             <KpiCard icon={<CircleCheck className="size-4" aria-hidden />} label="Documentação completa" value={complete} />
             <KpiCard icon={<FileClock className="size-4" aria-hidden />} label="Documentação pendente" value={pending} accent={pending > 0} />
           </div>
-          <FlowGuide title="Fluxo em 4 passos" steps={PROCESS_FLOW_STEPS} />
+
+          {canApproveRequests ? (
+            <div className="mb-6">
+              <ApprovalQueue items={approvalQueue} showWhenEmpty />
+            </div>
+          ) : null}
+
           <ProcessesTable
             rows={processes.map((p) => ({
               id: p.process.id,

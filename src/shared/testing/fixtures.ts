@@ -17,7 +17,8 @@ export const managerOf = (councilId: string) => makeActor({ memberships: [{ coun
 export const operatorOf = (councilId: string) => makeActor({ memberships: [{ councilId, role: "council_operator" }] });
 export const viewerOf = (councilId: string) => makeActor({ memberships: [{ councilId, role: "viewer" }] });
 export const centralAdmin = () => makeActor({ isCentralAdmin: true });
-export const specialDeleter = () => makeActor({ isSpecialDeleter: true });
+/** Warley: exclusão manual + decisão de solicitações. */
+export const specialDeleter = () => makeActor({ isCentralAdmin: true, isSpecialDeleter: true });
 
 /** Relógio controlável + ids reais (UUID v4) para testes determinísticos de tempo. */
 export function makeRuntime(start = "2026-11-02T12:00:00Z") {

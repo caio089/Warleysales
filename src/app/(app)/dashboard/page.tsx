@@ -161,6 +161,8 @@ async function DashboardContent({
       pendingOrderQueue,
       savingsSummary: savingsSummary.data,
       isWarley: ctx.actor.isCentralAdmin,
+      /** Fila de aprovação de solicitações: só Warley (`isSpecialDeleter`). */
+      canApproveRequests: ctx.actor.isSpecialDeleter,
       canCreateRequest: canInAnyCouncil(ctx.actor, "request.create"),
       workspace: actionCouncilId
         ? {
@@ -197,6 +199,7 @@ async function DashboardContent({
         pendingOrderQueue,
         savingsSummary,
         isWarley,
+        canApproveRequests,
         canCreateRequest,
         workspace,
       }) => {
@@ -368,7 +371,7 @@ async function DashboardContent({
 
             <section aria-labelledby="workspace-heading" className="space-y-4">
               <h2 id="workspace-heading" className="font-heading text-xl font-semibold text-primary">Filas e espaço de trabalho</h2>
-              {isWarley ? <ApprovalQueue items={approvalQueue} /> : null}
+              {canApproveRequests ? <ApprovalQueue items={approvalQueue} /> : null}
               {isWarley ? <FormalizationQueue items={pendingQueue} /> : null}
               {isWarley ? <OrderQueue items={pendingOrderQueue} /> : null}
               {workspace ? (

@@ -19,7 +19,8 @@ const roleMatrix: readonly [PermissionAction, boolean, boolean, boolean, boolean
   ["document.attach", true, true, false, true],
   ["document.unlink", true, false, false, true],
   ["request.create", true, true, false, true],
-  ["request.decide", false, false, false, true],
+  // request.decide: só Warley (isSpecialDeleter); admin central comum (Maria Luiza) = false
+  ["request.decide", false, false, false, false],
   ["transfer.request", true, true, false, true],
   ["transfer.decide", true, false, false, true],
   ["stock.move", true, true, false, true],
@@ -68,6 +69,12 @@ describe("matriz explícita de permissões (§6)", () => {
     expect(can(admin, "data.delete_manual")).toBe(false);
     expect(can(actor("council_manager", { isSpecialDeleter: true }), "data.delete_manual")).toBe(true);
     expect(can(actor("viewer", { isSpecialDeleter: true, memberships: [] }), "data.delete_manual")).toBe(true);
+  });
+
+  it("request.decide é exclusivo do Warley (isSpecialDeleter), não de admin central comum", () => {
+    expect(can(admin, "request.decide", A)).toBe(false);
+    expect(can(actor("viewer", { isSpecialDeleter: true, memberships: [] }), "request.decide", A)).toBe(true);
+    expect(can(actor("council_manager", { isSpecialDeleter: true }), "request.decide", A)).toBe(true);
   });
 
   it("authorize devolve FORBIDDEN", () => {

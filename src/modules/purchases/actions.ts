@@ -3,12 +3,13 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { runAction } from "@/server/action-runner";
+import { parseQuantityInput } from "@/shared/lib/quantity-input";
 import type { ActionState } from "@/shared/ui/forms/action-state";
 
 /** Itens digitados no formulário: nome, quantidade e unidade. Linha em branco é ignorada. */
 function readItems(formData: FormData) {
   const names = formData.getAll("itemName").map((value) => String(value).trim());
-  const quantities = formData.getAll("quantity").map((q) => Number(String(q).replace(",", ".")));
+  const quantities = formData.getAll("quantity").map(parseQuantityInput);
   const units = formData.getAll("unit").map((value) => String(value).trim());
   return names.map((description, i) => ({ description, quantity: quantities[i], unit: units[i] || "un" })).filter((item) => item.description.length > 0 || item.quantity > 0);
 }
@@ -24,7 +25,7 @@ export async function createRequestFormAction(_previous: ActionState, formData: 
         items: readItems(formData),
       });
       if (!created.ok) return created;
-      // Órgão salva → já entra na fila de Warley/Maria Luiza (enviada para aprovação).
+      // Órgão salva → já entra na fila exclusiva do Warley (enviada para aprovação).
       const submitted = await services.purchases.submit(actor, { requestId: created.data.id });
       return submitted.ok ? submitted : created;
     },

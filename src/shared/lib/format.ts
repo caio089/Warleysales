@@ -1,8 +1,13 @@
 /** Formatadores de exibição em pt-BR. */
 const numberFormat = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 3 });
+const integerFormat = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
 const currencyFormat = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-export const formatNumber = (value: number): string => numberFormat.format(value);
+export const formatNumber = (value: number): string => {
+  // Inteiros ficam sem casa decimal para não confundir quantidade (10) com milhar/centavos.
+  if (Number.isFinite(value) && Number.isInteger(value)) return integerFormat.format(value);
+  return numberFormat.format(value);
+};
 export const formatCurrency = (value: number): string => currencyFormat.format(value);
 export const formatPercent = (value: number): string => `${value.toFixed(2).replace(".", ",")}%`;
 
