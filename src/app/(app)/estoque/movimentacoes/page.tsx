@@ -12,16 +12,32 @@ import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { SimpleTable } from "@/shared/ui/simple-table";
+import { buildStockEntrySources } from "../entry-sources";
 import { MovementForm } from "./movement-form";
 
 export const metadata: Metadata = { title: "Movimentações" };
 
-const TYPE_LABEL: Record<string, string> = { entry: "Entrada", consumption: "Consumo", adjustment_in: "Ajuste (+)", adjustment_out: "Ajuste (−)", transfer_out: "Saída por transferência", transfer_in: "Entrada por transferência" };
+const TYPE_LABEL: Record<string, string> = {
+  entry: "Entrada no estoque",
+  consumption: "Saída · entrega ao órgão",
+  adjustment_in: "Ajuste",
+  adjustment_out: "Ajuste",
+  transfer_out: "Saída por transferência",
+  transfer_in: "Entrada por transferência",
+};
 
 export async function Content() {
   const result = await loadScreen(async (ctx) => {
-    const lookups = await loadLookups(ctx);
+    const [lookups, requests, processes, atas] = await Promise.all([
+      loadLookups(ctx),
+      ctx.services.purchases.list(ctx.actor),
+      ctx.services.processes.list(ctx.actor),
+      ctx.services.atas.list(ctx.actor),
+    ]);
     if (!lookups.ok) return lookups;
+    if (!requests.ok) return requests;
+    if (!processes.ok) return processes;
+    if (!atas.ok) return atas;
     const lists = await Promise.all(lookups.data.councils.map((c) => ctx.services.inventory.listMovements(ctx.actor, c.id)));
     const failed = lists.find((list) => !list.ok);
     if (failed && !failed.ok) return failed;
@@ -29,13 +45,19 @@ export async function Content() {
     return ok({
       movements,
       lookups: lookups.data,
+      entrySources: buildStockEntrySources({
+        requests: requests.data,
+        processes: processes.data,
+        atas: atas.data,
+        materialLabel: lookups.data.materialLabel,
+      }),
       canMove: canInAnyCouncil(ctx.actor, "stock.move"),
       canAdjust: canInAnyCouncil(ctx.actor, "stock.adjust"),
     });
   });
   return (
     <Screen result={result}>
-      {({ movements, lookups, canMove, canAdjust }) => (
+      {({ movements, lookups, entrySources, canMove, canAdjust }) => (
         <div className="space-y-6">
           <PageHeader eyebrow="Estoque · Histórico" backHref="/estoque" backLabel="Voltar para Estoque" title="Movimentações" description="Consulte entradas, saídas e ajustes por órgão. Cada lançamento atualiza o saldo do material." actions={canMove ? <a href="#nova-movimentacao" className={buttonVariants()}><Plus className="size-4" aria-hidden /> Registrar movimentação</a> : undefined} />
           <div className="grid gap-3 sm:grid-cols-3" aria-label="Resumo das movimentações">
@@ -51,9 +73,15 @@ export async function Content() {
             ]} />
           </Suspense>
           {canMove ? (
-            <section id="nova-movimentacao" aria-labelledby="nova" className="surface-card max-w-lg scroll-mt-6 p-6">
+            <section id="nova-movimentacao" aria-labelledby="nova" className="surface-card max-w-3xl scroll-mt-6 p-6">
               <h2 id="nova" className="mb-4 font-heading text-lg font-medium tracking-tight text-primary">Registrar quantidade</h2>
-              <MovementForm councils={lookups.councils.map((c) => ({ value: c.id, label: c.label }))} materials={lookups.materials.map((m) => ({ value: m.id, label: m.label }))} defaultType="entry" allowAdjust={canAdjust} />
+              <MovementForm
+                councils={lookups.councils.map((c) => ({ value: c.id, label: c.label }))}
+                materials={lookups.materials.map((m) => ({ value: m.id, label: m.label }))}
+                entrySources={entrySources}
+                defaultType="entry"
+                allowAdjust={canAdjust}
+              />
             </section>
           ) : null}
           <SimpleTable

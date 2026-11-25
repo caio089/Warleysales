@@ -28,6 +28,30 @@ function readProcessItems(formData: FormData): {
   const itemCount = Number(formData.get("itemCount") ?? 0);
   if (!Number.isFinite(itemCount) || itemCount < 1) return null;
 
+  const hasLineTotals = formData.has("items.0.lineTotal");
+  if (hasLineTotals) {
+    const rows = Array.from({ length: itemCount }, (_, index) => {
+      const quantity = toNumber(formData.get(`items.${index}.registeredQuantity`));
+      const lineTotal = toNumber(formData.get(`items.${index}.lineTotal`));
+      if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(lineTotal) || lineTotal < 0) {
+        return null;
+      }
+      return {
+        description: String(formData.get(`items.${index}.description`) ?? "").trim(),
+        materialId: optionalId(formData.get(`items.${index}.materialId`)),
+        registeredQuantity: quantity,
+        unitPrice: lineTotal / quantity,
+      };
+    });
+    if (rows.some((row) => row == null)) return null;
+    return rows as {
+      description: string;
+      materialId: string | null;
+      registeredQuantity: number;
+      unitPrice: number;
+    }[];
+  }
+
   const rows = Array.from({ length: itemCount }, (_, index) => ({
     description: String(formData.get(`items.${index}.description`) ?? "").trim(),
     materialId: optionalId(formData.get(`items.${index}.materialId`)),
@@ -48,7 +72,8 @@ function readProcessItems(formData: FormData): {
 
 export async function createAtaFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
   const processId = optionalId(formData.get("processId"));
-  const supplierId = optionalId(formData.get("supplierId"));
+  let supplierId = optionalId(formData.get("supplierId"));
+  const supplierName = String(formData.get("supplierName") ?? "").trim();
   const processItems = readProcessItems(formData);
 
   let number = String(formData.get("number") ?? "").trim();
@@ -64,32 +89,40 @@ export async function createAtaFormAction(_previous: ActionState, formData: Form
     unitPrice: toNumber(formData.get("unitPrice")),
   }];
 
-  if (processId && !supplierId) {
+  if (processId && !supplierId && supplierName.length < 2) {
     return {
       status: "error",
-      message: "Selecione a empresa vencedora.",
-      fieldErrors: { supplierId: ["Informe a empresa que ganhou."] },
+      message: "Informe o nome da empresa vencedora.",
+      fieldErrors: { supplierName: ["Digite o nome da empresa."] },
     };
   }
 
-  if (processItems && (!Number.isFinite(toNumber(formData.get("totalValue"))) || toNumber(formData.get("totalValue")) < 0)) {
+  if (processItems == null && formData.has("itemCount")) {
     return {
       status: "error",
-      message: "Informe o valor da ata.",
-      fieldErrors: { totalValue: ["Informe o valor da ata."] },
+      message: "Informe o valor total de cada item da ata.",
+      fieldErrors: { "items.0.lineTotal": ["Informe o valor total do item."] },
     };
   }
 
-  const result = await runAction(({ services, actor }) => services.atas.create(actor, {
-    councilId: formData.get("councilId"),
-    number,
-    startDate: formData.get("startDate"),
-    processId,
-    supplierId,
-    items,
-  }), "Ata criada como rascunho.");
+  const result = await runAction(async ({ services, actor }) => {
+    if (!supplierId && supplierName) {
+      const ensured = await services.suppliers.ensureByName(actor, supplierName);
+      if (!ensured.ok) return ensured;
+      supplierId = ensured.data.id;
+    }
+    return services.atas.create(actor, {
+      councilId: formData.get("councilId"),
+      number,
+      startDate: formData.get("startDate"),
+      processId,
+      supplierId,
+      items,
+    });
+  }, "Ata criada como rascunho.");
   if (result.status !== "success" || !result.data) return result.status === "success" ? result : result;
   revalidatePath("/atas");
+  revalidatePath("/fornecedores");
   const backToProcess = processReturnPath(formData);
   if (backToProcess) {
     revalidatePath(backToProcess.split("?")[0] ?? backToProcess);

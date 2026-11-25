@@ -16,6 +16,7 @@ import { Screen } from "@/shared/ui/screen";
 import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { SimpleTable } from "@/shared/ui/simple-table";
 import { buildHoldRows } from "./hold-rows";
+import { buildStockEntrySources } from "./entry-sources";
 import { MovementForm } from "./movimentacoes/movement-form";
 import { MinimumForm } from "./minimum-form";
 
@@ -23,11 +24,12 @@ export const metadata: Metadata = { title: "Gestão de Estoque" };
 
 async function Content() {
   const result = await loadScreen(async (ctx) => {
-    const [levels, lookups, requests, processes, pendingFormalizations, homologatedFormalizations] = await Promise.all([
+    const [levels, lookups, requests, processes, atas, pendingFormalizations, homologatedFormalizations] = await Promise.all([
       ctx.services.inventory.listLevels(ctx.actor),
       loadLookups(ctx),
       ctx.services.purchases.list(ctx.actor),
       ctx.services.processes.list(ctx.actor),
+      ctx.services.atas.list(ctx.actor),
       ctx.services.formalizations.listPending(ctx.actor),
       ctx.services.formalizations.listHomologated(ctx.actor),
     ]);
@@ -35,6 +37,7 @@ async function Content() {
     if (!lookups.ok) return lookups;
     if (!requests.ok) return requests;
     if (!processes.ok) return processes;
+    if (!atas.ok) return atas;
     const summary = calculateStockSummary(levels.data);
     const formalizations = [
       ...(pendingFormalizations.ok ? pendingFormalizations.data : []),
@@ -86,6 +89,12 @@ async function Content() {
       summary,
       holds,
       processByMaterial,
+      entrySources: buildStockEntrySources({
+        requests: requests.data,
+        processes: processes.data,
+        atas: atas.data,
+        materialLabel: lookups.data.materialLabel,
+      }),
       canMove: canInAnyCouncil(ctx.actor, "stock.move"),
       canAdjust: canInAnyCouncil(ctx.actor, "stock.adjust"),
     });
@@ -93,7 +102,7 @@ async function Content() {
 
   return (
     <Screen result={result}>
-      {({ levels, lookups, summary, holds, processByMaterial, canMove, canAdjust }) => {
+      {({ levels, lookups, summary, holds, processByMaterial, entrySources, canMove, canAdjust }) => {
         const councils = lookups.councils.map((c) => ({ value: c.id, label: c.label }));
         const materials = lookups.materials.map((m) => ({ value: m.id, label: m.label }));
 
@@ -136,7 +145,7 @@ async function Content() {
             </section>
 
             {canMove ? (
-              <section id="movimentar" aria-labelledby="informar-quantidade" className="surface-card scroll-mt-24 p-6">
+              <section id="movimentar" aria-labelledby="informar-quantidade" className="surface-card max-w-4xl scroll-mt-24 p-6">
                 <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                   <div className="flex items-center gap-2">
                     <span className="grid size-9 place-items-center rounded-xl bg-secondary text-primary">
@@ -147,7 +156,7 @@ async function Content() {
                         Movimentar estoque
                       </h2>
                       <p className="text-xs text-muted-foreground">
-                        Escolha entrada ou saída, o produto e a quantidade. O saldo muda na hora.
+                        Entrada no estoque, saída como entrega ao órgão, ou um ajuste de saldo.
                       </p>
                     </div>
                   </div>
@@ -167,7 +176,13 @@ async function Content() {
                 ) : councils.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Cadastre uma empresa antes de lançar estoque.</p>
                 ) : (
-                  <MovementForm councils={councils} materials={materials} defaultType="entry" allowAdjust={canAdjust} />
+                  <MovementForm
+                    councils={councils}
+                    materials={materials}
+                    entrySources={entrySources}
+                    defaultType="entry"
+                    allowAdjust={canAdjust}
+                  />
                 )}
               </section>
             ) : null}
@@ -276,7 +291,7 @@ export default function StockPage() {
       <PageHeader
         eyebrow="Operação & Armazenagem"
         title="Gestão de Estoque"
-        description="Lance entrada ou saída no topo. O saldo pronto para uso muda na hora."
+        description="Entrada coloca o produto no estoque; saída entrega ao órgão; ajuste corrige o saldo."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Link href="#movimentar" className={buttonVariants()}>

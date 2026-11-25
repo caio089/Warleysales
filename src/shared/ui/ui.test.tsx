@@ -22,10 +22,29 @@ import { ActivityTimeline } from "./activity-timeline";
 import { DataSourceUnavailableState, EmptyState, ErrorState } from "./feedback-states";
 import { KpiCard } from "./kpi-card";
 import { ProgressBar } from "./progress-bar";
-import { presentationOf, PROCESS_STATUS } from "./status-presentation";
+import { presentationOf, PROCESS_STATUS, processDisplayStatus } from "./status-presentation";
 import { StatusBadge } from "./status-badge";
 import { formatBytes } from "@/shared/lib/format";
 import { validateFileMeta } from "@/shared/lib/upload-rules";
+
+describe("processDisplayStatus", () => {
+  it("mostra aguardando aprovação enquanto a solicitação não foi decidida", () => {
+    expect(processDisplayStatus("em_andamento", "enviada")).toBe("aguardando_aprovacao");
+  });
+
+  it("mostra pendente de contrato quando há ata e ainda não há contrato", () => {
+    expect(
+      processDisplayStatus("em_andamento", "aprovada", { hasAta: true, hasContract: false }),
+    ).toBe("pendente_contrato");
+    expect(presentationOf(PROCESS_STATUS, "pendente_contrato").label).toBe("Pendente de contrato");
+  });
+
+  it("volta ao status do processo depois que o contrato existe", () => {
+    expect(
+      processDisplayStatus("em_andamento", "aprovada", { hasAta: true, hasContract: true }),
+    ).toBe("em_andamento");
+  });
+});
 
 describe("componentes compartilhados (renderização no servidor)", () => {
   it("ProgressBar expõe semântica ARIA e limita 0–100", () => {

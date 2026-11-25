@@ -4,34 +4,28 @@ import { Suspense } from "react";
 import {
   ArrowUpRight,
   CalendarDays,
-  ClipboardCheck,
   ClipboardList,
   FilePlus,
   Moon,
   Package,
-  PackageX,
-  ShoppingCart,
   Sun,
   Sunrise,
-  TrendingDown,
-  Truck,
 } from "lucide-react";
 import { buildBriefingFacts } from "@/modules/insights/briefing";
 import { parseDashboardQuery } from "@/modules/reports/dashboard-query";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { getSession } from "@/server/session";
-import { formatCurrency, formatPercent } from "@/shared/lib/format";
 import { can, canInAnyCouncil } from "@/shared/lib/authz/policy";
 import { APP_TIME_ZONE } from "@/shared/lib/time";
 import { cn } from "@/lib/utils";
 import { ok } from "@/shared/lib/result";
-import { KpiCard } from "@/shared/ui/kpi-card";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { Screen } from "@/shared/ui/screen";
 import { CouncilWorkspace } from "./council-workspace";
 import { BriefingCard, BriefingFallback } from "./briefing-card";
 import { DashboardFilters } from "./filters";
+import { HomeOverview } from "./home-overview";
 import { ApprovalQueue, type PendingApprovalItem } from "./approval-queue";
 import { FormalizationQueue, type PendingFormalizationItem } from "./formalization-queue";
 import { OrderQueue, type PendingOrderItem } from "./order-queue";
@@ -41,16 +35,15 @@ import {
   DeadlinesPanel,
   RecentRequestsPanel,
   ReplenishmentPanel,
-  StatusDistribution,
 } from "./panels";
 
-export const metadata: Metadata = { title: "Central Operacional" };
+export const metadata: Metadata = { title: "Início" };
 
 const quickActions = [
-  { href: "/solicitacoes/nova", icon: FilePlus, title: "Nova solicitação", description: "Registre um pedido de compra ou serviço." },
-  { href: "/processos", icon: ClipboardList, title: "Acompanhar processos", description: "Confira o andamento e as etapas dos processos." },
-  { href: "/estoque", icon: Package, title: "Consultar estoque", description: "Veja os materiais disponíveis e seus saldos." },
-  { href: "/calendario", icon: CalendarDays, title: "Ver agenda", description: "Consulte os próximos compromissos e prazos." },
+  { href: "/solicitacoes/nova", icon: FilePlus, title: "Novo pedido", description: "Peça materiais ou serviços em poucos passos." },
+  { href: "/processos", icon: ClipboardList, title: "Ver processos", description: "Acompanhe o que já está em andamento." },
+  { href: "/estoque", icon: Package, title: "Ver estoque", description: "Confira o que tem disponível hoje." },
+  { href: "/calendario", icon: CalendarDays, title: "Ver agenda", description: "Reuniões e prazos que estão por vir." },
 ] as const;
 
 function one(value: string | string[] | undefined): string | undefined {
@@ -222,16 +215,12 @@ async function DashboardContent({
         ).length;
         const reqCompleted = scopedRequests.filter((r) => r.status === "atendida").length;
 
-        // Entregas realizadas vs pendentes
-        let deliveredUnits = 0;
+        // Entregas pendentes (para o briefing)
         let pendingDeliveryUnits = 0;
         scopedRequests.forEach((r) => {
-          if (["aprovada", "em_atendimento", "parcialmente_atendida", "atendida"].includes(r.status)) {
+          if (["aprovada", "em_atendimento", "parcialmente_atendida"].includes(r.status)) {
             r.items.forEach((item) => {
-              deliveredUnits += Number(item.receivedTotal || 0);
-              if (["aprovada", "em_atendimento", "parcialmente_atendida"].includes(r.status)) {
-                pendingDeliveryUnits += Math.max(0, Number(item.quantity) - Number(item.receivedTotal || 0));
-              }
+              pendingDeliveryUnits += Math.max(0, Number(item.quantity) - Number(item.receivedTotal || 0));
             });
           }
         });
@@ -315,36 +304,10 @@ async function DashboardContent({
           href: n.entityType === "contract" ? `/contratos/${n.entityId}` : `/atas/${n.entityId}`,
         }));
 
-        const s = dash.summary;
+        const tightDeadlines = dash.deadlines.filter((d) => d.days <= 15).length;
 
         return (
           <div className="space-y-8">
-            {canApproveRequests ? (
-              <Link
-                href="#aprovacoes"
-                aria-label={`Aprovações pendentes: ${reqPending}`}
-                className="group flex items-center justify-between gap-4 rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card px-5 py-4 shadow-sm transition-colors hover:border-primary/50 hover:from-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-6"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
-                    <ClipboardCheck className="size-6" aria-hidden />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-primary/80">Aprovações</p>
-                    <p className="truncate text-sm text-muted-foreground">
-                      Clique para abrir a fila e aprovar aqui mesmo
-                    </p>
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-3">
-                  <span className="text-3xl font-bold tabular-nums tracking-tight text-primary sm:text-4xl">
-                    {reqPending}
-                  </span>
-                  <ArrowUpRight className="size-5 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden />
-                </div>
-              </Link>
-            ) : null}
-
             <DashboardFilters
               councils={lookups.councils}
               councilId={councilId}
@@ -352,14 +315,29 @@ async function DashboardContent({
               focus={focus}
               attentionCount={replenishmentItems.length}
             />
+
+            <HomeOverview
+              isWarley={isWarley}
+              requests={{ pending: reqPending, inProgress: reqInProgress, completed: reqCompleted }}
+              processStatuses={dash.processStatuses}
+              stockAttention={replenishmentItems.length}
+              savingsTotal={savingsSummary.totalSavings}
+              savingsProcesses={savingsSummary.count}
+              approvalsWaiting={canApproveRequests ? reqPending : 0}
+              formalizationsWaiting={pendingQueue.length}
+              overdueProcesses={tightDeadlines}
+            />
+
             <section aria-labelledby="quick-actions-heading" className="space-y-3">
-              <h2 id="quick-actions-heading" className="font-heading text-xl font-semibold text-primary">Ações rápidas</h2>
+              <h2 id="quick-actions-heading" className="font-heading text-xl font-semibold text-primary">
+                Atalhos do dia
+              </h2>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {visibleActions.map(({ href, icon: Icon, title, description }) => (
                   <Link
                     key={href}
                     href={href}
-                    className="group flex min-w-0 flex-col rounded-2xl border border-border bg-card p-4 shadow-xs transition-colors hover:border-highlight/60 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="group flex min-w-0 flex-col rounded-2xl border border-border bg-card p-4 shadow-xs transition duration-300 hover:-translate-y-0.5 hover:border-highlight/60 hover:bg-accent/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <div className="mb-3 flex items-start justify-between gap-3">
                       <span className={cn("grid size-10 place-items-center rounded-xl", href === "/solicitacoes/nova" ? "bg-highlight/15 text-highlight-foreground" : "bg-secondary text-primary")}>
@@ -379,7 +357,9 @@ async function DashboardContent({
             </Suspense>
 
             <section id="atencao" aria-labelledby="attention-heading" className="scroll-mt-24 space-y-4">
-              <h2 id="attention-heading" className="font-heading text-xl font-semibold text-primary">Precisa da sua atenção</h2>
+              <h2 id="attention-heading" className="font-heading text-xl font-semibold text-primary">
+                O que precisa de você
+              </h2>
               <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
                 <div className="min-w-0">
                   <RecentRequestsPanel items={recentRequests} pendingCount={reqPending} />
@@ -390,14 +370,19 @@ async function DashboardContent({
                       <DeadlinesPanel items={focus === "prazos" ? dash.deadlines : dash.deadlines.slice(0, 2)} />
                     </div>
                   ) : null}
-                  <AlertsPanel items={alertItems} unread={alerts.unread} />
                   <ReplenishmentPanel items={replenishmentItems} />
                 </div>
               </div>
             </section>
 
-            <section aria-labelledby="workspace-heading" className="space-y-4">
-              <h2 id="workspace-heading" className="font-heading text-xl font-semibold text-primary">Filas e espaço de trabalho</h2>
+            <section
+              id="filas-warley"
+              aria-labelledby="workspace-heading"
+              className="scroll-mt-24 space-y-4"
+            >
+              <h2 id="workspace-heading" className="font-heading text-xl font-semibold text-primary">
+                {isWarley ? "Suas filas de trabalho" : "Espaço do órgão"}
+              </h2>
               {canApproveRequests ? <ApprovalQueue items={approvalQueue} defaultOpen={reqPending > 0} /> : null}
               {isWarley ? <FormalizationQueue items={pendingQueue} /> : null}
               {isWarley ? <OrderQueue items={pendingOrderQueue} /> : null}
@@ -411,52 +396,21 @@ async function DashboardContent({
                 />
               ) : (
                 <p className="rounded-xl border border-dashed border-border/80 bg-secondary/40 px-4 py-3 text-sm text-muted-foreground">
-                  Escolha um órgão no filtro para acessar seu espaço de trabalho.
+                  Escolha um órgão no filtro para ver o espaço de trabalho.
                 </p>
               )}
             </section>
 
-            <section id="analises" aria-labelledby="analysis-heading" className="scroll-mt-24 space-y-4 border-t border-border pt-6">
-              <h2 id="analysis-heading" className="font-heading text-xl font-semibold text-primary">Indicadores e análises</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <KpiCard
-                  href="/solicitacoes"
-                  icon={<ShoppingCart className="size-4" aria-hidden />}
-                  label="Solicitações Pendentes"
-                  value={reqPending}
-                  accent={reqPending > 0}
-                  hint={`${reqInProgress} em andamento`}
-                />
-                <KpiCard
-                  href="/solicitacoes"
-                  icon={<Truck className="size-4" aria-hidden />}
-                  label="Entregas Pendentes"
-                  value={`${pendingDeliveryUnits} un`}
-                  accent={pendingDeliveryUnits > 0}
-                  hint={`${deliveredUnits} un já entregues`}
-                />
-                <KpiCard
-                  href="/estoque"
-                  icon={<PackageX className="size-4" aria-hidden />}
-                  label="Estoque Crítico"
-                  value={replenishmentItems.length}
-                  accent={replenishmentItems.length > 0}
-                  hint={replenishmentItems.length > 0 ? "Exige reposição urgente" : "Estável"}
-                />
-                <KpiCard
-                  href="/relatorios?tab=indicadores"
-                  icon={<TrendingDown className="size-4" aria-hidden />}
-                  label="Economia Gerada"
-                  value={formatCurrency(savingsSummary.totalSavings)}
-                  hint={`${formatPercent(savingsSummary.averageSavingsPercent)} redução média`}
-                />
-              </div>
+            <section id="detalhes" aria-labelledby="details-heading" className="scroll-mt-24 space-y-4 border-t border-border pt-6">
+              <h2 id="details-heading" className="font-heading text-xl font-semibold text-primary">
+                Agenda e avisos
+              </h2>
               <div className="grid items-start gap-4 lg:grid-cols-2">
                 <div className="min-w-0">
                   <AgendaAndDeadlinesPanel meetings={upcomingMeetings} deadlines={dash.deadlines} />
                 </div>
-                <div id="documentos" className="min-w-0 scroll-mt-24">
-                  <StatusDistribution rows={dash.processStatuses} total={s.processes.total} />
+                <div className="min-w-0">
+                  <AlertsPanel items={alertItems} unread={alerts.unread} />
                 </div>
               </div>
             </section>
@@ -484,7 +438,7 @@ async function DashboardHeading() {
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,#35556d,transparent_65%)]" />
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <p className="flex items-center gap-2 text-sm font-medium text-slate-200">
-          <span className="h-0.5 w-5 rounded-full bg-highlight" aria-hidden /> Visão geral
+          <span className="h-0.5 w-5 rounded-full bg-highlight" aria-hidden /> Início
         </p>
         <p className="flex items-center gap-2 text-sm text-slate-200">
           <Icon className="size-4 shrink-0 text-orange-300" aria-hidden />
@@ -494,7 +448,9 @@ async function DashboardHeading() {
       <h1 className="mt-3 break-words font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
         {greeting}{firstName ? `, ${firstName}` : ""}
       </h1>
-      <p className="mt-2 text-sm leading-relaxed text-slate-200 sm:text-base">Veja o resumo da operação de hoje e acesse suas principais tarefas.</p>
+      <p className="mt-2 text-sm leading-relaxed text-slate-200 sm:text-base">
+        Um olhar rápido no dia — o que precisa de você e como anda o trabalho.
+      </p>
     </header>
   );
 }

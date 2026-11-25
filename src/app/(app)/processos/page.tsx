@@ -22,16 +22,28 @@ export const metadata: Metadata = { title: "Processos" };
 
 async function Content({ openApprovals }: { openApprovals: boolean }) {
   const result = await loadScreen(async (ctx) => {
-    const [processes, councils, requests, linkedNotes] = await Promise.all([
+    const [processes, councils, requests, linkedNotes, atas, contracts] = await Promise.all([
       ctx.services.processes.list(ctx.actor),
       ctx.services.councils.list(ctx.actor),
       ctx.services.purchases.list(ctx.actor),
       ctx.services.purchases.listLinkedNotes(ctx.actor),
+      ctx.services.atas.list(ctx.actor),
+      ctx.services.contracts.list(ctx.actor),
     ]);
     if (!processes.ok) return processes;
     if (!councils.ok) return councils;
     if (!requests.ok) return requests;
     if (!linkedNotes.ok) return linkedNotes;
+    if (!atas.ok) return atas;
+    if (!contracts.ok) return contracts;
+    const processIdsWithAta = new Set(
+      atas.data.filter((item) => item.ata.processId).map((item) => item.ata.processId!),
+    );
+    const processIdsWithContract = new Set(
+      contracts.data
+        .filter((item) => item.contract.processId)
+        .map((item) => item.contract.processId!),
+    );
     const today = toFortalezaDate(new Date());
     const councilLabel = Object.fromEntries(councils.data.map((council) => [council.id, council.acronym]));
     const deadlines = new Map(linkedNotes.data.map(({ processId, notes }) =>
@@ -77,12 +89,17 @@ async function Content({ openApprovals }: { openApprovals: boolean }) {
       canApproveRequests,
       approvalQueue,
       requestStatusByProcess: Object.fromEntries(requestStatusByProcess),
+      processIdsWithAta: [...processIdsWithAta],
+      processIdsWithContract: [...processIdsWithContract],
     });
   });
 
   return (
     <Screen result={result}>
-      {({ processes, complete, pending, councilLabel, canCreate, deadlines, today, canApproveRequests, approvalQueue, requestStatusByProcess }) => (
+      {({ processes, complete, pending, councilLabel, canCreate, deadlines, today, canApproveRequests, approvalQueue, requestStatusByProcess, processIdsWithAta, processIdsWithContract }) => {
+        const withAta = new Set(processIdsWithAta);
+        const withContract = new Set(processIdsWithContract);
+        return (
         <>
           <PageHeader
             eyebrow="Documentação"
@@ -124,7 +141,10 @@ async function Content({ openApprovals }: { openApprovals: boolean }) {
               number: p.process.number,
               title: p.process.title,
               council: councilLabel[p.process.councilId] ?? "—",
-              status: processDisplayStatus(p.process.status, requestStatusByProcess[p.process.id]),
+              status: processDisplayStatus(p.process.status, requestStatusByProcess[p.process.id], {
+                hasAta: withAta.has(p.process.id),
+                hasContract: withContract.has(p.process.id),
+              }),
               completion: p.completion,
               progress: p.displayPercent,
               createdAt: p.process.createdAt.toISOString(),
@@ -150,7 +170,8 @@ async function Content({ openApprovals }: { openApprovals: boolean }) {
           />
           <ProcessAttachmentSheet />
         </>
-      )}
+        );
+      }}
     </Screen>
   );
 }

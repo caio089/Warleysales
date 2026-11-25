@@ -10,10 +10,21 @@ interface ProductFieldProps {
   options: ProductOption[];
   defaultValue?: string;
   errors?: string[];
+  /** Nome do hidden com o id do material (suporta várias linhas: items.0.materialId). */
+  name?: string;
+  label?: string;
+  required?: boolean;
 }
 
 /** Campo de produto: o usuário digita e escolhe um item da lista. */
-export function ProductField({ options, defaultValue = "", errors }: ProductFieldProps) {
+export function ProductField({
+  options,
+  defaultValue = "",
+  errors,
+  name = "materialId",
+  label = "Produto",
+  required = true,
+}: ProductFieldProps) {
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const selectedIdRef = useRef(defaultValue);
@@ -48,7 +59,7 @@ export function ProductField({ options, defaultValue = "", errors }: ProductFiel
     };
     const onSubmit = (event: Event) => {
       const input = rootRef.current?.querySelector("input[role='combobox']") as HTMLInputElement | null;
-      const hidden = rootRef.current?.querySelector("input[name='materialId']") as HTMLInputElement | null;
+      const hidden = rootRef.current?.querySelector(`input[name="${name}"]`) as HTMLInputElement | null;
       const typed = exactProduct(options, input?.value ?? "");
       const materialId = selectedIdRef.current || typed?.value || "";
       if (materialId && hidden) {
@@ -56,6 +67,10 @@ export function ProductField({ options, defaultValue = "", errors }: ProductFiel
         selectedIdRef.current = materialId;
         setSelectedId(materialId);
         if (typed) setQuery(typed.label);
+        return;
+      }
+      if (!required && !(input?.value ?? "").trim()) {
+        if (hidden) hidden.value = "";
         return;
       }
       event.preventDefault();
@@ -70,11 +85,16 @@ export function ProductField({ options, defaultValue = "", errors }: ProductFiel
       form.removeEventListener("reset", onReset);
       form.removeEventListener("submit", onSubmit, true);
     };
-  }, [defaultValue, initial?.label, options]);
+  }, [defaultValue, initial?.label, name, options, required]);
 
   return (
     <div ref={rootRef}>
-      <FormField label="Produto" required errors={shownErrors} hint={shownErrors?.length ? undefined : "Digite o nome ou o código e escolha na lista."}>
+      <FormField
+        label={label}
+        required={required}
+        errors={shownErrors}
+        hint={shownErrors?.length ? undefined : "Digite o nome ou o código e escolha na lista."}
+      >
         {(control) => (
           <div className="relative">
             <Input
@@ -117,26 +137,28 @@ export function ProductField({ options, defaultValue = "", errors }: ProductFiel
                 if (event.key === "Escape") setOpen(false);
               }}
             />
-            <input type="hidden" name="materialId" value={selectedId} />
+            <input type="hidden" name={name} value={selectedId} />
             {open ? (
               <ul id={listId} role="listbox" className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-border bg-card py-1 shadow-md">
                 {matches.length === 0 ? (
                   <li className="px-3 py-2 text-sm text-muted-foreground">Nenhum produto com esse texto.</li>
-                ) : matches.map((option, index) => (
-                  <li key={option.value} role="option" aria-selected={option.value === selectedId}>
-                    <button
-                      type="button"
-                      className={cn(
-                        "w-full px-3 py-2 text-left text-sm",
-                        index === activeIndex ? "bg-secondary text-foreground" : "hover:bg-muted",
-                      )}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => choose(option)}
-                    >
-                      {option.label}
-                    </button>
-                  </li>
-                ))}
+                ) : (
+                  matches.map((option, index) => (
+                    <li key={option.value} role="option" aria-selected={option.value === selectedId}>
+                      <button
+                        type="button"
+                        className={cn(
+                          "w-full px-3 py-2 text-left text-sm",
+                          index === activeIndex ? "bg-secondary text-foreground" : "hover:bg-muted",
+                        )}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => choose(option)}
+                      >
+                        {option.label}
+                      </button>
+                    </li>
+                  ))
+                )}
               </ul>
             ) : null}
           </div>

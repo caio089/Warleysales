@@ -49,7 +49,7 @@ describe("Dashboard Panels", () => {
         unread={1}
       />
     );
-    expect(html).toContain("Alertas &amp; Avisos");
+    expect(html).toContain("Avisos");
     expect(html).toContain("Ata vencendo");
     expect(html).toContain("1 não lido");
   });
@@ -64,8 +64,8 @@ describe("Dashboard Panels", () => {
 
   it("ReplenishmentPanel renderiza lista e empty state", () => {
     const emptyHtml = renderToStaticMarkup(<ReplenishmentPanel items={[]} />);
-    expect(emptyHtml).toContain("Órgãos com Necessidade de Reposição");
-    expect(emptyHtml).toContain("Sem necessidade de reposição neste recorte");
+    expect(emptyHtml).toContain("Estoque que precisa de reposição");
+    expect(emptyHtml).toContain("Estoque em dia neste recorte");
 
     const filledHtml = renderToStaticMarkup(
       <ReplenishmentPanel
@@ -87,8 +87,8 @@ describe("Dashboard Panels", () => {
 
   it("RecentRequestsPanel renderiza solicitações operacionais", () => {
     const emptyHtml = renderToStaticMarkup(<RecentRequestsPanel items={[]} />);
-    expect(emptyHtml).toContain("Solicitações Operacionais");
-    expect(emptyHtml).toContain("Nenhuma solicitação operacional registrada");
+    expect(emptyHtml).toContain("Pedidos recentes");
+    expect(emptyHtml).toContain("Nenhum pedido recente por aqui");
 
     const filledHtml = renderToStaticMarkup(
       <RecentRequestsPanel

@@ -21,7 +21,7 @@ export async function BriefingCard({ facts }: { facts: BriefingFacts }) {
           <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-highlight/20 text-highlight-foreground">
             <Sparkles className="size-5" aria-hidden />
           </span>
-          <h2 id="briefing-heading" className="font-heading text-xl font-semibold text-primary">Resumo inteligente da operação</h2>
+          <h2 id="briefing-heading" className="font-heading text-xl font-semibold text-primary">Resumo do dia</h2>
           <span className="rounded-full bg-highlight/15 px-2.5 py-1 text-xs font-semibold text-highlight-foreground">
             {insight.source === "alternativo" ? "Resumo alternativo" : "IA"}
           </span>

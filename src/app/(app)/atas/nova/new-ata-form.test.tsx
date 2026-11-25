@@ -34,16 +34,15 @@ describe("NewAtaForm (no processo)", () => {
       />,
     );
 
-    expect(html).toContain("Materiais do processo");
+    expect(html).toContain("1. Empresa vencedora");
+    expect(html).toContain("Nome da empresa");
+    expect(html).toContain('name="supplierName"');
+    expect(html).toContain("2. Materiais e valores");
     expect(html).toContain("Resina Fotopolimerizável");
-    expect(html).toContain("Empresa vencedora");
+    expect(html).toContain("Valor unitário");
+    expect(html).toContain("Total da ata");
     expect(html).toContain("Início da vigência");
-    expect(html).toContain("Valor da ata");
-    expect(html).toContain('name="totalValue"');
-    expect(html).toContain('name="supplierId"');
     expect(html).toContain('value="ARP 042/2026"');
     expect(html).not.toContain("Número da ata");
-    expect(html).not.toContain("Preço unitário");
-    expect(html).not.toContain("Quantidade registrada");
   });
 });

@@ -10,6 +10,7 @@ type Dictionary = Record<string, StatusPresentation>;
 
 export const PROCESS_STATUS: Dictionary = {
   aguardando_aprovacao: { label: "Aguardando aprovação", tone: "warning" },
+  pendente_contrato: { label: "Pendente de contrato", tone: "warning" },
   em_andamento: { label: "Em andamento", tone: "info" },
   aguardando_providencia: { label: "Aguardando providência", tone: "warning" },
   concluido: { label: "Concluído", tone: "success" },
@@ -17,10 +18,22 @@ export const PROCESS_STATUS: Dictionary = {
   arquivado: { label: "Arquivado", tone: "neutral" },
 };
 
-/** Status de apresentação: antes da aprovação da solicitação, o processo não aparece como “em andamento”. */
+export type ProcessDisplayInstruments = {
+  /** Há ata de registro de preços vinculada ao processo. */
+  hasAta?: boolean;
+  /** Há contrato vinculado ao processo. */
+  hasContract?: boolean;
+};
+
+/**
+ * Status de apresentação.
+ * - Antes da aprovação da solicitação: “Aguardando aprovação”.
+ * - Com ata e sem contrato: “Pendente de contrato”.
+ */
 export function processDisplayStatus(
   processStatus: string,
   requestStatus?: string | null,
+  instruments?: ProcessDisplayInstruments | null,
 ): string {
   if (
     processStatus === "em_andamento" &&
@@ -28,6 +41,10 @@ export function processDisplayStatus(
     ["enviada", "em_analise", "aguardando_correcao"].includes(requestStatus)
   ) {
     return "aguardando_aprovacao";
+  }
+  const closed = ["concluido", "cancelado", "arquivado"].includes(processStatus);
+  if (!closed && instruments?.hasAta && !instruments.hasContract) {
+    return "pendente_contrato";
   }
   return processStatus;
 }

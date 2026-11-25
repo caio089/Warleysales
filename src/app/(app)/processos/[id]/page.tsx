@@ -125,7 +125,31 @@ export async function ProcessContent({
         : null,
       linkedAtas: atas.data
         .filter((item) => item.ata.processId === id)
-        .map((item) => ({ id: item.ata.id, number: item.ata.number, endDate: item.endDate, status: item.validity === "vigente" ? "Vigente" : "Vencida" })),
+        .map((item) => {
+          const registered = item.items.reduce((sum, row) => sum + row.balance.registered, 0);
+          const committed = item.items.reduce((sum, row) => sum + row.balance.committed, 0);
+          const balance = item.items.reduce((sum, row) => sum + row.balance.balance, 0);
+          const totalValue = item.ata.items.reduce(
+            (sum, row) => sum + row.registeredQuantity * row.unitPrice,
+            0,
+          );
+          return {
+            id: item.ata.id,
+            number: item.ata.number,
+            endDate: item.endDate,
+            status:
+              item.ata.status === "rascunho"
+                ? "Rascunho"
+                : item.validity === "vigente"
+                  ? "Vigente"
+                  : "Vencida",
+            registered,
+            committed,
+            balance,
+            totalValue,
+            itemCount: item.items.length,
+          };
+        }),
       linkedContracts: contracts.data
         .filter((item) => item.contract.processId === id)
         .map((item) => ({ id: item.contract.id, number: item.contract.number, object: item.contract.object, value: item.terms.value, endDate: item.terms.endDate })),

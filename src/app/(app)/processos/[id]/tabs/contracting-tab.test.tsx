@@ -68,6 +68,11 @@ const MOCK_ATAS: LinkedAtaItem[] = [
     number: "ARP 012/2026",
     endDate: "2026-12-31",
     status: "Vigente",
+    registered: 100,
+    committed: 25,
+    balance: 75,
+    totalValue: 15000,
+    itemCount: 2,
   },
 ];
 
@@ -152,8 +157,10 @@ describe("ContractingTab", () => {
     expect(html).toContain("ARP 099/2026");
     expect(html).toContain("Anexar contrato");
     expect(html).toContain("CT 099/2026");
-    expect(html).toContain("Empresa vencedora");
-    expect(html).toContain("Valor da ata");
+    expect(html).toContain("1. Empresa vencedora");
+    expect(html).toContain("Nome da empresa");
+    expect(html).toContain("2. Materiais e valores");
+    expect(html).toContain("Valor unitário");
     expect(html).toContain("Papel A4");
     expect(html).not.toContain("Número da ata");
     expect(html).toContain("Registrar contrato");
@@ -210,6 +217,9 @@ describe("ContractingTab", () => {
     expect(html).toContain("Vigente");
     expect(html).toContain("31/12/2026");
     expect(html).toContain("/atas/ata-1");
+    expect(html).toContain("Ver saldo e detalhes");
+    expect(html).toContain("15.000,00");
+    expect(html).toContain(">75<");
 
     // Contract card
     expect(html).toContain("CTR 045/2026");

@@ -55,8 +55,8 @@ export function ReplenishmentPanel({
               <AlertTriangle className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Órgãos com Necessidade de Reposição</h2>
-              <p className="text-xs text-slate-500">{items.length} itens abaixo do estoque mínimo</p>
+              <h2 className="text-sm font-bold text-slate-900">Estoque que precisa de reposição</h2>
+              <p className="text-xs text-slate-500">{items.length} itens abaixo do mínimo</p>
             </div>
           </div>
           <Link href="/estoque" className="text-xs font-semibold text-[#0F2942] hover:underline flex items-center gap-1">
@@ -67,7 +67,7 @@ export function ReplenishmentPanel({
         {items.length === 0 ? (
           <div className="flex items-center gap-2 px-5 py-4 text-xs text-slate-600">
             <CheckCircle2 className="size-4 shrink-0 text-emerald-600" aria-hidden />
-            <p>Sem necessidade de reposição neste recorte.</p>
+            <p>Estoque em dia neste recorte.</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100 px-5">
@@ -125,7 +125,7 @@ export function RecentRequestsPanel({
               <ShoppingCart className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Solicitações Operacionais</h2>
+              <h2 className="text-sm font-bold text-slate-900">Pedidos recentes</h2>
               <p className="text-xs text-slate-500">
                 {pendingCount > 0 ? `Mostrando ${items.length} de ${pendingCount} pendentes` : `${items.length} recentes registradas`}
               </p>
@@ -139,7 +139,7 @@ export function RecentRequestsPanel({
         {items.length === 0 ? (
           <div className="flex items-center gap-2 px-5 py-4 text-xs text-slate-600">
             <Inbox className="size-4 shrink-0 text-slate-500" aria-hidden />
-            <p>Nenhuma solicitação operacional registrada no momento.</p>
+            <p>Nenhum pedido recente por aqui.</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100 px-5">
@@ -186,7 +186,7 @@ export function AlertsPanel({ items, unread }: { items: DashboardAlertItem[]; un
               <Bell className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Alertas & Avisos</h2>
+              <h2 className="text-sm font-bold text-slate-900">Avisos</h2>
               <p className="text-xs text-slate-500">{unread} não lidos</p>
             </div>
           </div>
@@ -314,7 +314,7 @@ export function AgendaAndDeadlinesPanel({
   );
 }
 
-/** Card: Situação dos Processos */
+/** Card: Andamento dos processos (legado — visão principal no HomeOverview). */
 export function StatusDistribution({
   rows,
   total,
@@ -323,12 +323,12 @@ export function StatusDistribution({
   total: number;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex-1 flex flex-col justify-between" aria-label="Processos por situação">
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 flex-1 flex flex-col justify-between" aria-label="Andamento dos processos">
       <div className="flex items-center gap-2.5 mb-3">
         <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700">
           <CheckCircle2 className="w-4 h-4" />
         </div>
-        <h2 className="text-sm font-bold text-slate-900">Situação dos Processos</h2>
+        <h2 className="text-sm font-bold text-slate-900">Andamento dos processos</h2>
       </div>
 
       {total === 0 ? (

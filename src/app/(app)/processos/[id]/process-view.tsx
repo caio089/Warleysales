@@ -156,7 +156,10 @@ export function ProcessView({
   // Métricas e dados derivados para o ProcessHeader
   const status = presentationOf(
     PROCESS_STATUS,
-    processDisplayStatus(view.process.status, approvalRequest?.status),
+    processDisplayStatus(view.process.status, approvalRequest?.status, {
+      hasAta: linkedAtas.length > 0,
+      hasContract: linkedContracts.length > 0,
+    }),
   );
   const completion = presentationOf(COMPLETION_STATUS, view.completion);
   const typesCount = view.process.snapshot

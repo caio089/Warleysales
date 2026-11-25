@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { createAtaFormAction } from "@/modules/atas/actions";
-import { formatCurrency } from "@/shared/lib/format";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { CurrencyField, SelectField, TextField } from "@/shared/ui/forms/fields";
+import { AtaMaterialsValues } from "./ata-materials-values";
 import { AtaValidityField } from "./ata-validity-field";
 
 type Option = { value: string; label: string };
@@ -70,35 +70,41 @@ export function NewAtaForm({
       >
         {(e) => (
           <div className="space-y-4">
-            <div className="rounded-xl border border-border/70 bg-muted/15 px-3.5 py-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Materiais do processo
-              </p>
-              <ul className="mt-2 space-y-1.5">
-                {lines.map((line) => (
-                  <li key={`${line.materialId}-${line.name}`} className="flex items-baseline justify-between gap-3 text-sm">
-                    <span className="min-w-0 truncate text-foreground">{line.name}</span>
-                    <span className="shrink-0 tabular-nums text-muted-foreground">
-                      qtd {line.quantity}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Órgão {lockedProcess.councilLabel} · {lockedProcess.processLabel}
-              </p>
+            <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+              <div>
+                <p className="text-sm font-semibold text-foreground">1. Empresa vencedora</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Digite o nome da empresa. Se já existir, reutilizamos; se não, cadastramos.
+                </p>
+              </div>
+              <TextField
+                name="supplierName"
+                label="Nome da empresa"
+                required
+                placeholder="Ex.: Fornecedor Alfa Ltda"
+                errors={e.supplierName ?? e.supplierId}
+              />
+              {lockedProcess.suppliers.length > 0 ? (
+                <SelectField
+                  name="supplierId"
+                  label="Ou escolha uma já cadastrada (opcional)"
+                  optional
+                  options={lockedProcess.suppliers.map((supplier) => ({
+                    value: supplier.value,
+                    label: supplier.cnpj ? `${supplier.label} · ${supplier.cnpj}` : supplier.label,
+                  }))}
+                  placeholder="Deixe em branco se digitou o nome acima"
+                  errors={e.supplierId}
+                />
+              ) : null}
             </div>
 
-            <SelectField
-              name="supplierId"
-              label="Empresa vencedora"
-              required
-              options={lockedProcess.suppliers.map((supplier) => ({
-                value: supplier.value,
-                label: supplier.cnpj ? `${supplier.label} · ${supplier.cnpj}` : supplier.label,
-              }))}
-              placeholder="Selecione a empresa"
-              errors={e.supplierId}
+            <AtaMaterialsValues
+              lines={lines}
+              councilLabel={lockedProcess.councilLabel}
+              processLabel={lockedProcess.processLabel}
+              defaultTotal={lockedProcess.defaultValue}
+              errors={e}
             />
 
             <AtaValidityField
@@ -109,19 +115,6 @@ export function NewAtaForm({
                   ? "Puxada do Termo de Referência. Ajuste só se necessário."
                   : "Se ainda não preencheu no TR, informe aqui. Depois salve também no TR para reutilizar."
               }
-            />
-
-            <CurrencyField
-              name="totalValue"
-              label="Valor da ata (R$)"
-              required
-              defaultValue={lockedProcess.defaultValue ?? undefined}
-              hint={
-                lockedProcess.defaultValue != null
-                  ? `Sugestão do processo/PP: ${formatCurrency(lockedProcess.defaultValue)}`
-                  : "Informe o valor registrado na ata."
-              }
-              errors={e.totalValue ?? e["items.0.unitPrice"]}
             />
           </div>
         )}

@@ -6,7 +6,7 @@ import { NewAtaForm } from "@/app/(app)/atas/nova/new-ata-form";
 import { NewContractForm } from "@/app/(app)/contratos/novo/new-contract-form";
 import type { ProcessContractingMode } from "@/modules/processes/contracting-mode";
 import { needsAta } from "@/modules/processes/contracting-mode";
-import { formatCurrency } from "@/shared/lib/format";
+import { formatCurrency, formatNumber } from "@/shared/lib/format";
 import { formatDateOnly } from "@/shared/lib/time";
 import { LinkAtaToProcessForm, LinkContractToProcessForm } from "@/shared/ui/forms/link-process-form";
 import { StatusBadge } from "@/shared/ui/status-badge";
@@ -21,7 +21,12 @@ export interface LinkedAtaItem {
   id: string;
   number: string;
   endDate: string | null;
-  status: "Vigente" | "Vencida" | string;
+  status: "Vigente" | "Vencida" | "Rascunho" | string;
+  registered?: number;
+  committed?: number;
+  balance?: number;
+  totalValue?: number;
+  itemCount?: number;
 }
 
 export interface LinkedContractItem {
@@ -147,17 +152,55 @@ export function ContractingTab({
                       </div>
                       <StatusBadge
                         label={ata.status}
-                        tone={ata.status === "Vigente" ? "success" : "neutral"}
+                        tone={
+                          ata.status === "Vigente"
+                            ? "success"
+                            : ata.status === "Rascunho"
+                              ? "warning"
+                              : "neutral"
+                        }
                       />
                     </div>
 
+                    {ata.balance != null || ata.totalValue != null ? (
+                      <dl className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-3 text-xs sm:grid-cols-4">
+                        <div>
+                          <dt className="text-muted-foreground">Valor</dt>
+                          <dd className="mt-0.5 font-semibold tabular-nums text-foreground">
+                            {ata.totalValue != null ? formatCurrency(ata.totalValue) : "—"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Registrada</dt>
+                          <dd className="mt-0.5 font-semibold tabular-nums text-foreground">
+                            {ata.registered != null ? formatNumber(ata.registered) : "—"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Comprometida</dt>
+                          <dd className="mt-0.5 font-semibold tabular-nums text-amber-800">
+                            {ata.committed != null ? formatNumber(ata.committed) : "—"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted-foreground">Saldo</dt>
+                          <dd className="mt-0.5 font-semibold tabular-nums text-emerald-700">
+                            {ata.balance != null ? formatNumber(ata.balance) : "—"}
+                          </dd>
+                        </div>
+                      </dl>
+                    ) : null}
+
                     <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs text-muted-foreground">
-                      <span>Vigência até {ata.endDate ? formatDateOnly(ata.endDate) : "—"}</span>
+                      <span>
+                        Vigência até {ata.endDate ? formatDateOnly(ata.endDate) : "—"}
+                        {ata.itemCount != null ? ` · ${ata.itemCount} item(ns)` : ""}
+                      </span>
                       <Link
                         href={`/atas/${ata.id}`}
                         className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
                       >
-                        <span>Ver ata</span>
+                        <span>Ver saldo e detalhes</span>
                         <ExternalLink className="size-3" aria-hidden="true" />
                       </Link>
                     </div>

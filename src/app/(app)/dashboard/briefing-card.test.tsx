@@ -47,7 +47,7 @@ describe("BriefingCard", () => {
     const element = await BriefingCard({ facts: mockFacts });
     const html = renderToStaticMarkup(element);
 
-    expect(html).toContain("Resumo inteligente da operação");
+    expect(html).toContain("Resumo do dia");
     expect(html).toContain("Pontos de atenção");
     expect(html).toContain("Ver análise completa");
     expect(html).toContain("Órgão: CREA-SP");
