@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { ClipboardCheck, FolderKanban, Handshake, ShieldCheck } from "lucide-react";
+import { ClipboardCheck, FolderKanban, Handshake, History, ShieldCheck } from "lucide-react";
 import { DOCUMENT_TYPES } from "@/modules/processes/domain/document-types";
 import Link from "next/link";
 import type { Attachment } from "@/modules/documents/schemas";
@@ -33,14 +33,26 @@ import {
   type DocumentationTabDocument,
 } from "./tabs/documentation-tab";
 import { GovernanceTab } from "./tabs/governance-tab";
+import { HistoryTab } from "./tabs/history-tab";
 
-export type ProcessTabId = "aprovacoes" | "documentos" | "contratacao" | "governanca";
+export type ProcessTabId =
+  | "aprovacoes"
+  | "documentos"
+  | "contratacao"
+  | "governanca"
+  | "historico";
+
+const PROCESS_TAB_IDS: readonly ProcessTabId[] = [
+  "aprovacoes",
+  "documentos",
+  "contratacao",
+  "governanca",
+  "historico",
+];
 
 export function processTabFromSearch(search: string, fallback: ProcessTabId = "documentos"): ProcessTabId {
   const value = new URLSearchParams(search).get("aba");
-  return value === "aprovacoes" || value === "documentos" || value === "contratacao" || value === "governanca"
-    ? value
-    : fallback;
+  return PROCESS_TAB_IDS.includes(value as ProcessTabId) ? (value as ProcessTabId) : fallback;
 }
 
 export interface ProcessViewProps {
@@ -78,8 +90,7 @@ interface TabDefinition {
   badge?: string;
 }
 
-/**
-/** Visualização do processo em abas: aprovações, documentação, contratação e governança. */
+/** Visualização do processo em abas: aprovações, documentação, contratação, governança e histórico. */
 export function ProcessView({
   view,
   documents,
@@ -203,8 +214,14 @@ export function ProcessView({
     },
     {
       id: "governanca",
-      label: "Governança & Histórico",
+      label: "Governança",
       icon: ShieldCheck,
+    },
+    {
+      id: "historico",
+      label: "Histórico",
+      icon: History,
+      badge: history.length > 0 ? String(history.length) : undefined,
     },
   ];
 
@@ -381,9 +398,18 @@ export function ProcessView({
               canRegisterClosing={canRegisterClosing}
               closingReportRegistered={view.process.closingReportRegistered}
               documentalComplete={view.progress.isComplete}
-              history={history}
             />
           )}
+        </div>
+
+        <div
+          role="tabpanel"
+          id="panel-historico"
+          aria-labelledby="tab-historico"
+          hidden={activeTab !== "historico"}
+          tabIndex={0}
+        >
+          {activeTab === "historico" && <HistoryTab history={history} />}
         </div>
       </main>
     </div>

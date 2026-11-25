@@ -124,6 +124,7 @@ describe("ProcessView", () => {
     expect(processTabFromSearch("?aba=desconhecida", "contratacao")).toBe("contratacao");
     expect(processTabFromSearch("?aba=governanca&filtro=aberto")).toBe("governanca");
     expect(processTabFromSearch("?aba=aprovacoes")).toBe("aprovacoes");
+    expect(processTabFromSearch("?aba=historico")).toBe("historico");
   });
   it("renderiza o ProcessHeader no topo com número, título do item e métricas", () => {
     const html = renderToStaticMarkup(<ProcessView {...BASE_PROPS} />);
@@ -143,7 +144,8 @@ describe("ProcessView", () => {
     expect(html).toContain("Aprovações");
     expect(html).toContain("Documentação (7+N)");
     expect(html).toContain("Atas e contratos");
-    expect(html).toContain("Governança &amp; Histórico");
+    expect(html).toContain("Governança");
+    expect(html).toContain("Histórico");
   });
 
   it("ativa a aba de Documentação por padrão exibindo DocumentationTab", () => {
@@ -198,6 +200,28 @@ describe("ProcessView", () => {
 
     // Conteúdo de documentação não renderizado
     expect(html).not.toContain("Documentos Obrigatórios (Lei 14.133 / PNCP)");
+  });
+
+  it("ativa a aba de Histórico quando initialTab='historico' exibindo HistoryTab", () => {
+    const html = renderToStaticMarkup(
+      <ProcessView
+        {...BASE_PROPS}
+        initialTab="historico"
+        history={[
+          {
+            id: "h1",
+            title: "DFD colocado",
+            occurredAt: "2026-01-12T10:00:00.000Z",
+          },
+        ]}
+      />,
+    );
+
+    expect(html).toContain('id="tab-historico"');
+    expect(html).toContain('aria-selected="true"');
+    expect(html).toContain('id="panel-historico"');
+    expect(html).toContain("Histórico do processo");
+    expect(html).toContain("DFD colocado");
   });
 
   it("renderiza badges nas abas com indicadores de volume", () => {
@@ -275,9 +299,11 @@ describe("ProcessView", () => {
     expect(html).toContain('id="tab-contratacao" aria-selected="false" aria-controls="panel-contratacao" tabindex="-1"');
     expect(html).toContain('aria-controls="panel-contratacao"');
     expect(html).toContain('aria-controls="panel-governanca"');
+    expect(html).toContain('aria-controls="panel-historico"');
 
     expect(html).toContain('id="panel-documentos" aria-labelledby="tab-documentos"');
     expect(html).toContain('id="panel-contratacao" aria-labelledby="tab-contratacao"');
     expect(html).toContain('id="panel-governanca" aria-labelledby="tab-governanca"');
+    expect(html).toContain('id="panel-historico" aria-labelledby="tab-historico"');
   });
 });

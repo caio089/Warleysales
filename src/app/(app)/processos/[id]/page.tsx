@@ -16,7 +16,7 @@ export async function ProcessContent({
   initialTab,
 }: {
   params: Promise<{ id: string }>;
-  initialTab: "aprovacoes" | "documentos" | "contratacao" | "governanca";
+  initialTab: "aprovacoes" | "documentos" | "contratacao" | "governanca" | "historico";
 }) {
   const { id } = await params;
   const result = await loadScreen(async ({ services, actor }) => {
@@ -162,7 +162,12 @@ export default async function ProcessPage({
 }) {
   const { aba } = await searchParams;
   const initialTab =
-    aba === "aprovacoes" || aba === "contratacao" || aba === "governanca" ? aba : "documentos";
+    aba === "aprovacoes" ||
+    aba === "contratacao" ||
+    aba === "governanca" ||
+    aba === "historico"
+      ? aba
+      : "documentos";
   return (
     <Suspense fallback={<LoadingState />}>
       <ProcessContent params={params} initialTab={initialTab} />

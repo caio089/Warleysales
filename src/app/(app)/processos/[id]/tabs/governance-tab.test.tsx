@@ -26,14 +26,6 @@ const BASE_PROPS: GovernanceTabProps = {
   canRegisterClosing: true,
   closingReportRegistered: false,
   documentalComplete: true,
-  history: [
-    {
-      id: "1",
-      title: "Processo criado",
-      description: "Processo 001/2026",
-      occurredAt: "2026-01-10T12:00:00.000Z",
-    },
-  ],
 };
 
 describe("GovernanceTab", () => {
@@ -46,12 +38,12 @@ describe("GovernanceTab", () => {
     );
   });
 
-  it("renderiza o histórico com data e horário e a trilha de auditoria", () => {
+  it("renderiza a trilha de auditoria e aponta para a aba Histórico", () => {
     const html = renderToStaticMarkup(<GovernanceTab {...BASE_PROPS} />);
 
-    expect(html).toContain("Histórico com data e horário");
-    expect(html).toContain("Processo criado");
     expect(html).toContain("Trilha de Auditoria");
+    expect(html).toContain("aba Histórico");
+    expect(html).not.toContain("Histórico com data e horário");
   });
 
   it("renderiza o formulário de alteração de situação com microcopy higienizada", () => {
