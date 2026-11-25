@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Download, FileText, Loader2, Plus } from "lucide-react";
+import { Archive, CalendarClock, Download, FileText, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   confirmDocumentUploadAction,
@@ -20,6 +20,7 @@ import { formatDateTimeFortaleza } from "@/shared/lib/time";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { toast } from "@/shared/ui/toast-store";
 import { CompactDocumentRow } from "../compact-document-row";
+import { documentPlacementDates } from "../process-history";
 
 /** Os 7 documentos obrigatórios na ordem legal da Lei 14.133 / PNCP. */
 export const MANDATORY_DOCUMENTS = [
@@ -145,9 +146,67 @@ export function DocumentationTab({
   });
 
   const archivedDocs = documents.filter(isArchivedDoc);
+  const placementDates = documentPlacementDates(
+    documents.map((doc) => {
+      const anyDoc = doc as DocumentationTabDocument;
+      return {
+        id: anyDoc.id,
+        typeCode: doc.typeCode,
+        fileName: anyDoc.fileName ?? anyDoc.name,
+        createdAt: anyDoc.createdAt ? String(anyDoc.createdAt) : null,
+        linkStatus: anyDoc.linkStatus,
+      };
+    }),
+  );
 
   return (
     <div className="space-y-6">
+      <section
+        aria-label="Registro de datas dos documentos"
+        className="surface-card space-y-4 p-5 sm:p-6"
+      >
+        <header className="flex items-start gap-3 border-b border-border/60 pb-3">
+          <span className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
+            <CalendarClock className="size-5" aria-hidden />
+          </span>
+          <div>
+            <h2 className="font-heading text-base font-semibold text-foreground sm:text-lg">
+              Registro: quando cada documento foi colocado
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+              Data e horário em que DFD, ETP, MR, TR, PP, PJ, ED e complementares entraram na pasta.
+            </p>
+          </div>
+        </header>
+        {placementDates.length > 0 ? (
+          <ul className="space-y-2" aria-label="Datas de colocação dos documentos">
+            {placementDates.map((row) => (
+              <li
+                key={row.typeCode}
+                className="flex flex-col gap-1 rounded-xl border border-border/70 bg-muted/15 px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">
+                    {row.typeCode} · {row.label}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">{row.fileName}</p>
+                </div>
+                <time
+                  dateTime={row.placedAt}
+                  className="shrink-0 text-xs font-medium tabular-nums text-primary sm:text-sm"
+                >
+                  {formatDateTimeFortaleza(row.placedAt)}
+                </time>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-muted-foreground italic">
+            Ainda não há documentos colocados neste processo.
+          </p>
+        )}
+      </section>
+
       <section
         aria-label="Documentos Obrigatórios (Lei 14.133 / PNCP)"
         className="surface-card space-y-4 p-5 sm:p-6"

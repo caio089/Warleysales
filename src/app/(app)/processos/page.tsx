@@ -14,6 +14,7 @@ import { KpiCard } from "@/shared/ui/kpi-card";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
+import { processDisplayStatus } from "@/shared/ui/status-presentation";
 import { ProcessAttachmentSheet } from "./process-attachment-sheet";
 import { ProcessesTable } from "./processes-table";
 
@@ -44,6 +45,11 @@ async function Content({ openApprovals }: { openApprovals: boolean }) {
     }
 
     const canApproveRequests = ctx.actor.isSpecialDeleter;
+    const requestStatusByProcess = new Map(
+      requests.data
+        .filter((request) => request.processId)
+        .map((request) => [request.processId!, request.status] as const),
+    );
     const approvalQueue: PendingApprovalItem[] = canApproveRequests
       ? requests.data
           .filter((request) => ["enviada", "em_analise", "aguardando_correcao"].includes(request.status))
@@ -70,12 +76,13 @@ async function Content({ openApprovals }: { openApprovals: boolean }) {
       canCreate: canInAnyCouncil(ctx.actor, "process.create"),
       canApproveRequests,
       approvalQueue,
+      requestStatusByProcess: Object.fromEntries(requestStatusByProcess),
     });
   });
 
   return (
     <Screen result={result}>
-      {({ processes, complete, pending, councilLabel, canCreate, deadlines, today, canApproveRequests, approvalQueue }) => (
+      {({ processes, complete, pending, councilLabel, canCreate, deadlines, today, canApproveRequests, approvalQueue, requestStatusByProcess }) => (
         <>
           <PageHeader
             eyebrow="Documentação"
@@ -117,7 +124,7 @@ async function Content({ openApprovals }: { openApprovals: boolean }) {
               number: p.process.number,
               title: p.process.title,
               council: councilLabel[p.process.councilId] ?? "—",
-              status: p.process.status,
+              status: processDisplayStatus(p.process.status, requestStatusByProcess[p.process.id]),
               completion: p.completion,
               progress: p.displayPercent,
               createdAt: p.process.createdAt.toISOString(),

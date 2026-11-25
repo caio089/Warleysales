@@ -26,6 +26,14 @@ const BASE_PROPS: GovernanceTabProps = {
   canRegisterClosing: true,
   closingReportRegistered: false,
   documentalComplete: true,
+  history: [
+    {
+      id: "1",
+      title: "Processo criado",
+      description: "Processo 001/2026",
+      occurredAt: "2026-01-10T12:00:00.000Z",
+    },
+  ],
 };
 
 describe("GovernanceTab", () => {
@@ -38,12 +46,12 @@ describe("GovernanceTab", () => {
     );
   });
 
-  it("renderiza o card informativo da Trilha de Auditoria e conformidade", () => {
+  it("renderiza o histórico com data e horário e a trilha de auditoria", () => {
     const html = renderToStaticMarkup(<GovernanceTab {...BASE_PROPS} />);
 
-    expect(html).toContain(
-      "Todas as alterações de status, uploads de arquivos e homologações de compras são registradas de forma imutável na Trilha de Auditoria"
-    );
+    expect(html).toContain("Histórico com data e horário");
+    expect(html).toContain("Processo criado");
+    expect(html).toContain("Trilha de Auditoria");
   });
 
   it("renderiza o formulário de alteração de situação com microcopy higienizada", () => {

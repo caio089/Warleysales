@@ -12,10 +12,12 @@ import {
   COMPLETION_STATUS,
   PROCESS_STATUS,
   presentationOf,
+  processDisplayStatus,
 } from "@/shared/ui/status-presentation";
 import type { FormalizationSupplier } from "./formalization-card";
 import { PlanDossierCard } from "@/app/(app)/solicitacoes/plan-dossier-card";
 import { planDossier } from "@/app/(app)/solicitacoes/request-facets";
+import type { TimelineEntry } from "@/shared/ui/activity-timeline";
 import { ProcessHeader } from "./process-header";
 import {
   ApprovalsTab,
@@ -54,6 +56,7 @@ export interface ProcessViewProps {
   requestId: string | null;
   requestItems: Array<{ materialId: string; name: string; quantity: number }>;
   requestNotes?: string[];
+  history?: TimelineEntry[];
   approvalRequest?: ApprovalsTabRequest | null;
   linkedAtas: LinkedAtaItem[];
   linkedContracts: LinkedContractItem[];
@@ -90,6 +93,7 @@ export function ProcessView({
   requestId,
   requestItems,
   requestNotes = [],
+  history = [],
   approvalRequest = null,
   linkedAtas,
   linkedContracts,
@@ -134,7 +138,10 @@ export function ProcessView({
   }
 
   // Métricas e dados derivados para o ProcessHeader
-  const status = presentationOf(PROCESS_STATUS, view.process.status);
+  const status = presentationOf(
+    PROCESS_STATUS,
+    processDisplayStatus(view.process.status, approvalRequest?.status),
+  );
   const completion = presentationOf(COMPLETION_STATUS, view.completion);
   const typesCount = view.process.snapshot
     ? DOCUMENT_TYPES.length
@@ -374,6 +381,7 @@ export function ProcessView({
               canRegisterClosing={canRegisterClosing}
               closingReportRegistered={view.process.closingReportRegistered}
               documentalComplete={view.progress.isComplete}
+              history={history}
             />
           )}
         </div>

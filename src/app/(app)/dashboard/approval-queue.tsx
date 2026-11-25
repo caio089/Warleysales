@@ -34,7 +34,7 @@ interface ApprovalQueueProps {
 
 const PAGE_SIZE = 20;
 
-/** Fila recolhível: resumo ao clicar, 20 por vez, aprovar ou não na hora. */
+/** Fila recolhível: clica no item, vê o resumo e aprova/recusa ali mesmo — sem ir ao processo. */
 export function ApprovalQueue({
   items,
   showWhenEmpty = false,
@@ -47,14 +47,29 @@ export function ApprovalQueue({
 
   const visibleItems = useMemo(() => items.slice(0, visibleCount), [items, visibleCount]);
   const hasMore = visibleCount < items.length;
-  const selected = selectedId ? items.find((item) => item.id === selectedId) ?? null : null;
 
   useEffect(() => {
-    if (!defaultOpen) return;
-    setOpen(true);
-    const node = document.getElementById("aprovacoes");
-    node?.scrollIntoView({ behavior: "smooth", block: "start" });
+    function openFromHash() {
+      if (defaultOpen || window.location.hash === "#aprovacoes") {
+        setOpen(true);
+        document.getElementById("aprovacoes")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+    openFromHash();
+    window.addEventListener("hashchange", openFromHash);
+    return () => window.removeEventListener("hashchange", openFromHash);
   }, [defaultOpen]);
+
+  useEffect(() => {
+    if (items.length === 0) {
+      setSelectedId(null);
+      return;
+    }
+    if (selectedId && !items.some((item) => item.id === selectedId)) {
+      setSelectedId(null);
+      setDecliningId(null);
+    }
+  }, [items, selectedId]);
 
   if (items.length === 0 && !showWhenEmpty) return null;
 
@@ -84,8 +99,8 @@ export function ApprovalQueue({
             </div>
             <p className="text-xs text-muted-foreground">
               {open
-                ? "Clique em uma solicitação para ver o resumo e decidir."
-                : "Toque para abrir a fila. Mostra 20 por vez."}
+                ? "Clique em uma solicitação e aprove ou recuse aqui mesmo."
+                : "Toque para abrir. Aprove direto, sem abrir o processo."}
             </p>
           </div>
         </div>
@@ -103,22 +118,26 @@ export function ApprovalQueue({
             </p>
           ) : (
             <div className="space-y-3">
-              <ul className="divide-y divide-border/60 overflow-hidden rounded-xl border border-border/70 bg-card/70">
+              <ul className="space-y-2">
                 {visibleItems.map((item) => {
                   const status = presentationOf(REQUEST_STATUS, item.status);
                   const isSelected = selectedId === item.id;
+                  const isDeclining = decliningId === item.id;
                   return (
-                    <li key={item.id}>
+                    <li
+                      key={item.id}
+                      className={cn(
+                        "overflow-hidden rounded-xl border border-border/70 bg-card/70 transition-colors",
+                        isSelected && "border-primary/40 bg-primary/5",
+                      )}
+                    >
                       <button
                         type="button"
                         onClick={() => {
                           setSelectedId(isSelected ? null : item.id);
                           setDecliningId(null);
                         }}
-                        className={cn(
-                          "flex w-full flex-col gap-1 px-4 py-3 text-left transition-colors sm:flex-row sm:items-center sm:justify-between",
-                          isSelected ? "bg-primary/8" : "hover:bg-muted/40",
-                        )}
+                        className="flex w-full flex-col gap-1 px-4 py-3 text-left sm:flex-row sm:items-center sm:justify-between"
                       >
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
@@ -134,6 +153,79 @@ export function ApprovalQueue({
                           </span>
                         </div>
                       </button>
+
+                      {isSelected ? (
+                        <div className="space-y-3 border-t border-border/60 px-4 py-4">
+                          <p className="text-sm text-muted-foreground">
+                            Resumo: {item.councilName} pediu {item.itemsCount} item
+                            {item.itemsCount === 1 ? "" : "s"}
+                            {item.estimatedValue == null
+                              ? ""
+                              : ` · ${formatCurrency(item.estimatedValue)}`}
+                            . Decida aqui — não precisa abrir o processo.
+                          </p>
+
+                          {isDeclining ? (
+                            <div className="space-y-3 rounded-xl border border-border/80 bg-secondary/40 p-4">
+                              <p className="text-sm text-muted-foreground">Informe o motivo da recusa.</p>
+                              <ActionForm
+                                action={requestStepFormAction}
+                                submitLabel="Recusar"
+                                pendingLabel="Recusando…"
+                                submitVariant="destructive"
+                                hiddenFields={{ requestId: item.id, step: "reject" }}
+                                onSuccess={() => {
+                                  setSelectedId(null);
+                                  setDecliningId(null);
+                                }}
+                              >
+                                {(errors) => (
+                                  <TextAreaField name="note" label="Motivo" required errors={errors.note} />
+                                )}
+                              </ActionForm>
+                              <button
+                                type="button"
+                                className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+                                onClick={() => setDecliningId(null)}
+                              >
+                                Voltar
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap items-center gap-3">
+                              <ActionForm
+                                action={requestStepFormAction}
+                                submitLabel="Aprovar"
+                                pendingLabel="Aprovando…"
+                                submitClassName="h-11 px-6"
+                                hiddenFields={{ requestId: item.id, step: "approve" }}
+                                onSuccess={() => {
+                                  setSelectedId(null);
+                                  setDecliningId(null);
+                                }}
+                              >
+                                {() => null}
+                              </ActionForm>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="h-11"
+                                onClick={() => setDecliningId(item.id)}
+                              >
+                                Não
+                              </Button>
+                              {item.processId ? (
+                                <Link
+                                  href={`/processos/${item.processId}?aba=documentos`}
+                                  className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-muted-foreground")}
+                                >
+                                  Ver processo
+                                </Link>
+                              ) : null}
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
                     </li>
                   );
                 })}
@@ -148,86 +240,6 @@ export function ApprovalQueue({
                 >
                   Ver mais {Math.min(PAGE_SIZE, items.length - visibleCount)}
                 </Button>
-              ) : null}
-
-              {selected ? (
-                <div className="space-y-4 rounded-2xl border border-primary/20 bg-card p-4 sm:p-5">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 space-y-1">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Resumo</p>
-                      <h3 className="font-heading text-base font-semibold text-primary">{selected.title}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {selected.councilName} · {selected.itemsCount} item{selected.itemsCount === 1 ? "" : "s"} ·{" "}
-                        {selected.estimatedValue == null ? "valor a definir" : formatCurrency(selected.estimatedValue)}
-                      </p>
-                    </div>
-                    {selected.processId ? (
-                      <Link
-                        href={`/processos/${selected.processId}?aba=aprovacoes`}
-                        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                      >
-                        Abrir no processo
-                      </Link>
-                    ) : (
-                      <Link
-                        href={`/solicitacoes/${selected.id}`}
-                        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                      >
-                        Abrir solicitação
-                      </Link>
-                    )}
-                  </div>
-
-                  {decliningId === selected.id ? (
-                    <div className="space-y-3 rounded-xl border border-border/80 bg-secondary/40 p-4">
-                      <p className="text-sm text-muted-foreground">Informe o motivo da recusa.</p>
-                      <ActionForm
-                        action={requestStepFormAction}
-                        submitLabel="Recusar"
-                        pendingLabel="Recusando…"
-                        submitVariant="destructive"
-                        hiddenFields={{ requestId: selected.id, step: "reject" }}
-                        onSuccess={() => {
-                          setSelectedId(null);
-                          setDecliningId(null);
-                        }}
-                      >
-                        {(errors) => <TextAreaField name="note" label="Motivo" required errors={errors.note} />}
-                      </ActionForm>
-                      <button
-                        type="button"
-                        className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-                        onClick={() => setDecliningId(null)}
-                      >
-                        Voltar
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap items-center gap-3">
-                      <ActionForm
-                        action={requestStepFormAction}
-                        submitLabel="Aprovar"
-                        pendingLabel="Aprovando…"
-                        submitClassName="h-11 px-6"
-                        hiddenFields={{ requestId: selected.id, step: "approve" }}
-                        onSuccess={() => setSelectedId(null)}
-                      >
-                        {() => null}
-                      </ActionForm>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-11"
-                        onClick={() => setDecliningId(selected.id)}
-                      >
-                        Não
-                      </Button>
-                    </div>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    Ao aprovar, o processo libera documentação e o fluxo de estoque para seguir.
-                  </p>
-                </div>
               ) : null}
             </div>
           )}

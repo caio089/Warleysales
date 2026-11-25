@@ -1,7 +1,8 @@
 "use client";
 
-import { ShieldCheck } from "lucide-react";
+import { History, ShieldCheck } from "lucide-react";
 import type { ProcessStatus } from "@/modules/processes/domain/process-status";
+import { ActivityTimeline, type TimelineEntry } from "@/shared/ui/activity-timeline";
 import { ProcessActions } from "../process-actions";
 
 export interface GovernanceTabProps {
@@ -11,9 +12,10 @@ export interface GovernanceTabProps {
   canRegisterClosing: boolean;
   closingReportRegistered: boolean;
   documentalComplete: boolean;
+  history: TimelineEntry[];
 }
 
-/** Aba 3 — Governança e Histórico: Ciclo de vida, situação administrativa, relatório de encerramento e rastreabilidade. */
+/** Aba 3 — Governança e Histórico: ciclo de vida, datas/horários e rastreabilidade. */
 export function GovernanceTab({
   processId,
   status,
@@ -21,10 +23,10 @@ export function GovernanceTab({
   canRegisterClosing,
   closingReportRegistered,
   documentalComplete,
+  history,
 }: GovernanceTabProps) {
   return (
     <div className="space-y-6">
-      {/* Cabeçalho da Aba */}
       <section
         aria-labelledby="governanca-heading"
         className="surface-card p-5 sm:p-6"
@@ -42,7 +44,6 @@ export function GovernanceTab({
         </div>
       </section>
 
-      {/* Ações Administrativas (Transição de status e Encerramento formal) */}
       <ProcessActions
         processId={processId}
         status={status}
@@ -52,7 +53,32 @@ export function GovernanceTab({
         documentalComplete={documentalComplete}
       />
 
-      {/* Card Informativo de Governança e Trilha de Auditoria */}
+      <section
+        aria-labelledby="historico-processo-heading"
+        className="surface-card space-y-4 p-5 sm:p-6"
+      >
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl border border-primary/20 bg-primary/10 p-2.5 text-primary">
+            <History className="size-5 shrink-0" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 space-y-1">
+            <h3
+              id="historico-processo-heading"
+              className="font-heading text-base font-semibold text-foreground"
+            >
+              Histórico com data e horário
+            </h3>
+            <p className="text-xs text-muted-foreground sm:text-sm">
+              Solicitação, aprovações, documentos e formalização — tudo com data e hora (Fortaleza).
+            </p>
+          </div>
+        </div>
+        <ActivityTimeline
+          entries={history}
+          emptyLabel="Nenhum evento registrado neste processo ainda."
+        />
+      </section>
+
       <section
         aria-labelledby="trilha-auditoria-heading"
         className="surface-card flex items-start gap-4 p-5 sm:p-6"
@@ -68,7 +94,7 @@ export function GovernanceTab({
             Trilha de Auditoria & Conformidade
           </h3>
           <p className="text-xs text-muted-foreground sm:text-sm">
-            Todas as alterações de status, uploads de arquivos e homologações de compras são registradas de forma imutável na Trilha de Auditoria.
+            As ações acima também ficam registradas na trilha de auditoria do sistema.
           </p>
         </div>
       </section>

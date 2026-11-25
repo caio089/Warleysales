@@ -4,8 +4,8 @@ import type { NextStepProps } from "./flow-guide";
 /** Caminho feliz da solicitação — o que a pessoa comum precisa enxergar. */
 export const REQUEST_LIFECYCLE = [
   { key: "rascunho", label: "Rascunho" },
-  { key: "enviada", label: "Enviada" },
-  { key: "em_analise", label: "Em análise" },
+  { key: "enviada", label: "Aguardando aprovação" },
+  { key: "em_analise", label: "Aguardando aprovação" },
   { key: "aprovada", label: "Aprovada" },
   { key: "em_atendimento", label: "Recebendo" },
   { key: "atendida", label: "Concluída" },

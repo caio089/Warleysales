@@ -321,7 +321,7 @@ async function DashboardContent({
           <div className="space-y-8">
             {canApproveRequests ? (
               <Link
-                href="/processos?aprovacoes=1#aprovacoes"
+                href="#aprovacoes"
                 aria-label={`Aprovações pendentes: ${reqPending}`}
                 className="group flex items-center justify-between gap-4 rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card px-5 py-4 shadow-sm transition-colors hover:border-primary/50 hover:from-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-6"
               >
@@ -332,7 +332,7 @@ async function DashboardContent({
                   <div className="min-w-0">
                     <p className="text-xs font-semibold uppercase tracking-wider text-primary/80">Aprovações</p>
                     <p className="truncate text-sm text-muted-foreground">
-                      Clique para abrir a fila e decidir
+                      Clique para abrir a fila e aprovar aqui mesmo
                     </p>
                   </div>
                 </div>
@@ -398,7 +398,7 @@ async function DashboardContent({
 
             <section aria-labelledby="workspace-heading" className="space-y-4">
               <h2 id="workspace-heading" className="font-heading text-xl font-semibold text-primary">Filas e espaço de trabalho</h2>
-              {canApproveRequests ? <ApprovalQueue items={approvalQueue} /> : null}
+              {canApproveRequests ? <ApprovalQueue items={approvalQueue} defaultOpen={reqPending > 0} /> : null}
               {isWarley ? <FormalizationQueue items={pendingQueue} /> : null}
               {isWarley ? <OrderQueue items={pendingOrderQueue} /> : null}
               {workspace ? (

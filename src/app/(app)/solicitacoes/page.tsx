@@ -53,14 +53,14 @@ async function Content() {
           <Suspense fallback={<ModuleInsightFallback />}>
             <ModuleInsight moduleName="Solicitações" sourceHref="/solicitacoes" facts={[
               { label: "Total", value: requests.length },
-              { label: "Aguardando análise", value: requests.filter((r) => ["enviada", "em_analise", "aguardando_correcao"].includes(r.status)).length },
+              { label: "Aguardando aprovação", value: requests.filter((r) => ["enviada", "em_analise", "aguardando_correcao"].includes(r.status)).length },
               { label: "Em atendimento", value: requests.filter((r) => ["aprovada", "em_atendimento", "parcialmente_atendida"].includes(r.status)).length },
               { label: "Atendidas", value: requests.filter((r) => r.status === "atendida").length },
             ]} />
           </Suspense>
           <div className="mb-6 grid gap-3 sm:grid-cols-3" aria-label="Resumo das solicitações">
             <KpiCard icon={<ClipboardList className="size-4" aria-hidden />} label="Solicitações" value={requests.length} />
-            <KpiCard icon={<Clock3 className="size-4" aria-hidden />} label="Aguardando análise" value={requests.filter((r) => ["enviada", "em_analise", "aguardando_correcao"].includes(r.status)).length} accent={requests.some((r) => ["enviada", "em_analise", "aguardando_correcao"].includes(r.status))} />
+            <KpiCard icon={<Clock3 className="size-4" aria-hidden />} label="Aguardando aprovação" value={requests.filter((r) => ["enviada", "em_analise", "aguardando_correcao"].includes(r.status)).length} accent={requests.some((r) => ["enviada", "em_analise", "aguardando_correcao"].includes(r.status))} />
             <KpiCard icon={<CircleCheck className="size-4" aria-hidden />} label="Atendidas" value={requests.filter((r) => r.status === "atendida").length} />
           </div>
           <FlowGuide title="Fluxo em 4 passos" steps={REQUEST_FLOW_STEPS} />

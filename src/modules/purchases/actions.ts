@@ -76,9 +76,11 @@ export async function requestStepFormAction(_previous: ActionState, formData: Fo
     revalidatePath("/atas");
     revalidatePath("/estoque");
     const processId = result.data?.processId;
-    if (step === "approve" && processId) {
-      revalidatePath(`/processos/${processId}`);
-      redirect(`/processos/${processId}?aba=documentos`);
+    if (processId) revalidatePath(`/processos/${processId}`);
+    // Fila rápida (Início/Processos): fica na página. Só redireciona quando a tela pedir.
+    const redirectTo = String(formData.get("redirectTo") ?? "");
+    if (step === "approve" && redirectTo.startsWith("/")) {
+      redirect(redirectTo);
     }
   }
   return result.status === "success" ? { status: "success", message: result.message } : result;

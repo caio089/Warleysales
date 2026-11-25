@@ -6,6 +6,7 @@ import { can } from "@/shared/lib/authz/policy";
 import { loadLookups } from "@/server/lookups";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { Screen } from "@/shared/ui/screen";
+import { buildProcessHistory } from "./process-history";
 import { ProcessView } from "./process-view";
 
 export const metadata: Metadata = { title: "Processo" };
@@ -45,6 +46,45 @@ export async function ProcessContent({
       name: materialName[item.materialId] ?? "Item",
       quantity: item.quantity,
     }));
+    const history = buildProcessHistory({
+      process: {
+        number: view.process.number,
+        createdAt: view.process.createdAt.toISOString(),
+        documentalCompletedAt: view.process.documentalCompletedAt?.toISOString() ?? null,
+      },
+      request: linkedRequest
+        ? {
+            title: linkedRequest.title,
+            createdAt: linkedRequest.createdAt.toISOString(),
+            events: linkedRequest.events.map((event) => ({
+              to: event.to,
+              at: event.at.toISOString(),
+              note: event.note ?? null,
+            })),
+          }
+        : null,
+      documents: documents.map((document) => ({
+        id: document.id,
+        typeCode: document.typeCode,
+        fileName: document.fileName,
+        createdAt: document.createdAt instanceof Date
+          ? document.createdAt.toISOString()
+          : document.createdAt
+            ? String(document.createdAt)
+            : null,
+        linkStatus: document.linkStatus,
+      })),
+      formalization: formalization.data
+        ? {
+            createdAt: formalization.data.createdAt.toISOString(),
+            status: formalization.data.status,
+            homologatedAt: formalization.data.homologatedAt?.toISOString() ?? null,
+            homologationNote: formalization.data.homologationNote,
+            auctionDate: formalization.data.auctionDate ?? null,
+          }
+        : null,
+    });
+
     return ok({
       view,
       documents,
@@ -58,6 +98,7 @@ export async function ProcessContent({
       requestId: linkedRequest?.id ?? null,
       requestItems,
       requestNotes: (linkedRequest?.events ?? []).map((event) => event.note ?? ""),
+      history,
       approvalRequest: linkedRequest
         ? {
             id: linkedRequest.id,
@@ -65,6 +106,12 @@ export async function ProcessContent({
             status: linkedRequest.status,
             councilLabel: lookups.data.councilLabel[councilId] ?? "Órgão",
             estimatedValue: linkedRequest.estimatedValue ?? null,
+            createdAt: linkedRequest.createdAt.toISOString(),
+            events: linkedRequest.events.map((event) => ({
+              to: event.to,
+              at: event.at.toISOString(),
+              note: event.note ?? null,
+            })),
             items: linkedRequest.items.map((item) => ({
               id: item.id,
               label: materialName[item.materialId] ?? "Item",

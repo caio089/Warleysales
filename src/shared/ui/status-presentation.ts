@@ -9,6 +9,7 @@ export interface StatusPresentation {
 type Dictionary = Record<string, StatusPresentation>;
 
 export const PROCESS_STATUS: Dictionary = {
+  aguardando_aprovacao: { label: "Aguardando aprovação", tone: "warning" },
   em_andamento: { label: "Em andamento", tone: "info" },
   aguardando_providencia: { label: "Aguardando providência", tone: "warning" },
   concluido: { label: "Concluído", tone: "success" },
@@ -16,10 +17,25 @@ export const PROCESS_STATUS: Dictionary = {
   arquivado: { label: "Arquivado", tone: "neutral" },
 };
 
+/** Status de apresentação: antes da aprovação da solicitação, o processo não aparece como “em andamento”. */
+export function processDisplayStatus(
+  processStatus: string,
+  requestStatus?: string | null,
+): string {
+  if (
+    processStatus === "em_andamento" &&
+    requestStatus != null &&
+    ["enviada", "em_analise", "aguardando_correcao"].includes(requestStatus)
+  ) {
+    return "aguardando_aprovacao";
+  }
+  return processStatus;
+}
+
 export const REQUEST_STATUS: Dictionary = {
   rascunho: { label: "Rascunho", tone: "neutral" },
-  enviada: { label: "Enviada", tone: "info" },
-  em_analise: { label: "Em análise", tone: "info" },
+  enviada: { label: "Aguardando aprovação", tone: "warning" },
+  em_analise: { label: "Aguardando aprovação", tone: "warning" },
   aguardando_correcao: { label: "Aguardando correção", tone: "warning" },
   aprovada: { label: "Aprovada", tone: "success" },
   rejeitada: { label: "Rejeitada", tone: "danger" },
