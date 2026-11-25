@@ -7,14 +7,12 @@ import { Button } from "@/components/ui/button";
 import {
   confirmDocumentUploadAction,
   downloadUrlAction,
-  manualDeleteFormAction,
   prepareDocumentUploadAction,
   unlinkDocumentFormAction,
 } from "@/modules/documents/actions";
 import { sha256Hex, uploadToSignedUrl } from "@/shared/lib/browser-upload";
 import { formatBytes } from "@/shared/lib/format";
 import { formatDateTimeFortaleza } from "@/shared/lib/time";
-import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { documentExceptionAction } from "@/modules/processes/exception-action";
 import type { AdministrativeProcess } from "@/modules/processes/schemas";
 import { ActionForm } from "@/shared/ui/forms/action-form";
@@ -36,7 +34,6 @@ export interface CompactDocumentRowProps {
   files: CompactDocumentFile[];
   canUpload: boolean;
   canUnlink: boolean;
-  canManualDelete: boolean;
   onUploadClick?: () => void;
   children?: ReactNode;
 }
@@ -51,7 +48,6 @@ export function CompactDocumentRow({
   files,
   canUpload,
   canUnlink,
-  canManualDelete,
   onUploadClick,
   children,
 }: CompactDocumentRowProps) {
@@ -252,39 +248,13 @@ export function CompactDocumentRow({
                     {canUnlink ? (
                       <ActionForm
                         action={unlinkDocumentFormAction}
-                        submitLabel="Desvincular"
+                        submitLabel="Arquivar"
                         submitVariant="outline"
                         submitClassName="h-7 px-2 text-xs font-medium min-w-0"
                         hiddenFields={{ attachmentId: file.id, processId }}
                       >
                         {() => null}
                       </ActionForm>
-                    ) : null}
-                    {canManualDelete ? (
-                      <ConfirmDialog
-                        trigger={
-                          <Button variant="destructive" size="xs" className="h-7 px-2 text-xs font-medium">
-                            Excluir
-                          </Button>
-                        }
-                        title="Excluir definitivamente?"
-                        description="Esta ação remove o arquivo do armazenamento e não pode ser desfeita. Ficará registrada na auditoria."
-                        confirmLabel="Excluir definitivamente"
-                        destructive
-                        onConfirm={async () => {
-                          const body = new FormData();
-                          body.set("attachmentId", file.id);
-                          body.set("processId", processId);
-                          const state = await manualDeleteFormAction({ status: "idle" }, body);
-                          if (state.status === "error") {
-                            toast.error(state.message);
-                            return false;
-                          }
-                          toast.success("Documento excluído.");
-                          router.refresh();
-                          return true;
-                        }}
-                      />
                     ) : null}
                   </div>
                 </li>
@@ -311,39 +281,13 @@ export function CompactDocumentRow({
               {canUnlink ? (
                 <ActionForm
                   action={unlinkDocumentFormAction}
-                  submitLabel="Desvincular"
+                  submitLabel="Arquivar"
                   submitVariant="outline"
                   submitClassName="h-8 px-2.5 text-xs font-medium min-w-0"
                   hiddenFields={{ attachmentId: files[0].id, processId }}
                 >
                   {() => null}
                 </ActionForm>
-              ) : null}
-              {canManualDelete ? (
-                <ConfirmDialog
-                  trigger={
-                    <Button variant="destructive" size="xs" className="h-8 px-2.5 text-xs font-medium">
-                      Excluir
-                    </Button>
-                  }
-                  title="Excluir definitivamente?"
-                  description="Esta ação remove o arquivo do armazenamento e não pode ser desfeita. Ficará registrada na auditoria."
-                  confirmLabel="Excluir definitivamente"
-                  destructive
-                  onConfirm={async () => {
-                    const body = new FormData();
-                    body.set("attachmentId", files[0].id);
-                    body.set("processId", processId);
-                    const state = await manualDeleteFormAction({ status: "idle" }, body);
-                    if (state.status === "error") {
-                      toast.error(state.message);
-                      return false;
-                    }
-                    toast.success("Documento excluído.");
-                    router.refresh();
-                    return true;
-                  }}
-                />
               ) : null}
             </>
           ) : null}

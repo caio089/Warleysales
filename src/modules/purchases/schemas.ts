@@ -61,6 +61,7 @@ export const createRequestSchema = z.object({
 export const requestIdSchema = z.object({ requestId: idSchema });
 export const decisionSchema = z.object({ requestId: idSchema, note: z.string().trim().max(500).optional() });
 export const rejectSchema = z.object({ requestId: idSchema, note: z.string().trim().min(3, "Informe o motivo da rejeição.").max(500) });
+export const cancelSchema = z.object({ requestId: idSchema, note: z.string().trim().min(3, "Informe o motivo do cancelamento.").max(500) });
 export const reopenSchema = z.object({ requestId: idSchema, justification: z.string().trim().max(500) });
 export const receiveSchema = z.object({
   requestId: idSchema,

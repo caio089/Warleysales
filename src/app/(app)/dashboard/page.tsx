@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import {
   ArrowUpRight,
   CalendarDays,
+  ClipboardCheck,
   ClipboardList,
   FilePlus,
   Moon,
@@ -318,6 +319,32 @@ async function DashboardContent({
 
         return (
           <div className="space-y-8">
+            {canApproveRequests ? (
+              <Link
+                href="/processos?aprovacoes=1#aprovacoes"
+                aria-label={`Aprovações pendentes: ${reqPending}`}
+                className="group flex items-center justify-between gap-4 rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card px-5 py-4 shadow-sm transition-colors hover:border-primary/50 hover:from-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-6"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
+                    <ClipboardCheck className="size-6" aria-hidden />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-primary/80">Aprovações</p>
+                    <p className="truncate text-sm text-muted-foreground">
+                      Clique para abrir a fila e decidir
+                    </p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  <span className="text-3xl font-bold tabular-nums tracking-tight text-primary sm:text-4xl">
+                    {reqPending}
+                  </span>
+                  <ArrowUpRight className="size-5 text-primary transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden />
+                </div>
+              </Link>
+            ) : null}
+
             <DashboardFilters
               councils={lookups.councils}
               councilId={councilId}

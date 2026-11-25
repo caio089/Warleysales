@@ -38,7 +38,6 @@ const VALID_ROW_PROPS: CompactDocumentRowProps = {
   ],
   canUpload: true,
   canUnlink: true,
-  canManualDelete: false,
 };
 
 const PENDING_ROW_PROPS: CompactDocumentRowProps = {
@@ -49,7 +48,6 @@ const PENDING_ROW_PROPS: CompactDocumentRowProps = {
   files: [],
   canUpload: true,
   canUnlink: false,
-  canManualDelete: false,
 };
 
 describe("CompactDocumentRow", () => {
@@ -73,25 +71,18 @@ describe("CompactDocumentRow", () => {
       expect(html).toContain("Enviado em");
     });
 
-    it("renderiza os botões Baixar e Desvincular quando canUnlink=true", () => {
+    it("renderiza os botões Baixar e Arquivar quando canUnlink=true", () => {
       const html = renderToStaticMarkup(<CompactDocumentRow {...VALID_ROW_PROPS} />);
       expect(html).toContain("Baixar");
-      expect(html).toContain("Desvincular");
+      expect(html).toContain("Arquivar");
       expect(html).not.toContain("Excluir");
     });
 
-    it("renderiza o botão Excluir definitivamente quando canManualDelete=true", () => {
-      const html = renderToStaticMarkup(
-        <CompactDocumentRow {...VALID_ROW_PROPS} canManualDelete={true} />,
-      );
-      expect(html).toContain("Excluir");
-    });
-
-    it("não renderiza Desvincular quando canUnlink=false", () => {
+    it("não renderiza Arquivar quando canUnlink=false", () => {
       const html = renderToStaticMarkup(
         <CompactDocumentRow {...VALID_ROW_PROPS} canUnlink={false} />,
       );
-      expect(html).not.toContain("Desvincular");
+      expect(html).not.toContain("Arquivar");
     });
 
     it("mantém o botão para anexar outro arquivo do mesmo tipo", () => {
@@ -158,10 +149,10 @@ describe("CompactDocumentRow", () => {
       expect(html).not.toContain("+ Anexar arquivo");
     });
 
-    it("não renderiza botões Baixar nem Desvincular no estado pendente", () => {
+    it("não renderiza botões Baixar nem Arquivar no estado pendente", () => {
       const html = renderToStaticMarkup(<CompactDocumentRow {...PENDING_ROW_PROPS} />);
       expect(html).not.toContain("Baixar");
-      expect(html).not.toContain("Desvincular");
+      expect(html).not.toContain("Arquivar");
     });
   });
 });

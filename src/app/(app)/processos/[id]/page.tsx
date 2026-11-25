@@ -53,7 +53,6 @@ export async function ProcessContent({
       canManage: can(actor, "process.create", councilId),
       canUnlink: can(actor, "document.unlink", councilId),
       canRegisterClosing: can(actor, "retention.manage", councilId),
-      isSpecialDeleter: actor.isSpecialDeleter,
       isWarley: actor.isCentralAdmin,
       defaultEstimatedValue: linkedRequest?.estimatedValue ?? null,
       requestId: linkedRequest?.id ?? null,

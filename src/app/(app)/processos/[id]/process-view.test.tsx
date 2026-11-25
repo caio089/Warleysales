@@ -103,7 +103,6 @@ const BASE_PROPS: ProcessViewProps = {
   canManage: true,
   canUnlink: true,
   canRegisterClosing: true,
-  isSpecialDeleter: false,
   isWarley: false,
   defaultEstimatedValue: 50000,
   requestId: "req-1",

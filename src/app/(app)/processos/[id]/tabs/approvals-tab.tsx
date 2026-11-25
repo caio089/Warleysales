@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ClipboardCheck } from "lucide-react";
 import type { PurchaseRequestStatus } from "@/modules/purchases/domain/request-status";
@@ -25,10 +26,13 @@ export interface ApprovalsTabRequest {
 
 interface ApprovalsTabProps {
   request: ApprovalsTabRequest | null;
+  processId: string;
 }
 
-/** Aba de aprovação da solicitação vinculada ao processo (decisão exclusiva do Warley). */
-export function ApprovalsTab({ request }: ApprovalsTabProps) {
+/** Aba fechada por padrão na barra; ao abrir, só o resumo e aprovar/não. */
+export function ApprovalsTab({ request, processId }: ApprovalsTabProps) {
+  const router = useRouter();
+
   if (!request) {
     return (
       <section aria-label="Aprovações" className="surface-card space-y-3 p-5 sm:p-6">
@@ -48,6 +52,7 @@ export function ApprovalsTab({ request }: ApprovalsTabProps) {
   }
 
   const status = presentationOf(REQUEST_STATUS, request.status);
+  const pendingDecision = ["enviada", "em_analise"].includes(request.status);
   const pendingItems = request.items
     .filter((item) => item.quantity - item.receivedTotal > 0)
     .map((item) => ({
@@ -62,15 +67,15 @@ export function ApprovalsTab({ request }: ApprovalsTabProps) {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="font-heading text-lg font-semibold text-primary">Solicitação para aprovação</h2>
+              <h2 className="font-heading text-lg font-semibold text-primary">Resumo da solicitação</h2>
               <StatusBadge label={status.label} tone={status.tone} />
             </div>
             <p className="text-sm text-muted-foreground">
-              {request.councilLabel} · confira os itens e decida se a compra segue.
+              {request.councilLabel} · {pendingDecision ? "decida se a compra segue" : "histórico da decisão"}
             </p>
           </div>
           <Link href={`/solicitacoes/${request.id}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
-            Abrir solicitação completa
+            Detalhes completos
           </Link>
         </div>
 
@@ -93,14 +98,10 @@ export function ApprovalsTab({ request }: ApprovalsTabProps) {
             id: item.id,
             material: item.label,
             quantity: item.quantity,
-            received: item.receivedTotal,
-            pending: item.quantity - item.receivedTotal,
           }))}
           columns={[
             { key: "material", header: "Item" },
-            { key: "quantity", header: "Solicitado", kind: "number" },
-            { key: "received", header: "Recebido", kind: "number" },
-            { key: "pending", header: "Pendente", kind: "number" },
+            { key: "quantity", header: "Qtd", kind: "number" },
           ]}
         />
       </div>
@@ -113,6 +114,8 @@ export function ApprovalsTab({ request }: ApprovalsTabProps) {
           canCreate={request.canCreate}
           canReceive={request.canReceive}
           pendingItems={pendingItems}
+          summaryOnly
+          onApproved={() => router.push(`/processos/${processId}?aba=documentos`)}
         />
       </div>
     </section>

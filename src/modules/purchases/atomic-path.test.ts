@@ -9,7 +9,7 @@ import { InventoryService } from "@/modules/inventory/service";
 import { InMemoryProcessRepository } from "@/modules/processes/repository.memory";
 import { ProcessService } from "@/modules/processes/service";
 import { fail, ok } from "@/shared/lib/result";
-import { COUNCIL_A, makeRuntime, managerOf, operatorOf } from "@/shared/testing/fixtures";
+import { COUNCIL_A, makeRuntime, managerOf, operatorOf, specialDeleter } from "@/shared/testing/fixtures";
 import type { PurchaseRequestRepository } from "./repository";
 import { InMemoryPurchaseRequestRepository } from "./repository.memory";
 import { PurchaseRequestService } from "./service";
@@ -36,7 +36,7 @@ async function requestInReview(ctx: ReturnType<typeof setup>) {
   const created = await ctx.service.create(operatorOf(COUNCIL_A), { councilId: COUNCIL_A, title: "Material de expediente", items: [{ materialId: MATERIAL, quantity: 4, ataItemId: ata.data.items[0]!.id }] });
   if (!created.ok) throw new Error(created.message);
   await ctx.service.submit(operatorOf(COUNCIL_A), { requestId: created.data.id });
-  await ctx.service.startReview(manager, { requestId: created.data.id });
+  await ctx.service.startReview(specialDeleter(), { requestId: created.data.id });
   return created.data.id;
 }
 
@@ -47,7 +47,7 @@ describe("PurchaseRequestService — caminho transacional (RPC)", () => {
     const current = (await ctx.repository.findById(id))!;
     ctx.repository.approveAtomically = vi.fn(async () => ok({ ...current, status: "aprovada" as const }));
 
-    const result = await ctx.service.approve(managerOf(COUNCIL_A), { requestId: id });
+    const result = await ctx.service.approve(specialDeleter(), { requestId: id });
     expect(result.ok && result.data.status).toBe("aprovada");
     expect(ctx.repository.approveAtomically).toHaveBeenCalledOnce();
     expect(ctx.commitSpy).not.toHaveBeenCalled();
@@ -58,7 +58,7 @@ describe("PurchaseRequestService — caminho transacional (RPC)", () => {
     const id = await requestInReview(ctx);
     ctx.repository.approveAtomically = vi.fn(async () => fail("INSUFFICIENT_BALANCE", "Quantidade excede o saldo da ata (disponível: 1)."));
 
-    const result = await ctx.service.approve(managerOf(COUNCIL_A), { requestId: id });
+    const result = await ctx.service.approve(specialDeleter(), { requestId: id });
     expect(!result.ok && result.code).toBe("INSUFFICIENT_BALANCE");
     expect((await ctx.repository.findById(id))!.status).toBe("em_analise");
   });
@@ -69,7 +69,7 @@ describe("PurchaseRequestService — caminho transacional (RPC)", () => {
     const current = (await ctx.repository.findById(id))!;
     ctx.repository.cancelAtomically = vi.fn(async () => ok({ ...current, status: "cancelada" as const }));
 
-    const result = await ctx.service.cancel(managerOf(COUNCIL_A), { requestId: id });
+    const result = await ctx.service.cancel(specialDeleter(), { requestId: id, note: "Cancelamento com motivo." });
     expect(result.ok && result.data.status).toBe("cancelada");
     expect(ctx.repository.cancelAtomically).toHaveBeenCalledOnce();
   });

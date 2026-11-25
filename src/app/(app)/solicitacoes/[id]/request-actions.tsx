@@ -6,7 +6,7 @@ import { nextStates } from "@/shared/lib/state-machine";
 import { REQUEST_TRANSITIONS, type PurchaseRequestStatus } from "@/modules/purchases/domain/request-status";
 import { Button } from "@/components/ui/button";
 import { ActionForm } from "@/shared/ui/forms/action-form";
-import { TextField } from "@/shared/ui/forms/fields";
+import { TextAreaField, TextField } from "@/shared/ui/forms/fields";
 
 interface Props {
   requestId: string;
@@ -15,26 +15,48 @@ interface Props {
   canCreate: boolean;
   canReceive: boolean;
   pendingItems: { id: string; label: string; pending: number }[];
+  /** Após aprovar, leva direto à documentação do processo. */
+  onApproved?: () => void;
+  /** Modo resumido: só aprovar / não (e cancelar). */
+  summaryOnly?: boolean;
 }
 
 type DeclinePath = "fix" | "reject";
+type Panel = "decline" | "cancel" | null;
 
-/** Uma ação principal por vez. Motivo só aparece se a compra não for aprovada. */
-export function RequestActions({ requestId, status, canDecide, canCreate, canReceive, pendingItems }: Props) {
+/** Uma ação principal por vez. Motivo obrigatório para recusa, ajuste e cancelamento. */
+export function RequestActions({
+  requestId,
+  status,
+  canDecide,
+  canCreate,
+  canReceive,
+  pendingItems,
+  onApproved,
+  summaryOnly = false,
+}: Props) {
+  const [panel, setPanel] = useState<Panel>(null);
   const [decline, setDecline] = useState<DeclinePath | null>(null);
   const next = nextStates(REQUEST_TRANSITIONS, status);
-  const canApprove = canDecide && next.includes("aprovada");
-  const canFix = canDecide && next.includes("aguardando_correcao");
-  const canReject = canDecide && next.includes("rejeitada");
+  const pendingDecision = canDecide && (status === "enviada" || status === "em_analise");
+  const canApprove = pendingDecision;
+  const canFix = pendingDecision;
+  const canReject = pendingDecision;
   const canSubmit = canCreate && next.includes("enviada");
-  const canStartReview = canDecide && next.includes("em_analise") && status !== "aguardando_correcao";
   const canResubmit = status === "aguardando_correcao" && canCreate;
   const canReopen = status === "rejeitada" && canDecide;
   const canCancel = (canCreate || canDecide) && next.includes("cancelada");
   const receiving =
-    canReceive && ["aprovada", "em_atendimento", "parcialmente_atendida"].includes(status) && pendingItems.length > 0;
+    !summaryOnly &&
+    canReceive &&
+    ["aprovada", "em_atendimento", "parcialmente_atendida"].includes(status) &&
+    pendingItems.length > 0;
 
-  const deciding = canApprove && (canFix || canReject);
+  const deciding = canApprove;
+  const openDecline = (path: DeclinePath) => {
+    setDecline(path);
+    setPanel("decline");
+  };
 
   return (
     <section aria-labelledby="acoes" className="space-y-4">
@@ -42,24 +64,35 @@ export function RequestActions({ requestId, status, canDecide, canCreate, canRec
         {deciding ? "Pode seguir com esta compra?" : "Próxima ação"}
       </h2>
 
-      {deciding && decline === null ? (
-        <div className="flex flex-wrap items-center gap-3">
-          <ActionForm
-            action={requestStepFormAction}
-            submitLabel="Sim, aprovar"
-            pendingLabel="Aprovando…"
-            submitClassName="h-11 px-6"
-            hiddenFields={{ requestId, step: "approve" }}
-          >
-            {() => null}
-          </ActionForm>
-          <Button type="button" variant="outline" className="h-11" onClick={() => setDecline(canFix ? "fix" : "reject")}>
-            Não
-          </Button>
+      {deciding && panel === null ? (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <ActionForm
+              action={requestStepFormAction}
+              submitLabel="Sim, aprovar"
+              pendingLabel="Aprovando…"
+              submitClassName="h-11 px-6"
+              hiddenFields={{ requestId, step: "approve" }}
+              onSuccess={onApproved}
+            >
+              {() => null}
+            </ActionForm>
+            <Button type="button" variant="outline" className="h-11" onClick={() => openDecline(canFix ? "fix" : "reject")}>
+              Não
+            </Button>
+            {canCancel ? (
+              <Button type="button" variant="outline" className="h-11 text-destructive hover:text-destructive" onClick={() => setPanel("cancel")}>
+                Cancelar solicitação
+              </Button>
+            ) : null}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Ao aprovar, libera a documentação do processo e o andamento no estoque.
+          </p>
         </div>
       ) : null}
 
-      {deciding && decline !== null ? (
+      {deciding && panel === "decline" && decline !== null ? (
         <div className="max-w-lg space-y-3 rounded-2xl border border-border/80 bg-secondary/40 p-4">
           <p className="text-sm text-muted-foreground">
             {decline === "fix"
@@ -86,34 +119,55 @@ export function RequestActions({ requestId, status, canDecide, canCreate, canRec
             hiddenFields={{ requestId, step: decline === "fix" ? "requestCorrection" : "reject" }}
           >
             {(errors) => (
-              <TextField name="note" label="Motivo" required placeholder="Uma frase basta" errors={errors.note} />
+              <TextAreaField name="note" label="Motivo" required errors={errors.note} />
             )}
           </ActionForm>
-          <button type="button" className="text-sm text-muted-foreground underline-offset-4 hover:underline" onClick={() => setDecline(null)}>
+          <button type="button" className="text-sm text-muted-foreground underline-offset-4 hover:underline" onClick={() => setPanel(null)}>
             Voltar para aprovar
           </button>
         </div>
       ) : null}
 
-      {!deciding && canSubmit ? (
+      {panel === "cancel" ? (
+        <div className="max-w-lg space-y-3 rounded-2xl border border-destructive/30 bg-destructive/5 p-4">
+          <p className="text-sm text-muted-foreground">
+            A solicitação será encerrada. Informe o motivo — ele fica registrado no histórico.
+          </p>
+          <ActionForm
+            action={requestStepFormAction}
+            submitLabel="Confirmar cancelamento"
+            pendingLabel="Cancelando…"
+            submitVariant="destructive"
+            hiddenFields={{ requestId, step: "cancel" }}
+          >
+            {(errors) => (
+              <TextAreaField
+                name="note"
+                label="Motivo do cancelamento"
+                required
+                errors={errors.note}
+              />
+            )}
+          </ActionForm>
+          <button type="button" className="text-sm text-muted-foreground underline-offset-4 hover:underline" onClick={() => setPanel(null)}>
+            Voltar
+          </button>
+        </div>
+      ) : null}
+
+      {!summaryOnly && !deciding && panel === null && canSubmit ? (
         <ActionForm action={requestStepFormAction} submitLabel="Enviar para análise" pendingLabel="Enviando…" submitClassName="h-11 px-6" hiddenFields={{ requestId, step: "submit" }}>
           {() => null}
         </ActionForm>
       ) : null}
 
-      {!deciding && canStartReview ? (
-        <ActionForm action={requestStepFormAction} submitLabel="Abrir para decidir" pendingLabel="Abrindo…" submitClassName="h-11 px-6" hiddenFields={{ requestId, step: "startReview" }}>
-          {() => null}
-        </ActionForm>
-      ) : null}
-
-      {canResubmit ? (
+      {!summaryOnly && canResubmit && panel === null ? (
         <ActionForm action={requestStepFormAction} submitLabel="Reenviar corrigida" pendingLabel="Reenviando…" submitClassName="h-11 px-6" hiddenFields={{ requestId, step: "resubmitAfterCorrection" }}>
           {() => null}
         </ActionForm>
       ) : null}
 
-      {receiving ? (
+      {receiving && panel === null ? (
         <div className="surface-card max-w-md p-6">
           <h3 className="mb-1 font-heading text-lg font-medium tracking-tight text-primary">O que chegou?</h3>
           <p className="mb-4 text-sm text-muted-foreground">O número já vem preenchido com tudo. Diminua só se chegou menos.</p>
@@ -130,16 +184,16 @@ export function RequestActions({ requestId, status, canDecide, canCreate, canRec
         </div>
       ) : null}
 
-      {canReopen ? (
+      {!summaryOnly && canReopen && panel === null ? (
         <ActionForm action={requestStepFormAction} submitLabel="Reabrir" submitVariant="outline" hiddenFields={{ requestId, step: "reopen" }}>
           {(errors) => <TextField name="note" label="Por que reabrir" required errors={errors.note} />}
         </ActionForm>
       ) : null}
 
-      {canCancel && !deciding ? (
-        <ActionForm action={requestStepFormAction} submitLabel="Cancelar solicitação" submitVariant="outline" hiddenFields={{ requestId, step: "cancel" }}>
-          {() => null}
-        </ActionForm>
+      {canCancel && panel === null && !deciding ? (
+        <Button type="button" variant="outline" className="text-destructive hover:text-destructive" onClick={() => setPanel("cancel")}>
+          Cancelar solicitação
+        </Button>
       ) : null}
     </section>
   );

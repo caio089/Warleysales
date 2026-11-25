@@ -93,7 +93,7 @@ describe("PurchaseRequestService", () => {
     await ctx.service.approve(approver(), { requestId: id });
     const atas = await ctx.atas.list(manager());
     expect(atas.ok && atas.data[0]!.items[0]!.balance.balance).toBe(3);
-    await ctx.service.cancel(approver(), { requestId: id });
+    await ctx.service.cancel(approver(), { requestId: id, note: "Pedido cancelado pelo gestor." });
     const after = await ctx.atas.list(manager());
     expect(after.ok && after.data[0]!.items[0]!.balance.balance).toBe(10);
   });
@@ -141,6 +141,24 @@ describe("PurchaseRequestService", () => {
     expect((await ctx.service.create(viewerOf(COUNCIL_A), { councilId: COUNCIL_A, title: "abc", items: [{ materialId: MATERIAL, quantity: 1 }] })).ok).toBe(false);
     expect((await ctx.service.get(managerOf(COUNCIL_B), id)).ok).toBe(false);
   });
+  it("aprova direto de enviada (abre análise e aprova no mesmo passo)", async () => {
+    const created = await ctx.service.create(operatorOf(COUNCIL_A), {
+      councilId: COUNCIL_A,
+      title: "Aprovação em um clique",
+      items: [{ materialId: MATERIAL, quantity: 2 }],
+    });
+    if (!created.ok) throw new Error(created.message);
+    await ctx.service.submit(operatorOf(COUNCIL_A), { requestId: created.data.id });
+    const approved = await ctx.service.approve(approver(), { requestId: created.data.id });
+    expect(approved.ok && approved.data.status).toBe("aprovada");
+  });
+  it("cancelamento exige motivo", async () => {
+    const id = await submitted([{ quantity: 1 }]);
+    expect((await ctx.service.cancel(approver(), { requestId: id, note: "" })).ok).toBe(false);
+    expect((await ctx.service.cancel(approver(), { requestId: id })).ok).toBe(false);
+    const cancelled = await ctx.service.cancel(approver(), { requestId: id, note: "Duplicada por engano" });
+    expect(cancelled.ok && cancelled.data.status).toBe("cancelada");
+  });
   it("rejeição exige motivo; só reabre por ação explícita da administração central", async () => {
     const id = await submitted([{ quantity: 1 }]);
     expect((await ctx.service.reject(approver(), { requestId: id, note: "" })).ok).toBe(false);
@@ -151,10 +169,9 @@ describe("PurchaseRequestService", () => {
     const reopened = await ctx.service.reopen(approver(), { requestId: id, justification: "Erro de análise" });
     expect(reopened.ok && reopened.data.status).toBe("em_analise");
   });
-  it("transição inválida (enviada → aprovada) é rejeitada", async () => {
+  it("transição inválida (rascunho → aprovada) é rejeitada", async () => {
     const r = await ctx.service.create(operatorOf(COUNCIL_A), { councilId: COUNCIL_A, title: "Teste teste", items: [{ materialId: MATERIAL, quantity: 1 }] });
     if (!r.ok) throw new Error();
-    await ctx.service.submit(operatorOf(COUNCIL_A), { requestId: r.data.id });
     const bad = await ctx.service.approve(approver(), { requestId: r.data.id });
     expect(!bad.ok && bad.code).toBe("INVALID_STATE");
   });

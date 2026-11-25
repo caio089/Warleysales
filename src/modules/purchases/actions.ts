@@ -48,7 +48,8 @@ type Step = "submit" | "startReview" | "requestCorrection" | "resubmitAfterCorre
 export async function requestStepFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
   const step = String(formData.get("step")) as Step;
   const requestId = String(formData.get("requestId"));
-  const note = formData.get("note") ? String(formData.get("note")) : undefined;
+  const rawNote = formData.get("note");
+  const note = rawNote == null ? undefined : String(rawNote);
   const result = await runAction(({ services, actor }) => {
     const s = services.purchases;
     switch (step) {
@@ -62,13 +63,23 @@ export async function requestStepFormAction(_previous: ActionState, formData: Fo
       case "reopen": return s.reopen(actor, { requestId, justification: note ?? "" });
       default: return Promise.resolve({ ok: false as const, code: "VALIDATION" as const, message: "Ação desconhecida." });
     }
-  }, "Solicitação atualizada.");
+  }, () =>
+    step === "approve"
+      ? "Aprovado. Documentação e estoque liberados para o andamento."
+      : "Solicitação atualizada.",
+  );
   if (result.status === "success") {
     revalidatePath(`/solicitacoes/${requestId}`);
     revalidatePath("/solicitacoes");
     revalidatePath("/processos");
     revalidatePath("/dashboard");
     revalidatePath("/atas");
+    revalidatePath("/estoque");
+    const processId = result.data?.processId;
+    if (step === "approve" && processId) {
+      revalidatePath(`/processos/${processId}`);
+      redirect(`/processos/${processId}?aba=documentos`);
+    }
   }
   return result.status === "success" ? { status: "success", message: result.message } : result;
 }

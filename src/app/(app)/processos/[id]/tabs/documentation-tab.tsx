@@ -2,12 +2,11 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, FileText, Loader2, Plus } from "lucide-react";
+import { Archive, Download, FileText, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   confirmDocumentUploadAction,
   downloadUrlAction,
-  manualDeleteFormAction,
   prepareDocumentUploadAction,
   unlinkDocumentFormAction,
 } from "@/modules/documents/actions";
@@ -18,7 +17,6 @@ import { sha256Hex, uploadToSignedUrl } from "@/shared/lib/browser-upload";
 import { formatBytes, formatCurrency } from "@/shared/lib/format";
 import { CurrencyField } from "@/shared/ui/forms/fields";
 import { formatDateTimeFortaleza } from "@/shared/lib/time";
-import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { toast } from "@/shared/ui/toast-store";
 import { CompactDocumentRow } from "../compact-document-row";
@@ -57,10 +55,23 @@ export interface DocumentationTabProps {
   documents: (ProcessAttachment | DocumentationTabDocument)[];
   canManage: boolean;
   canUnlink: boolean;
-  isSpecialDeleter: boolean;
 }
 
-/** Aba 1 — Pasta Documental: 7 obrigatórios compactos + artefatos adicionais. */
+function isActiveDoc(doc: DocumentationTabDocument | ProcessAttachment) {
+  const isActive = !("linkStatus" in doc) || doc.linkStatus === "active";
+  const notDisposed = !("retentionState" in doc) || doc.retentionState !== "disposed";
+  return isActive && notDisposed;
+}
+
+function isArchivedDoc(doc: DocumentationTabDocument | ProcessAttachment) {
+  return (
+    "linkStatus" in doc &&
+    doc.linkStatus === "archived" &&
+    (!("retentionState" in doc) || doc.retentionState !== "disposed")
+  );
+}
+
+/** Aba 1 — Pasta Documental: 7 obrigatórios compactos + complementares + arquivados. */
 export function DocumentationTab({
   processId,
   estimatedValue,
@@ -70,7 +81,6 @@ export function DocumentationTab({
   documents,
   canManage,
   canUnlink,
-  isSpecialDeleter,
 }: DocumentationTabProps) {
   const router = useRouter();
   const additionalFileInputRef = useRef<HTMLInputElement>(null);
@@ -131,14 +141,13 @@ export function DocumentationTab({
 
   const additionalDocs = documents.filter((doc) => {
     const isMandatory = MANDATORY_DOCUMENT_CODES.includes(doc.typeCode as (typeof MANDATORY_DOCUMENTS)[number]["code"]);
-    const isActive = !("linkStatus" in doc) || doc.linkStatus === "active";
-    const notDisposed = !("retentionState" in doc) || doc.retentionState !== "disposed";
-    return !isMandatory && isActive && notDisposed;
+    return !isMandatory && isActiveDoc(doc);
   });
+
+  const archivedDocs = documents.filter(isArchivedDoc);
 
   return (
     <div className="space-y-6">
-      {/* Seção 1: Documentos Obrigatórios (Lei 14.133 / PNCP) */}
       <section
         aria-label="Documentos Obrigatórios (Lei 14.133 / PNCP)"
         className="surface-card space-y-4 p-5 sm:p-6"
@@ -155,12 +164,7 @@ export function DocumentationTab({
         <div className="space-y-2.5">
           {MANDATORY_DOCUMENTS.map((doc, index) => {
             const filesForType = documents
-              .filter((d) => {
-                const isSameType = d.typeCode === doc.code;
-                const isActive = !("linkStatus" in d) || d.linkStatus === "active";
-                const notDisposed = !("retentionState" in d) || d.retentionState !== "disposed";
-                return isSameType && isActive && notDisposed;
-              })
+              .filter((d) => d.typeCode === doc.code && isActiveDoc(d))
               .map((d) => {
                 const anyDoc = d as DocumentationTabDocument;
                 return {
@@ -182,7 +186,6 @@ export function DocumentationTab({
                 files={filesForType}
                 canUpload={canManage}
                 canUnlink={canUnlink}
-                canManualDelete={isSpecialDeleter}
               >
                 {doc.code === "PP" && estimatedValue !== undefined ? (
                   <div className="mt-3 border-t pt-3">
@@ -203,12 +206,10 @@ export function DocumentationTab({
         </div>
       </section>
 
-      {/* Seção 2: Artefatos Adicionais & Complementares */}
       <section
         aria-label="Artefatos Adicionais & Complementares"
         className="surface-card space-y-4 p-5 sm:p-6"
       >
-        {/* Input oculto para upload de arquivo complementar */}
         <input
           ref={additionalFileInputRef}
           type="file"
@@ -308,39 +309,13 @@ export function DocumentationTab({
                     {canUnlink ? (
                       <ActionForm
                         action={unlinkDocumentFormAction}
-                        submitLabel="Desvincular"
+                        submitLabel="Arquivar"
                         submitVariant="outline"
                         submitClassName="h-7 px-2 text-xs font-medium min-w-0"
                         hiddenFields={{ attachmentId: docId, processId }}
                       >
                         {() => null}
                       </ActionForm>
-                    ) : null}
-                    {isSpecialDeleter ? (
-                      <ConfirmDialog
-                        trigger={
-                          <Button variant="destructive" size="xs" className="h-7 px-2 text-xs font-medium">
-                            Excluir
-                          </Button>
-                        }
-                        title="Excluir definitivamente?"
-                        description="Esta ação remove o arquivo do armazenamento e não pode ser desfeita. Ficará registrada na auditoria."
-                        confirmLabel="Excluir definitivamente"
-                        destructive
-                        onConfirm={async () => {
-                          const body = new FormData();
-                          body.set("attachmentId", docId);
-                          body.set("processId", processId);
-                          const state = await manualDeleteFormAction({ status: "idle" }, body);
-                          if (state.status === "error") {
-                            toast.error(state.message);
-                            return false;
-                          }
-                          toast.success("Documento excluído.");
-                          router.refresh();
-                          return true;
-                        }}
-                      />
                     ) : null}
                   </div>
                 </li>
@@ -351,6 +326,67 @@ export function DocumentationTab({
           <p className="text-xs text-muted-foreground italic">
             Nenhum artefato adicional ou complementar anexado.
           </p>
+        )}
+      </section>
+
+      <section
+        id="arquivados"
+        aria-label="Arquivados"
+        className="surface-card space-y-4 p-5 sm:p-6"
+      >
+        <header className="border-b border-border/60 pb-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Archive className="size-4 text-muted-foreground" aria-hidden />
+            <h2 className="font-heading text-base font-semibold text-foreground sm:text-lg">
+              Arquivados
+            </h2>
+            <span className="inline-flex shrink-0 items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground">
+              {archivedDocs.length}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+            Documentos arquivados saem da pasta ativa, mas permanecem disponíveis para consulta.
+          </p>
+        </header>
+
+        {archivedDocs.length > 0 ? (
+          <ul className="space-y-2 text-sm" aria-label="Lista de documentos arquivados">
+            {archivedDocs.map((doc) => {
+              const anyDoc = doc as DocumentationTabDocument;
+              const docId = anyDoc.id ?? `archived-${doc.typeCode}`;
+              const docName = anyDoc.fileName ?? anyDoc.name ?? `${doc.typeCode}.pdf`;
+              const typeLabel =
+                MANDATORY_DOCUMENTS.find((item) => item.code === doc.typeCode)?.label ??
+                (doc.typeCode === "OUTRO" ? "Complementar" : doc.typeCode);
+
+              return (
+                <li
+                  key={docId}
+                  className="flex flex-col gap-2 rounded-lg border border-dashed border-border/70 bg-muted/10 p-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="truncate text-sm font-medium text-foreground">{docName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {typeLabel}
+                      {anyDoc.createdAt ? ` · ${formatDateTimeFortaleza(anyDoc.createdAt)}` : null}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    onClick={() => handleDownload(docId)}
+                    className="h-7 px-2 text-xs font-medium"
+                  >
+                    <Download className="mr-1 size-3" aria-hidden="true" />
+                    Baixar
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="text-xs text-muted-foreground italic">Nenhum documento arquivado neste processo.</p>
         )}
       </section>
     </div>

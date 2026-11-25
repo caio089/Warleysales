@@ -19,7 +19,7 @@ import { ProcessesTable } from "./processes-table";
 
 export const metadata: Metadata = { title: "Processos" };
 
-async function Content() {
+async function Content({ openApprovals }: { openApprovals: boolean }) {
   const result = await loadScreen(async (ctx) => {
     const [processes, councils, requests, linkedNotes] = await Promise.all([
       ctx.services.processes.list(ctx.actor),
@@ -107,7 +107,7 @@ async function Content() {
 
           {canApproveRequests ? (
             <div className="mb-6">
-              <ApprovalQueue items={approvalQueue} showWhenEmpty />
+              <ApprovalQueue items={approvalQueue} showWhenEmpty defaultOpen={openApprovals} />
             </div>
           ) : null}
 
@@ -148,10 +148,16 @@ async function Content() {
   );
 }
 
-export default function ProcessesPage() {
+export default async function ProcessesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ aprovacoes?: string }>;
+}) {
+  const { aprovacoes } = await searchParams;
+  const openApprovals = aprovacoes === "1" || aprovacoes === "true";
   return (
     <Suspense fallback={<LoadingState />}>
-      <Content />
+      <Content openApprovals={openApprovals} />
     </Suspense>
   );
 }

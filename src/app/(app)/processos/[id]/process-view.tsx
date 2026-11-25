@@ -49,7 +49,6 @@ export interface ProcessViewProps {
   canManage: boolean;
   canUnlink: boolean;
   canRegisterClosing: boolean;
-  isSpecialDeleter: boolean;
   isWarley: boolean;
   defaultEstimatedValue: number | null;
   requestId: string | null;
@@ -86,7 +85,6 @@ export function ProcessView({
   canManage,
   canUnlink,
   canRegisterClosing,
-  isSpecialDeleter,
   isWarley,
   defaultEstimatedValue,
   requestId,
@@ -169,6 +167,13 @@ export function ProcessView({
   const approvalPending =
     approvalRequest != null &&
     ["enviada", "em_analise", "aguardando_correcao"].includes(approvalRequest.status);
+
+  /** Documentação e instrumentos só liberam depois da aprovação (ou se não houver solicitação). */
+  const workUnlocked =
+    approvalRequest == null ||
+    ["aprovada", "em_atendimento", "parcialmente_atendida", "atendida"].includes(approvalRequest.status);
+  const canManageDocs = canManage && workUnlocked;
+  const canLinkInstruments = canManage && workUnlocked;
 
   const tabs: TabDefinition[] = [
     {
@@ -287,7 +292,9 @@ export function ProcessView({
           hidden={activeTab !== "aprovacoes"}
           tabIndex={0}
         >
-          {activeTab === "aprovacoes" ? <ApprovalsTab request={approvalRequest} /> : null}
+          {activeTab === "aprovacoes" ? (
+            <ApprovalsTab request={approvalRequest} processId={view.process.id} />
+          ) : null}
         </div>
 
         <div
@@ -298,17 +305,23 @@ export function ProcessView({
           tabIndex={0}
         >
           {activeTab === "documentos" && (
-            <DocumentationTab
-              estimatedValue={initialValue}
-              canEditEstimatedValue={canManage && !view.process.snapshot && !["cancelado", "arquivado"].includes(view.process.status)}
-              processId={view.process.id}
-              documentExceptions={view.process.documentExceptions}
-              validTypes={view.progress.validTypes}
-              documents={documents}
-              canManage={canManage}
-              canUnlink={canUnlink}
-              isSpecialDeleter={isSpecialDeleter}
-            />
+            <>
+              {!workUnlocked ? (
+                <div className="mb-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-foreground">
+                  Documentação bloqueada até a solicitação ser aprovada na aba Aprovações.
+                </div>
+              ) : null}
+              <DocumentationTab
+                estimatedValue={initialValue}
+                canEditEstimatedValue={canManageDocs && !view.process.snapshot && !["cancelado", "arquivado"].includes(view.process.status)}
+                processId={view.process.id}
+                documentExceptions={view.process.documentExceptions}
+                validTypes={view.progress.validTypes}
+                documents={documents}
+                canManage={canManageDocs}
+                canUnlink={canUnlink && workUnlocked}
+              />
+            </>
           )}
         </div>
 
@@ -340,7 +353,7 @@ export function ProcessView({
               linkedContracts={linkedContracts}
               availableAtas={availableAtas}
               availableContracts={availableContracts}
-              canLink={canManage}
+              canLink={canLinkInstruments}
               draft={instrumentDraft}
             />
           )}

@@ -135,7 +135,7 @@ export class DocumentService {
     return this.confirmUpload(actor, { attachmentId: prepared.data.attachmentId });
   }
 
-  /** Remoção comum = desvincular (soft): o arquivo permanece no Storage, status "archived". */
+  /** Arquivar (soft): o arquivo permanece no Storage e vai para a seção Arquivados. */
   async unlink(actor: Parameters<typeof guard>[1], input: unknown): Promise<Result<Attachment>> {
     const parsed = parseInput(attachmentIdSchema, input);
     if (!parsed.ok) return parsed;

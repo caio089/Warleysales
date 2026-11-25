@@ -28,7 +28,7 @@ export async function confirmDocumentUploadAction(processId: string, attachmentI
 }
 
 export async function unlinkDocumentFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
-  const result = await runAction(({ services, actor }) => services.documents.unlink(actor, { attachmentId: formData.get("attachmentId") }), "Documento desvinculado.");
+  const result = await runAction(({ services, actor }) => services.documents.unlink(actor, { attachmentId: formData.get("attachmentId") }), "Documento arquivado.");
   if (result.status === "success") revalidatePath(`/processos/${formData.get("processId")}`);
   return result.status === "success" ? { status: "success", message: result.message } : result;
 }

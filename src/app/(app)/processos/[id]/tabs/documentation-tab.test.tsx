@@ -51,7 +51,6 @@ const BASE_PROPS: DocumentationTabProps = {
   ],
   canManage: true,
   canUnlink: true,
-  isSpecialDeleter: true,
 };
 
 describe("DocumentationTab", () => {
@@ -131,8 +130,8 @@ describe("DocumentationTab", () => {
       expect(html).toContain("512,0 KB");
       expect(html).toContain("Enviado em");
       expect(html).toContain("Baixar");
-      expect(html).toContain("Desvincular");
-      expect(html).toContain("Excluir");
+      expect(html).toContain("Arquivar");
+      expect(html).not.toContain("Excluir");
     });
 
     it("renderiza o botão + Adicionar anexo complementar quando canManage=true", () => {
@@ -145,11 +144,10 @@ describe("DocumentationTab", () => {
       expect(html).not.toContain("+ Adicionar anexo complementar");
     });
 
-    it("não renderiza botões de Desvincular e Excluir quando canUnlink=false e isSpecialDeleter=false", () => {
+    it("não renderiza Arquivar quando canUnlink=false", () => {
       const propsWithAdditional: DocumentationTabProps = {
         ...BASE_PROPS,
         canUnlink: false,
-        isSpecialDeleter: false,
         documents: [
           ...BASE_PROPS.documents,
           {
@@ -168,10 +166,30 @@ describe("DocumentationTab", () => {
       const html = renderToStaticMarkup(<DocumentationTab {...propsWithAdditional} />);
       expect(html).toContain("minuta_convenio.pdf");
       expect(html).toContain("Baixar");
-      // Na seção de artefatos adicionais, Desvincular e Excluir não devem aparecer
-      // Note: CompactDocumentRow também não deve exibir Desvincular / Excluir
-      expect(html).not.toContain("Desvincular");
+      expect(html).not.toContain("Arquivar");
       expect(html).not.toContain("Excluir");
+    });
+
+    it("lista documentos arquivados na seção Arquivados", () => {
+      const propsWithArchived: DocumentationTabProps = {
+        ...BASE_PROPS,
+        documents: [
+          ...BASE_PROPS.documents,
+          {
+            typeCode: "DFD",
+            linkStatus: "archived",
+            uploadStatus: "confirmed",
+            retentionState: "retained",
+            id: "doc-dfd-old",
+            fileName: "dfd_antigo.pdf",
+            size: 1000,
+            createdAt: "2026-10-01T10:00:00Z",
+          },
+        ],
+      };
+      const html = renderToStaticMarkup(<DocumentationTab {...propsWithArchived} />);
+      expect(html).toContain("Arquivados");
+      expect(html).toContain("dfd_antigo.pdf");
     });
   });
 });

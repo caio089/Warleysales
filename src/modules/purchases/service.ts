@@ -9,7 +9,7 @@ import { parseInput, type RuntimeDeps } from "@/shared/lib/service-support";
 import { applyReceipt } from "./domain/receipt";
 import { changeRequestStatus, reopenRejected, type PurchaseRequestStatus } from "./domain/request-status";
 import type { PurchaseRequestRepository } from "./repository";
-import { createRequestSchema, decisionSchema, receiveSchema, rejectSchema, reopenSchema, requestIdSchema, type PurchaseRequest } from "./schemas";
+import { cancelSchema, createRequestSchema, decisionSchema, receiveSchema, rejectSchema, reopenSchema, requestIdSchema, type PurchaseRequest } from "./schemas";
 
 export class PurchaseRequestService {
   constructor(
@@ -73,23 +73,44 @@ export class PurchaseRequestService {
 
   submit(actor: Actor, input: unknown) { return this.simpleStep(actor, input, requestIdSchema, "enviada", "request.create"); }
   startReview(actor: Actor, input: unknown) { return this.simpleStep(actor, input, requestIdSchema, "em_analise", "request.decide"); }
-  requestCorrection(actor: Actor, input: unknown) { return this.simpleStep(actor, input, rejectSchema, "aguardando_correcao", "request.decide"); }
-  reject(actor: Actor, input: unknown) { return this.simpleStep(actor, input, rejectSchema, "rejeitada", "request.decide"); }
+
+  /** Pedir ajuste: de enviada, entra em análise e já devolve com o motivo. */
+  async requestCorrection(actor: Actor, input: unknown): Promise<Result<PurchaseRequest>> {
+    const parsed = parseInput(rejectSchema, input);
+    if (!parsed.ok) return parsed;
+    const loaded = await this.loadForDecision(actor, parsed.data.requestId);
+    if (!loaded.ok) return loaded;
+    const valid = changeRequestStatus(loaded.data.status, "aguardando_correcao");
+    if (!valid.ok) return valid;
+    return ok(await this.transition(loaded.data, "aguardando_correcao", actor, parsed.data.note));
+  }
+
+  /** Recusar: de enviada, entra em análise e já rejeita com o motivo. */
+  async reject(actor: Actor, input: unknown): Promise<Result<PurchaseRequest>> {
+    const parsed = parseInput(rejectSchema, input);
+    if (!parsed.ok) return parsed;
+    const loaded = await this.loadForDecision(actor, parsed.data.requestId);
+    if (!loaded.ok) return loaded;
+    const valid = changeRequestStatus(loaded.data.status, "rejeitada");
+    if (!valid.ok) return valid;
+    return ok(await this.transition(loaded.data, "rejeitada", actor, parsed.data.note));
+  }
 
   /** Reenvio após correção volta para análise (aguardando_correcao → em_analise). */
   resubmitAfterCorrection(actor: Actor, input: unknown) { return this.simpleStep(actor, input, requestIdSchema, "em_analise", "request.create"); }
 
   /**
-   * Aprovar NÃO altera estoque (R11). Itens ligados a ata comprometem saldo atomicamente (R9);
-   * se algum falhar, os já comprometidos são devolvidos e a solicitação permanece em análise.
+   * Aprovar NÃO libera estoque físico (R11 — isso ocorre na homologação).
+   * Libera o processo para documentação e o fluxo de recebimento.
+   * De enviada, entra em análise e aprova no mesmo passo.
+   * Itens ligados a ata comprometem saldo atomicamente (R9).
    */
   async approve(actor: Actor, input: unknown): Promise<Result<PurchaseRequest>> {
     const parsed = parseInput(decisionSchema, input);
     if (!parsed.ok) return parsed;
-    const request = await this.repository.findById(parsed.data.requestId);
-    if (!request) return fail("NOT_FOUND", "Solicitação não encontrada.");
-    const allowed = await guard(this.audit, actor, "request.decide", request.councilId, "purchase_request", request.id);
-    if (!allowed.ok) return allowed;
+    const loaded = await this.loadForDecision(actor, parsed.data.requestId);
+    if (!loaded.ok) return loaded;
+    const request = loaded.data;
     const valid = changeRequestStatus(request.status, "aprovada");
     if (!valid.ok) return valid;
 
@@ -117,9 +138,9 @@ export class PurchaseRequestService {
     return ok(await this.transition(request, "aprovada", actor, parsed.data.note));
   }
 
-  /** Cancelar após aprovação devolve o saldo comprometido da ata. */
+  /** Cancelar após aprovação devolve o saldo comprometido da ata. Exige motivo. */
   async cancel(actor: Actor, input: unknown): Promise<Result<PurchaseRequest>> {
-    const parsed = parseInput(decisionSchema, input);
+    const parsed = parseInput(cancelSchema, input);
     if (!parsed.ok) return parsed;
     const request = await this.repository.findById(parsed.data.requestId);
     if (!request) return fail("NOT_FOUND", "Solicitação não encontrada.");
@@ -253,6 +274,21 @@ export class PurchaseRequestService {
 
   async findLinkedByProcess(actor: Actor, processId: string) {
     return ok(await this.repository.findLinkedByProcess(processId, readableCouncilIds(actor)));
+  }
+
+  /**
+   * Carrega a solicitação para decisão do Warley.
+   * Se ainda estiver só enviada, abre a análise automaticamente (um clique aprova/recusa).
+   */
+  private async loadForDecision(actor: Actor, requestId: string): Promise<Result<PurchaseRequest>> {
+    const request = await this.repository.findById(requestId);
+    if (!request) return fail("NOT_FOUND", "Solicitação não encontrada.");
+    const allowed = await guard(this.audit, actor, "request.decide", request.councilId, "purchase_request", request.id);
+    if (!allowed.ok) return allowed;
+    if (request.status !== "enviada") return ok(request);
+    const opened = changeRequestStatus(request.status, "em_analise");
+    if (!opened.ok) return opened;
+    return ok(await this.transition(request, "em_analise", actor));
   }
 
   /** Passo simples da máquina de estados (autoriza, valida transição, persiste, audita). */

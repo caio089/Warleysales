@@ -3,11 +3,10 @@
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Circle, Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { confirmDocumentUploadAction, downloadUrlAction, manualDeleteFormAction, prepareDocumentUploadAction, unlinkDocumentFormAction } from "@/modules/documents/actions";
+import { confirmDocumentUploadAction, downloadUrlAction, prepareDocumentUploadAction, unlinkDocumentFormAction } from "@/modules/documents/actions";
 import { sha256Hex, uploadToSignedUrl } from "@/shared/lib/browser-upload";
 import { formatBytes } from "@/shared/lib/format";
 import { formatDateTimeFortaleza } from "@/shared/lib/time";
-import { ConfirmDialog } from "@/shared/ui/confirm-dialog";
 import { FileUpload } from "@/shared/ui/file-upload";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { toast } from "@/shared/ui/toast-store";
@@ -20,11 +19,10 @@ interface DocumentCardProps {
   files: { id: string; name: string }[];
   canUpload: boolean;
   canUnlink: boolean;
-  canManualDelete: boolean;
 }
 
 /** Cartão de um dos 7 tipos documentais: situação, arquivos e envio. */
-export function DocumentCard({ processId, typeCode, label, valid, files, canUpload, canUnlink, canManualDelete }: DocumentCardProps) {
+export function DocumentCard({ processId, typeCode, label, valid, files, canUpload, canUnlink }: DocumentCardProps) {
   async function download(attachmentId: string) {
     const result = await downloadUrlAction(attachmentId);
     if (result.ok) window.open(result.data, "_blank", "noopener");
@@ -48,28 +46,7 @@ export function DocumentCard({ processId, typeCode, label, valid, files, canUplo
               <button type="button" onClick={() => download(f.id)} className="truncate text-left text-primary underline-offset-4 hover:underline">{f.name}</button>
               <span className="flex shrink-0 gap-1">
                 {canUnlink ? (
-                  <ActionForm action={unlinkDocumentFormAction} submitLabel="Desvincular" submitVariant="outline" hiddenFields={{ attachmentId: f.id, processId }}>{() => null}</ActionForm>
-                ) : null}
-                {canManualDelete ? (
-                  <ConfirmDialog
-                    trigger={<Button variant="destructive" size="sm">Excluir</Button>}
-                    title="Excluir definitivamente?"
-                    description="Esta ação remove o arquivo do armazenamento e não pode ser desfeita. Ficará registrada na auditoria."
-                    confirmLabel="Excluir definitivamente"
-                    destructive
-                    onConfirm={async () => {
-                      const body = new FormData();
-                      body.set("attachmentId", f.id);
-                      body.set("processId", processId);
-                      const state = await manualDeleteFormAction({ status: "idle" }, body);
-                      if (state.status === "error") {
-                        toast.error(state.message);
-                        return false;
-                      }
-                      toast.success("Documento excluído.");
-                      return true;
-                    }}
-                  />
+                  <ActionForm action={unlinkDocumentFormAction} submitLabel="Arquivar" submitVariant="outline" hiddenFields={{ attachmentId: f.id, processId }}>{() => null}</ActionForm>
                 ) : null}
               </span>
             </li>
@@ -81,7 +58,6 @@ export function DocumentCard({ processId, typeCode, label, valid, files, canUplo
         <FileUpload
           label="Selecionar arquivo"
           onUpload={async (file, report) => {
-            // Upload direto: (1) servidor autoriza e emite token, (2) navegador envia ao Storage, (3) servidor valida e confirma.
             report(5);
             const sha256 = await sha256Hex(file);
             const prepared = await prepareDocumentUploadAction(processId, typeCode, { fileName: file.name, size: file.size, sha256 });
@@ -112,7 +88,6 @@ export interface AdditionalDocumentsCardProps {
   docs: AdditionalDocItem[];
   canUpload: boolean;
   canUnlink: boolean;
-  canManualDelete: boolean;
 }
 
 /** Card para listagem, download e upload de artefatos complementares/adicionais (OUTRO). */
@@ -121,7 +96,6 @@ export function AdditionalDocumentsCard({
   docs,
   canUpload,
   canUnlink,
-  canManualDelete,
 }: AdditionalDocumentsCardProps) {
   const router = useRouter();
 
@@ -186,38 +160,12 @@ export function AdditionalDocumentsCard({
                 {canUnlink ? (
                   <ActionForm
                     action={unlinkDocumentFormAction}
-                    submitLabel="Desvincular"
+                    submitLabel="Arquivar"
                     submitVariant="outline"
                     hiddenFields={{ attachmentId: doc.id, processId }}
                   >
                     {() => null}
                   </ActionForm>
-                ) : null}
-                {canManualDelete ? (
-                  <ConfirmDialog
-                    trigger={
-                      <Button variant="destructive" size="xs" className="h-8">
-                        Excluir
-                      </Button>
-                    }
-                    title="Excluir definitivamente?"
-                    description="Esta ação remove o arquivo do armazenamento e não pode ser desfeita. Ficará registrada na auditoria."
-                    confirmLabel="Excluir definitivamente"
-                    destructive
-                    onConfirm={async () => {
-                      const body = new FormData();
-                      body.set("attachmentId", doc.id);
-                      body.set("processId", processId);
-                      const state = await manualDeleteFormAction({ status: "idle" }, body);
-                      if (state.status === "error") {
-                        toast.error(state.message);
-                        return false;
-                      }
-                      toast.success("Documento excluído.");
-                      router.refresh();
-                      return true;
-                    }}
-                  />
                 ) : null}
               </div>
             </li>

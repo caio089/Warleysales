@@ -30,7 +30,6 @@ describe("AdditionalDocumentsCard", () => {
         docs={[]}
         canUpload={false}
         canUnlink={false}
-        canManualDelete={false}
       />,
     );
     expect(html).toContain("Artefatos Adicionais &amp; Complementares");
@@ -58,7 +57,6 @@ describe("AdditionalDocumentsCard", () => {
         ]}
         canUpload={true}
         canUnlink={true}
-        canManualDelete={false}
       />,
     );
     expect(html).toContain("laudo-pericial.pdf");
@@ -66,7 +64,7 @@ describe("AdditionalDocumentsCard", () => {
     expect(html).toContain("2,0 MB");
     expect(html).toContain("100,0 KB");
     expect(html).toContain("Baixar");
-    expect(html).toContain("Desvincular");
+    expect(html).toContain("Arquivar");
     expect(html).toContain("Anexar artefato complementar");
     expect(html).toContain("2 documentos");
   });
