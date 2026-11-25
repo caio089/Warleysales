@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@/modules/processes/estimated-value-action", () => ({ saveProcessEstimatedValue: vi.fn() }));
+vi.mock("@/modules/processes/price-research-action", () => ({ saveProcessPriceResearch: vi.fn() }));
 vi.mock("@/modules/processes/validity-start-action", () => ({ saveProcessValidityStartDate: vi.fn() }));
 vi.mock("@/modules/processes/contracting-mode-action", () => ({ saveProcessContractingMode: vi.fn() }));
 vi.mock("@/modules/processes/exception-action", () => ({ documentExceptionAction: vi.fn() }));

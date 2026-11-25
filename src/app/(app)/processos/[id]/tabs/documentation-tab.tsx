@@ -8,8 +8,8 @@ import {
   confirmDocumentUploadAction,
   downloadUrlAction,
   prepareDocumentUploadAction,
-  unlinkDocumentFormAction,
 } from "@/modules/documents/actions";
+import { ArchiveDocumentButton } from "../archive-document-button";
 import type { ProcessAttachment } from "@/modules/processes/domain/progress";
 import type { AdministrativeProcess } from "@/modules/processes/schemas";
 import {
@@ -17,7 +17,7 @@ import {
   type ProcessContractingMode,
 } from "@/modules/processes/contracting-mode";
 import { saveProcessContractingMode } from "@/modules/processes/contracting-mode-action";
-import { saveProcessEstimatedValue } from "@/modules/processes/estimated-value-action";
+import type { PriceResearchItemInput, PriceResearchLine } from "@/modules/processes/price-research";
 import { saveProcessValidityStartDate } from "@/modules/processes/validity-start-action";
 import { sha256Hex, uploadToSignedUrl } from "@/shared/lib/browser-upload";
 import { formatBytes, formatCurrency } from "@/shared/lib/format";
@@ -27,8 +27,10 @@ import { ActionForm } from "@/shared/ui/forms/action-form";
 import { toast } from "@/shared/ui/toast-store";
 import { AtaValidityField } from "@/app/(app)/atas/nova/ata-validity-field";
 import { CompactDocumentRow } from "../compact-document-row";
+import { PriceResearchForm, PriceResearchSummary } from "../price-research-form";
 import { documentPlacementDates } from "../process-history";
 import { cn } from "@/lib/utils";
+import { saveProcessEstimatedValue } from "@/modules/processes/estimated-value-action";
 
 /** Os 7 documentos obrigatórios na ordem legal da Lei 14.133 / PNCP. */
 export const MANDATORY_DOCUMENTS = [
@@ -59,6 +61,8 @@ export interface DocumentationTabProps {
   processId: string;
   estimatedValue?: number | null;
   canEditEstimatedValue?: boolean;
+  priceResearchItems?: PriceResearchItemInput[];
+  priceResearchLines?: PriceResearchLine[] | null;
   /** Vigência informada no TR (AAAA-MM-DD). */
   validityStartDate?: string | null;
   canEditValidityStart?: boolean;
@@ -90,6 +94,8 @@ export function DocumentationTab({
   processId,
   estimatedValue,
   canEditEstimatedValue,
+  priceResearchItems = [],
+  priceResearchLines = null,
   validityStartDate,
   canEditValidityStart,
   contractingMode = null,
@@ -356,7 +362,7 @@ export function DocumentationTab({
                             defaultStartDate={validityStartDate ?? undefined}
                             errors={errors.startDate}
                             label="Vigência no Termo de Referência"
-                            hint="Informe aqui a data de início. A ata e o contrato usam automaticamente esta vigência."
+                            hint="Já vem no padrão de 1 ano. Salve para a ata e o contrato usarem a mesma vigência."
                           />
                         )}
                       </ActionForm>
@@ -370,7 +376,22 @@ export function DocumentationTab({
                 ) : null}
                 {doc.code === "PP" && estimatedValue !== undefined ? (
                   <div className="mt-3 border-t pt-3">
-                    {canEditEstimatedValue ? (
+                    {priceResearchItems.length > 0 ? (
+                      canEditEstimatedValue ? (
+                        <PriceResearchForm
+                          processId={processId}
+                          items={priceResearchItems}
+                          savedLines={priceResearchLines}
+                          estimatedValue={estimatedValue}
+                        />
+                      ) : (
+                        <PriceResearchSummary
+                          items={priceResearchItems}
+                          savedLines={priceResearchLines}
+                          estimatedValue={estimatedValue}
+                        />
+                      )
+                    ) : canEditEstimatedValue ? (
                       <ActionForm action={saveProcessEstimatedValue} submitLabel="Salvar valor"
                         hiddenFields={{ processId }} resetOnSuccess={false} submitVariant="outline">
                         {() => <CurrencyField key={estimatedValue} name="estimatedValue" label="Valor estimado (R$)"
@@ -482,21 +503,17 @@ export function DocumentationTab({
                       variant="outline"
                       size="xs"
                       onClick={() => handleDownload(docId)}
-                      className="h-7 px-2 text-xs font-medium"
+                      className="h-8 px-2.5 text-xs font-medium"
                     >
-                      <Download className="mr-1 size-3" aria-hidden="true" />
+                      <Download className="mr-1 size-3.5" aria-hidden="true" />
                       Baixar
                     </Button>
                     {canUnlink ? (
-                      <ActionForm
-                        action={unlinkDocumentFormAction}
-                        submitLabel="Arquivar"
-                        submitVariant="outline"
-                        submitClassName="h-7 px-2 text-xs font-medium min-w-0"
-                        hiddenFields={{ attachmentId: docId, processId }}
-                      >
-                        {() => null}
-                      </ActionForm>
+                      <ArchiveDocumentButton
+                        attachmentId={docId}
+                        processId={processId}
+                        size="sm"
+                      />
                     ) : null}
                   </div>
                 </li>

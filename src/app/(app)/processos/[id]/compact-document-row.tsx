@@ -8,7 +8,6 @@ import {
   confirmDocumentUploadAction,
   downloadUrlAction,
   prepareDocumentUploadAction,
-  unlinkDocumentFormAction,
 } from "@/modules/documents/actions";
 import { sha256Hex, uploadToSignedUrl } from "@/shared/lib/browser-upload";
 import { formatBytes } from "@/shared/lib/format";
@@ -17,6 +16,7 @@ import { documentExceptionAction } from "@/modules/processes/exception-action";
 import type { AdministrativeProcess } from "@/modules/processes/schemas";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { toast } from "@/shared/ui/toast-store";
+import { ArchiveDocumentButton } from "./archive-document-button";
 
 export interface CompactDocumentFile {
   id: string;
@@ -234,27 +234,23 @@ export function CompactDocumentRow({
                       </div>
                     )}
                   </div>
-                  <div className="flex shrink-0 items-center gap-1">
+                  <div className="flex shrink-0 items-center gap-1.5">
                     <Button
                       type="button"
                       variant="outline"
                       size="xs"
                       onClick={() => handleDownload(file.id)}
-                      className="h-7 px-2 text-xs font-medium"
+                      className="h-8 px-2.5 text-xs font-medium"
                     >
-                      <Download className="mr-1 size-3" aria-hidden="true" />
+                      <Download className="mr-1 size-3.5" aria-hidden="true" />
                       Baixar
                     </Button>
                     {canUnlink ? (
-                      <ActionForm
-                        action={unlinkDocumentFormAction}
-                        submitLabel="Arquivar"
-                        submitVariant="outline"
-                        submitClassName="h-7 px-2 text-xs font-medium min-w-0"
-                        hiddenFields={{ attachmentId: file.id, processId }}
-                      >
-                        {() => null}
-                      </ActionForm>
+                      <ArchiveDocumentButton
+                        attachmentId={file.id}
+                        processId={processId}
+                        size="sm"
+                      />
                     ) : null}
                   </div>
                 </li>
@@ -273,21 +269,16 @@ export function CompactDocumentRow({
                 variant="outline"
                 size="xs"
                 onClick={() => handleDownload(files[0].id)}
-                className="h-8 px-2.5 text-xs font-medium"
+                className="h-9 px-3 text-xs font-medium"
               >
-                <Download className="mr-1 size-3.5" aria-hidden="true" />
+                <Download className="mr-1.5 size-3.5" aria-hidden="true" />
                 Baixar
               </Button>
               {canUnlink ? (
-                <ActionForm
-                  action={unlinkDocumentFormAction}
-                  submitLabel="Arquivar"
-                  submitVariant="outline"
-                  submitClassName="h-8 px-2.5 text-xs font-medium min-w-0"
-                  hiddenFields={{ attachmentId: files[0].id, processId }}
-                >
-                  {() => null}
-                </ActionForm>
+                <ArchiveDocumentButton
+                  attachmentId={files[0].id}
+                  processId={processId}
+                />
               ) : null}
             </>
           ) : null}

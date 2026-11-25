@@ -16,14 +16,14 @@ function firstDayOfMonth(date: string): string {
   return `${date.slice(0, 8)}01`;
 }
 
-/** Campo de vigência: digita DD/MM/AAAA, atalhos rápidos e fim automático de 1 ano. */
+/** Campo único de início da vigência; o fim (+1 ano) é só leitura. */
 export function AtaValidityField({
   errors,
   defaultStartDate,
   fieldName = "startDate",
   endFieldName,
   label = "Início da vigência",
-  hint = "Digite DD/MM/AAAA ou use o calendário. A ata vale 1 ano a partir desta data (art. 84, Lei 14.133/2021).",
+  hint = "Um campo só. O fim de 1 ano aparece abaixo automaticamente (art. 84, Lei 14.133/2021).",
   showEndPreview = true,
 }: {
   errors?: string[];
@@ -59,9 +59,9 @@ export function AtaValidityField({
       <FormField label={label} required errors={errors} hint={hint}>
         {(props) => (
           <div className="space-y-2">
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Atalhos de data">
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Atalhos de vigência">
               <QuickDateButton
-                label="Hoje"
+                label="Padrão 1 ano (hoje)"
                 active={startDate === today}
                 onClick={() => applyStart(today)}
               />
@@ -71,25 +71,16 @@ export function AtaValidityField({
                 onClick={() => applyStart(firstDayOfMonth(today))}
               />
             </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Input
-                {...props}
-                inputMode="numeric"
-                autoComplete="off"
-                placeholder="DD/MM/AAAA"
-                value={brValue}
-                onChange={(event) => onBrChange(event.target.value)}
-                aria-label="Início da vigência em dia/mês/ano"
-              />
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(event) => {
-                  if (event.target.value) applyStart(event.target.value);
-                }}
-                aria-label="Escolher data no calendário"
-              />
-            </div>
+            <Input
+              {...props}
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="DD/MM/AAAA"
+              value={brValue}
+              onChange={(event) => onBrChange(event.target.value)}
+              aria-label="Início da vigência"
+              className="max-w-xs"
+            />
             <input type="hidden" name={fieldName} value={startDate} />
             {endFieldName ? <input type="hidden" name={endFieldName} value={endDate} /> : null}
           </div>
@@ -98,9 +89,11 @@ export function AtaValidityField({
 
       {showEndPreview ? (
         <p className="rounded-lg border border-primary/15 bg-primary/5 px-3 py-2.5 text-sm text-foreground">
-          Vigência até{" "}
+          Vigência:{" "}
+          <strong className="tabular-nums">{formatDateOnly(startDate)}</strong>
+          {" → "}
           <strong className="tabular-nums text-primary">{formatDateOnly(endDate)}</strong>
-          <span className="text-muted-foreground"> · 1 ano a partir do início</span>
+          <span className="text-muted-foreground"> · 1 ano (calculado)</span>
         </p>
       ) : null}
     </div>

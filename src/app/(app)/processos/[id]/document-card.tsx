@@ -3,12 +3,12 @@
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Circle, Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { confirmDocumentUploadAction, downloadUrlAction, prepareDocumentUploadAction, unlinkDocumentFormAction } from "@/modules/documents/actions";
+import { confirmDocumentUploadAction, downloadUrlAction, prepareDocumentUploadAction } from "@/modules/documents/actions";
+import { ArchiveDocumentButton } from "./archive-document-button";
 import { sha256Hex, uploadToSignedUrl } from "@/shared/lib/browser-upload";
 import { formatBytes } from "@/shared/lib/format";
 import { formatDateTimeFortaleza } from "@/shared/lib/time";
 import { FileUpload } from "@/shared/ui/file-upload";
-import { ActionForm } from "@/shared/ui/forms/action-form";
 import { toast } from "@/shared/ui/toast-store";
 
 interface DocumentCardProps {
@@ -46,7 +46,7 @@ export function DocumentCard({ processId, typeCode, label, valid, files, canUplo
               <button type="button" onClick={() => download(f.id)} className="truncate text-left text-primary underline-offset-4 hover:underline">{f.name}</button>
               <span className="flex shrink-0 gap-1">
                 {canUnlink ? (
-                  <ActionForm action={unlinkDocumentFormAction} submitLabel="Arquivar" submitVariant="outline" hiddenFields={{ attachmentId: f.id, processId }}>{() => null}</ActionForm>
+                  <ArchiveDocumentButton attachmentId={f.id} processId={processId} size="sm" />
                 ) : null}
               </span>
             </li>
@@ -158,14 +158,7 @@ export function AdditionalDocumentsCard({
                   Baixar
                 </Button>
                 {canUnlink ? (
-                  <ActionForm
-                    action={unlinkDocumentFormAction}
-                    submitLabel="Arquivar"
-                    submitVariant="outline"
-                    hiddenFields={{ attachmentId: doc.id, processId }}
-                  >
-                    {() => null}
-                  </ActionForm>
+                  <ArchiveDocumentButton attachmentId={doc.id} processId={processId} size="sm" />
                 ) : null}
               </div>
             </li>

@@ -13,8 +13,12 @@ interface ActionFormProps {
   children: (fieldErrors: Record<string, string[]>) => ReactNode;
   /** Valores fixos enviados junto (ex.: id da entidade). */
   hiddenFields?: Record<string, string>;
-  submitVariant?: "default" | "destructive" | "outline" | "highlight";
+  submitVariant?: "default" | "destructive" | "outline" | "highlight" | "secondary";
   submitClassName?: string;
+  /** Ícone à esquerda do rótulo do botão. */
+  submitLeading?: ReactNode;
+  /** Classes do `<form>` (ex.: inline para botões em linha). */
+  formClassName?: string;
   /** Texto do botão enquanto a action está em andamento. */
   pendingLabel?: string;
   /**
@@ -40,6 +44,8 @@ export function ActionForm({
   hiddenFields,
   submitVariant = "default",
   submitClassName,
+  submitLeading,
+  formClassName,
   pendingLabel = "Gravando…",
   idempotencyField,
   resetOnSuccess = true,
@@ -81,7 +87,7 @@ export function ActionForm({
   const fieldErrors = state.status === "error" ? (state.fieldErrors ?? {}) : {};
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="space-y-4" noValidate>
+    <form ref={formRef} onSubmit={handleSubmit} className={formClassName ?? "space-y-4"} noValidate>
       {Object.entries(hiddenFields ?? {}).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}
       {idempotencyField ? (
         <input type="hidden" name={idempotencyField} defaultValue="" ref={(el) => { if (el && !el.value) el.value = crypto.randomUUID(); }} />
@@ -94,7 +100,12 @@ export function ActionForm({
         </p>
       ) : null}
       <Button type="submit" variant={submitVariant} className={submitClassName ?? "min-w-28"} disabled={pending}>
-        {pending ? pendingLabel : submitLabel}
+        {pending ? pendingLabel : (
+          <>
+            {submitLeading}
+            {submitLabel}
+          </>
+        )}
       </Button>
     </form>
   );

@@ -19,16 +19,18 @@ describe("parseBrDateOnly / maskBrDateInput", () => {
 });
 
 describe("AtaValidityField", () => {
-  it("mostra atalhos, campo brasileiro e vigência automática de 1 ano", () => {
+  it("tem um único campo de início e mostra o fim de 1 ano calculado", () => {
     const today = toFortalezaDate(new Date());
-    const html = renderToStaticMarkup(<AtaValidityField defaultStartDate={today} />);
-    expect(html).toContain("Início da vigência");
-    expect(html).toContain("Hoje");
+    const html = renderToStaticMarkup(<AtaValidityField />);
+    expect(html).toContain("Padrão 1 ano (hoje)");
     expect(html).toContain("1º deste mês");
     expect(html).toContain("DD/MM/AAAA");
-    expect(html).toContain(`Vigência até`);
+    expect(html).toContain("Início da vigência");
+    expect(html).toContain(formatDateOnly(today));
     expect(html).toContain(formatDateOnly(computeInitialEndDate(today)));
     expect(html).toContain(`name="startDate"`);
     expect(html).toContain(`value="${today}"`);
+    // Não deve haver o segundo campo type=date duplicado
+    expect(html).not.toContain('type="date"');
   });
 });
