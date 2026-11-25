@@ -5,6 +5,7 @@ import { z } from "zod";
 import { runAction } from "@/server/action-runner";
 import { getServiceClient } from "@/server/supabase/client";
 import { can } from "@/shared/lib/authz/policy";
+import { parseCurrencyInput } from "@/shared/lib/money-input";
 import { fail, ok } from "@/shared/lib/result";
 import type { ActionState } from "@/shared/ui/forms/action-state";
 
@@ -26,11 +27,12 @@ export async function correctRequestAction(_previous: ActionState, form: FormDat
   const units = form.getAll("unit");
   const quantities = form.getAll("quantity");
   const materialIds = form.getAll("materialId");
-  const value = String(form.get("estimatedValue") ?? "").trim();
+  const rawValue = String(form.get("estimatedValue") ?? "").trim();
+  const parsedValue = rawValue ? parseCurrencyInput(rawValue) : "";
   const parsed = schema.safeParse({
     requestId: form.get("requestId"), revision: form.get("revision"),
     councilId: form.get("councilId"), title: form.get("title"), priority: form.get("priority"),
-    estimatedValue: value ? Number(value.replace(",", ".")) : null, justification: form.get("justification"),
+    estimatedValue: parsedValue ? Number(parsedValue) : null, justification: form.get("justification"),
     items: names.map((description, index) => ({
       materialId: materialIds[index] ?? "", description, unit: units[index], quantity: Number(String(quantities[index]).replace(",", ".")),
     })),

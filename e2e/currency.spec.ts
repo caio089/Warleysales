@@ -31,6 +31,10 @@ test("entrada de reais mantém posição, centavos e valor numérico no formulá
   await input.fill("");
   await input.pressSequentially("12.50");
   await expect(input).toHaveValue("12,50");
+  await input.fill("");
+  await input.pressSequentially("10000.50");
+  await expect(input).toHaveValue("10.000,50");
+  expect((await submitted()).value).toBe("10000.50");
 
   const existing = page.getByRole("textbox", { name: "Valor existente" });
   await expect(existing).toHaveValue("10.500,5");

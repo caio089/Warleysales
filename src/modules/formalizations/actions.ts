@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { Services } from "@/server/container";
 import { runAction } from "@/server/action-runner";
 import type { Actor } from "@/shared/lib/authz/policy";
+import { parseCurrencyInput } from "@/shared/lib/money-input";
 import { fail, ok, type Result } from "@/shared/lib/result";
 import type { ActionState } from "@/shared/ui/forms/action-state";
 
@@ -29,12 +30,10 @@ async function assertInstrumentsLinked(
 
 function parseMoney(value: FormDataEntryValue | null): number {
   if (!value) return 0;
-  const str = String(value).replace(/R\$\s?/gi, "").trim();
-  if (!str) return 0;
-  if (str.includes(",") && str.includes(".")) {
-    return Number(str.replace(/\./g, "").replace(",", "."));
-  }
-  return Number(str.replace(",", "."));
+  const parsed = parseCurrencyInput(String(value));
+  if (parsed == null || parsed === "") return 0;
+  const amount = Number(parsed);
+  return Number.isFinite(amount) ? amount : 0;
 }
 
 export async function submitFormalizationFormAction(

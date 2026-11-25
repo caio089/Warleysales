@@ -13,7 +13,17 @@ type Option = { value: string; label: string };
 const ACCEPTED =
   ".xlsx,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-export function NewRequestForm({ councils }: { councils: Option[] }) {
+export function NewRequestForm({
+  councils,
+  defaultCouncilId,
+  lockCouncil = false,
+}: {
+  councils: Option[];
+  /** Órgão já conhecido (painel do CRQ ou único vínculo do usuário). */
+  defaultCouncilId?: string;
+  /** Quando true, o órgão não aparece no formulário — vai oculto no submit. */
+  lockCouncil?: boolean;
+}) {
   const [file, setFile] = useState<File | null>(null);
   const [reading, setReading] = useState(false);
   const [message, setMessage] = useState("");
@@ -21,6 +31,14 @@ export function NewRequestForm({ councils }: { councils: Option[] }) {
   /** Remonta o formulário após a importação, para os defaultValue entrarem. */
   const [formKey, setFormKey] = useState(0);
   const [itemCount, setItemCount] = useState(1);
+
+  const lockedCouncilId =
+    lockCouncil && defaultCouncilId && councils.some((council) => council.value === defaultCouncilId)
+      ? defaultCouncilId
+      : null;
+  const lockedCouncilLabel = lockedCouncilId
+    ? councils.find((council) => council.value === lockedCouncilId)?.label
+    : null;
 
   async function readDocument() {
     if (!file) return;
@@ -89,10 +107,33 @@ export function NewRequestForm({ councils }: { councils: Option[] }) {
       </section>
 
       <div className="surface-card max-w-2xl p-6">
-        <ActionForm key={formKey} action={createRequestFormAction} submitLabel="Salvar rascunho">
+        <ActionForm
+          key={formKey}
+          action={createRequestFormAction}
+          submitLabel="Salvar rascunho"
+          hiddenFields={lockedCouncilId ? { councilId: lockedCouncilId } : undefined}
+        >
           {(e) => (
             <>
-              <SelectField name="councilId" label="Órgão" required options={councils} errors={e.councilId} />
+              {lockedCouncilId ? (
+                <div className="rounded-lg border border-border/60 bg-muted/20 px-3.5 py-3 text-sm">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Órgão</p>
+                  <p className="mt-0.5 font-medium text-foreground">{lockedCouncilLabel}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Definido automaticamente pelo seu painel — não é necessário selecionar.
+                  </p>
+                  {e.councilId ? <p role="alert" className="mt-1 text-xs text-destructive">{e.councilId.join(" ")}</p> : null}
+                </div>
+              ) : (
+                <SelectField
+                  name="councilId"
+                  label="Órgão"
+                  required
+                  options={councils}
+                  defaultValue={defaultCouncilId ?? (councils.length === 1 ? councils[0]!.value : "")}
+                  errors={e.councilId}
+                />
+              )}
               <TextField
                 name="title"
                 label="Título"

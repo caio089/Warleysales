@@ -10,7 +10,12 @@ import { NewRequestForm } from "./new-request-form";
 
 export const metadata: Metadata = { title: "Nova solicitação" };
 
-async function Content() {
+async function Content({
+  searchParams,
+}: {
+  searchParams: Promise<{ councilId?: string }>;
+}) {
+  const { councilId: requestedCouncilId } = await searchParams;
   const result = await loadScreen(async (ctx) => {
     const lookups = await loadLookups(ctx);
     if (!lookups.ok) return lookups;
@@ -18,14 +23,33 @@ async function Content() {
   });
   return (
     <Screen result={result}>
-      {({ lookups: l }) => (
-        <NewRequestForm councils={l.councils.map((c) => ({ value: c.id, label: c.label }))} />
-      )}
+      {({ lookups: l }) => {
+        const councils = l.councils.map((c) => ({ value: c.id, label: c.label }));
+        const fromQuery =
+          requestedCouncilId && councils.some((council) => council.value === requestedCouncilId)
+            ? requestedCouncilId
+            : undefined;
+        /** Painel do órgão ou usuário com um único vínculo: órgão já está definido. */
+        const defaultCouncilId = fromQuery ?? (councils.length === 1 ? councils[0]!.value : undefined);
+        const lockCouncil = Boolean(defaultCouncilId);
+
+        return (
+          <NewRequestForm
+            councils={councils}
+            defaultCouncilId={defaultCouncilId}
+            lockCouncil={lockCouncil}
+          />
+        );
+      }}
     </Screen>
   );
 }
 
-export default function NewRequestPage() {
+export default function NewRequestPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ councilId?: string }>;
+}) {
   return (
     <>
       <PageHeader
@@ -35,7 +59,9 @@ export default function NewRequestPage() {
         title="Nova solicitação"
         description="Importe Excel/Word com IA ou preencha à mão · salve o rascunho · envie · o gestor aprova · no recebimento o estoque sobe."
       />
-      <Suspense fallback={<LoadingState />}><Content /></Suspense>
+      <Suspense fallback={<LoadingState />}>
+        <Content searchParams={searchParams} />
+      </Suspense>
     </>
   );
 }

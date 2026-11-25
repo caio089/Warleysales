@@ -5,13 +5,14 @@ import { z } from "zod";
 import { runAction } from "@/server/action-runner";
 import { getServiceClient } from "@/server/supabase/client";
 import { can } from "@/shared/lib/authz/policy";
+import { parseCurrencyInput } from "@/shared/lib/money-input";
 import { fail, ok } from "@/shared/lib/result";
 import type { ActionState } from "@/shared/ui/forms/action-state";
 
 export async function saveProcessEstimatedValue(_previous: ActionState, form: FormData): Promise<ActionState> {
   const processId = z.uuid().safeParse(form.get("processId"));
-  const value = String(form.get("estimatedValue") ?? "").trim().replace(",", ".");
-  if (!processId.success || !/^\d{1,13}(?:\.\d{1,2})?$/.test(value)) {
+  const value = parseCurrencyInput(String(form.get("estimatedValue") ?? ""));
+  if (!processId.success || value == null || value === "" || !/^\d{1,13}(?:\.\d{1,2})?$/.test(value)) {
     return { status: "error", message: "Informe um valor estimado válido, com até duas casas decimais." };
   }
 

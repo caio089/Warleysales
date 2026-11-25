@@ -46,12 +46,9 @@ export function CurrencyInput({ name, defaultValue, value, onValueChange, disabl
         onChange={(event) => {
           const input = event.currentTarget;
           const caret = input.selectionStart ?? input.value.length;
-          const { data, inputType } = event.nativeEvent as InputEvent;
-          // Alguns teclados decimais enviam ponto mesmo quando a interface usa vírgula.
-          const text = data === "." && caret > 0
-            ? input.value.slice(0, caret - 1) + "," + input.value.slice(caret)
-            : input.value;
-          const next = updateCurrencyDraft(current, text, caret, inputType);
+          const { inputType } = event.nativeEvent as InputEvent;
+          // Ponto do teclado/numpad vira vírgula de centavos (ex.: 10.000,50).
+          const next = updateCurrencyDraft(current, input.value, caret, inputType);
           if (!next) {
             input.value = formatCurrencyDraft(current);
             input.setSelectionRange(Math.max(0, caret - 1), Math.max(0, caret - 1));
