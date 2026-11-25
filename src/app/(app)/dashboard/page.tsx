@@ -31,6 +31,7 @@ import { Screen } from "@/shared/ui/screen";
 import { CouncilWorkspace } from "./council-workspace";
 import { BriefingCard, BriefingFallback } from "./briefing-card";
 import { DashboardFilters } from "./filters";
+import { ApprovalQueue, type PendingApprovalItem } from "./approval-queue";
 import { FormalizationQueue, type PendingFormalizationItem } from "./formalization-queue";
 import { OrderQueue, type PendingOrderItem } from "./order-queue";
 import {
@@ -266,6 +267,20 @@ async function DashboardContent({
             itemsCount: r.items.length,
           }));
 
+        const approvalQueue: PendingApprovalItem[] = pendingRequests
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+          .slice(0, 20)
+          .map((r) => ({
+            id: r.id,
+            title: r.title,
+            councilName: lookups.councilLabel[r.councilId] ?? "Órgão",
+            status: r.status,
+            processId: r.processId ?? null,
+            estimatedValue: r.estimatedValue ?? null,
+            itemsCount: r.items.length,
+            createdAt: r.createdAt.toISOString(),
+          }));
+
         // Fatos enriquecidos para IA
         const facts = buildBriefingFacts({
           summary: dash.summary,
@@ -353,6 +368,7 @@ async function DashboardContent({
 
             <section aria-labelledby="workspace-heading" className="space-y-4">
               <h2 id="workspace-heading" className="font-heading text-xl font-semibold text-primary">Filas e espaço de trabalho</h2>
+              {isWarley ? <ApprovalQueue items={approvalQueue} /> : null}
               {isWarley ? <FormalizationQueue items={pendingQueue} /> : null}
               {isWarley ? <OrderQueue items={pendingOrderQueue} /> : null}
               {workspace ? (

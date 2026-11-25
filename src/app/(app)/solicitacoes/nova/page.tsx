@@ -57,7 +57,7 @@ export default function NewRequestPage({
         backHref="/solicitacoes"
         backLabel="Todas as solicitações"
         title="Nova solicitação"
-        description="Importe Excel/Word com IA ou preencha à mão · salve o rascunho · envie · o gestor aprova · no recebimento o estoque sobe."
+        description="Importe Excel/Word com IA ou preencha à mão · ao salvar, a solicitação já vai para aprovação de Warley e Maria Luiza."
       />
       <Suspense fallback={<LoadingState />}>
         <Content searchParams={searchParams} />

@@ -16,17 +16,28 @@ function readItems(formData: FormData) {
 export async function createRequestFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
   const createProcess = formData.get("createProcess") === "on" || formData.get("createProcess") === "true";
   const result = await runAction(
-    ({ services, actor }) =>
-      services.purchases.create(actor, {
+    async ({ services, actor }) => {
+      const created = await services.purchases.create(actor, {
         councilId: formData.get("councilId"),
         title: formData.get("title"),
         createProcess,
         items: readItems(formData),
-      }),
-    "Solicitação criada como rascunho.",
+      });
+      if (!created.ok) return created;
+      // Órgão salva → já entra na fila de Warley/Maria Luiza (enviada para aprovação).
+      const submitted = await services.purchases.submit(actor, { requestId: created.data.id });
+      return submitted.ok ? submitted : created;
+    },
+    "Solicitação enviada para aprovação.",
   );
   if (result.status !== "success" || !result.data) return result.status === "success" ? result : result;
   revalidatePath("/solicitacoes");
+  revalidatePath("/processos");
+  revalidatePath("/dashboard");
+  const processId = result.data.processId;
+  if (processId) {
+    redirect(`/processos/${processId}?aba=aprovacoes`);
+  }
   redirect(`/solicitacoes/${result.data.id}`);
 }
 
@@ -53,6 +64,9 @@ export async function requestStepFormAction(_previous: ActionState, formData: Fo
   }, "Solicitação atualizada.");
   if (result.status === "success") {
     revalidatePath(`/solicitacoes/${requestId}`);
+    revalidatePath("/solicitacoes");
+    revalidatePath("/processos");
+    revalidatePath("/dashboard");
     revalidatePath("/atas");
   }
   return result.status === "success" ? { status: "success", message: result.message } : result;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { FolderKanban, Handshake, ShieldCheck } from "lucide-react";
+import { ClipboardCheck, FolderKanban, Handshake, ShieldCheck } from "lucide-react";
 import { DOCUMENT_TYPES } from "@/modules/processes/domain/document-types";
 import Link from "next/link";
 import type { Attachment } from "@/modules/documents/schemas";
@@ -18,6 +18,10 @@ import { PlanDossierCard } from "@/app/(app)/solicitacoes/plan-dossier-card";
 import { planDossier } from "@/app/(app)/solicitacoes/request-facets";
 import { ProcessHeader } from "./process-header";
 import {
+  ApprovalsTab,
+  type ApprovalsTabRequest,
+} from "./tabs/approvals-tab";
+import {
   ContractingTab,
   type LinkedAtaItem,
   type LinkedContractItem,
@@ -28,11 +32,11 @@ import {
 } from "./tabs/documentation-tab";
 import { GovernanceTab } from "./tabs/governance-tab";
 
-export type ProcessTabId = "documentos" | "contratacao" | "governanca";
+export type ProcessTabId = "aprovacoes" | "documentos" | "contratacao" | "governanca";
 
 export function processTabFromSearch(search: string, fallback: ProcessTabId = "documentos"): ProcessTabId {
   const value = new URLSearchParams(search).get("aba");
-  return value === "documentos" || value === "contratacao" || value === "governanca"
+  return value === "aprovacoes" || value === "documentos" || value === "contratacao" || value === "governanca"
     ? value
     : fallback;
 }
@@ -51,6 +55,7 @@ export interface ProcessViewProps {
   requestId: string | null;
   requestItems: Array<{ materialId: string; name: string; quantity: number }>;
   requestNotes?: string[];
+  approvalRequest?: ApprovalsTabRequest | null;
   linkedAtas: LinkedAtaItem[];
   linkedContracts: LinkedContractItem[];
   availableAtas?: { value: string; label: string }[];
@@ -72,12 +77,7 @@ interface TabDefinition {
 }
 
 /**
- * Componente principal da visualização de processos em abas executivas.
- * Unifica cabeçalho com 4 métricas rápidas e 3 abas focadas:
- * 1. Documentação (7+N)
- * 2. Atas e contratos
- * 3. Governança & Histórico
- */
+/** Visualização do processo em abas: aprovações, documentação, contratação e governança. */
 export function ProcessView({
   view,
   documents,
@@ -92,6 +92,7 @@ export function ProcessView({
   requestId,
   requestItems,
   requestNotes = [],
+  approvalRequest = null,
   linkedAtas,
   linkedContracts,
   availableAtas = [],
@@ -165,7 +166,17 @@ export function ProcessView({
 
   const totalLinkedInstruments = linkedAtas.length + linkedContracts.length;
 
+  const approvalPending =
+    approvalRequest != null &&
+    ["enviada", "em_analise", "aguardando_correcao"].includes(approvalRequest.status);
+
   const tabs: TabDefinition[] = [
+    {
+      id: "aprovacoes",
+      label: "Aprovações",
+      icon: ClipboardCheck,
+      badge: approvalPending ? "1" : undefined,
+    },
     {
       id: "documentos",
       label: "Documentação (7+N)",
@@ -269,7 +280,16 @@ export function ProcessView({
 
       {/* 3. Painéis de Conteúdo das Abas */}
       <main>
-        {/* Aba 1: Pasta Documental */}
+        <div
+          role="tabpanel"
+          id="panel-aprovacoes"
+          aria-labelledby="tab-aprovacoes"
+          hidden={activeTab !== "aprovacoes"}
+          tabIndex={0}
+        >
+          {activeTab === "aprovacoes" ? <ApprovalsTab request={approvalRequest} /> : null}
+        </div>
+
         <div
           role="tabpanel"
           id="panel-documentos"
@@ -278,7 +298,6 @@ export function ProcessView({
           tabIndex={0}
         >
           {activeTab === "documentos" && (
-            <>
             <DocumentationTab
               estimatedValue={initialValue}
               canEditEstimatedValue={canManage && !view.process.snapshot && !["cancelado", "arquivado"].includes(view.process.status)}
@@ -290,11 +309,9 @@ export function ProcessView({
               canUnlink={canUnlink}
               isSpecialDeleter={isSpecialDeleter}
             />
-            </>
           )}
         </div>
 
-        {/* Aba 2: Atas e, em seguida, contratos */}
         <div
           role="tabpanel"
           id="panel-contratacao"
@@ -329,7 +346,6 @@ export function ProcessView({
           )}
         </div>
 
-        {/* Aba 3: Governança & Histórico */}
         <div
           role="tabpanel"
           id="panel-governanca"

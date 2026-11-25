@@ -110,7 +110,7 @@ export function NewRequestForm({
         <ActionForm
           key={formKey}
           action={createRequestFormAction}
-          submitLabel="Salvar rascunho"
+          submitLabel="Salvar e enviar para aprovação"
           hiddenFields={lockedCouncilId ? { councilId: lockedCouncilId } : undefined}
         >
           {(e) => (

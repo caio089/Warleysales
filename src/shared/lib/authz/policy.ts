@@ -59,7 +59,8 @@ const ROLES_BY_ACTION: Record<Exclude<PermissionAction, "data.delete_manual">, R
   "document.attach": MANAGER_OPERATOR,
   "document.unlink": MANAGER,
   "request.create": MANAGER_OPERATOR,
-  "request.decide": MANAGER,
+  /** Só admin central (Warley / Maria Luiza) — o órgão cria e envia, mas não aprova. */
+  "request.decide": null,
   "transfer.request": MANAGER_OPERATOR,
   "transfer.decide": MANAGER,
   "stock.move": MANAGER_OPERATOR,

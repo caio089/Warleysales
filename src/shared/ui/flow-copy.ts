@@ -41,7 +41,7 @@ export function requestNextStep(
         title: "Iniciar a análise",
         description: perms.canDecide
           ? "Clique em Iniciar análise para revisar e decidir (aprovar, pedir correção ou rejeitar)."
-          : "Aguardando o gestor do conselho iniciar a análise.",
+          : "Aguardando Warley ou Maria Luiza iniciar a análise.",
         tone: perms.canDecide ? "action" : "info",
       };
     case "em_analise":
@@ -49,7 +49,7 @@ export function requestNextStep(
         title: "Aprovar ou não",
         description: perms.canDecide
           ? "Sim autoriza a compra. O estoque só muda quando o material chegar. Não pede o motivo."
-          : "Aguardando a decisão de quem analisa.",
+          : "Aguardando a decisão da administração central.",
         tone: perms.canDecide ? "action" : "info",
       };
     case "aguardando_correcao":
@@ -88,7 +88,7 @@ export function requestNextStep(
         title: "Solicitação rejeitada",
         description: perms.canDecide
           ? "Fluxo encerrado. Só reabra com justificativa se for excepcional."
-          : "Fluxo encerrado. Fale com o gestor se precisar reabrir.",
+          : "Fluxo encerrado. Fale com a administração central se precisar reabrir.",
         tone: "info",
       };
     case "cancelada":
@@ -155,9 +155,9 @@ export function processNextStep(input: {
 }
 
 export const REQUEST_FLOW_STEPS = [
-  { title: "Criar", detail: "Informe conselho, título e os materiais. Salva como rascunho." },
-  { title: "Enviar", detail: "Quem criou envia para o gestor analisar." },
-  { title: "Aprovar", detail: "Gestor decide. Se houver ata, o saldo é comprometido — estoque ainda não muda." },
+  { title: "Criar", detail: "Informe órgão, título e os materiais e envie para aprovação." },
+  { title: "Enviar", detail: "O órgão envia; a solicitação chega na fila da administração central." },
+  { title: "Aprovar", detail: "Só Warley ou Maria Luiza decidem. Se houver ata, o saldo é comprometido — estoque ainda não muda." },
   { title: "Receber", detail: "No recebimento, o estoque sobe. Pronto." },
 ];
 

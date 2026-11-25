@@ -10,7 +10,13 @@ import { ProcessView } from "./process-view";
 
 export const metadata: Metadata = { title: "Processo" };
 
-export async function ProcessContent({ params, initialTab }: { params: Promise<{ id: string }>; initialTab: "documentos" | "contratacao" | "governanca" }) {
+export async function ProcessContent({
+  params,
+  initialTab,
+}: {
+  params: Promise<{ id: string }>;
+  initialTab: "aprovacoes" | "documentos" | "contratacao" | "governanca";
+}) {
   const { id } = await params;
   const result = await loadScreen(async ({ services, actor }) => {
     const detail = await services.processes.getDetail(actor, id);
@@ -34,6 +40,11 @@ export async function ProcessContent({ params, initialTab }: { params: Promise<{
     if (!lookups.ok) return lookups;
     const linkedRequest = request.data;
     const materialName = lookups.data.materialName;
+    const requestItems = (linkedRequest?.items ?? []).map((item) => ({
+      materialId: item.materialId,
+      name: materialName[item.materialId] ?? "Item",
+      quantity: item.quantity,
+    }));
     return ok({
       view,
       documents,
@@ -46,12 +57,26 @@ export async function ProcessContent({ params, initialTab }: { params: Promise<{
       isWarley: actor.isCentralAdmin,
       defaultEstimatedValue: linkedRequest?.estimatedValue ?? null,
       requestId: linkedRequest?.id ?? null,
-      requestItems: (linkedRequest?.items ?? []).map((item) => ({
-        materialId: item.materialId,
-        name: materialName[item.materialId] ?? "Item",
-        quantity: item.quantity,
-      })),
+      requestItems,
       requestNotes: (linkedRequest?.events ?? []).map((event) => event.note ?? ""),
+      approvalRequest: linkedRequest
+        ? {
+            id: linkedRequest.id,
+            title: linkedRequest.title,
+            status: linkedRequest.status,
+            councilLabel: lookups.data.councilLabel[councilId] ?? "Órgão",
+            estimatedValue: linkedRequest.estimatedValue ?? null,
+            items: linkedRequest.items.map((item) => ({
+              id: item.id,
+              label: materialName[item.materialId] ?? "Item",
+              quantity: item.quantity,
+              receivedTotal: item.receivedTotal,
+            })),
+            canDecide: can(actor, "request.decide", councilId),
+            canCreate: can(actor, "request.create", councilId),
+            canReceive: can(actor, "stock.move", councilId),
+          }
+        : null,
       linkedAtas: atas.data
         .filter((item) => item.ata.processId === id)
         .map((item) => ({ id: item.ata.id, number: item.ata.number, endDate: item.endDate, status: item.validity === "vigente" ? "Vigente" : "Vencida" })),
@@ -90,7 +115,8 @@ export default async function ProcessPage({
   searchParams: Promise<{ aba?: string }>;
 }) {
   const { aba } = await searchParams;
-  const initialTab = aba === "contratacao" || aba === "governanca" ? aba : "documentos";
+  const initialTab =
+    aba === "aprovacoes" || aba === "contratacao" || aba === "governanca" ? aba : "documentos";
   return (
     <Suspense fallback={<LoadingState />}>
       <ProcessContent params={params} initialTab={initialTab} />

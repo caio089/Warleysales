@@ -46,6 +46,12 @@ vi.mock("@/modules/contracts/actions", () => ({
   createContractFormAction: vi.fn(),
 }));
 
+vi.mock("@/modules/purchases/actions", () => ({
+  receiveFormAction: vi.fn(),
+  requestStepFormAction: vi.fn(),
+  createRequestFormAction: vi.fn(),
+}));
+
 import { ProcessView, processTabFromSearch, type ProcessViewProps } from "./process-view";
 
 const BASE_PROPS: ProcessViewProps = {
@@ -118,6 +124,7 @@ describe("ProcessView", () => {
     expect(processTabFromSearch("?aba=desconhecida&filtro=aberto")).toBe("documentos");
     expect(processTabFromSearch("?aba=desconhecida", "contratacao")).toBe("contratacao");
     expect(processTabFromSearch("?aba=governanca&filtro=aberto")).toBe("governanca");
+    expect(processTabFromSearch("?aba=aprovacoes")).toBe("aprovacoes");
   });
   it("renderiza o ProcessHeader no topo com número, título do item e métricas", () => {
     const html = renderToStaticMarkup(<ProcessView {...BASE_PROPS} />);
@@ -130,10 +137,11 @@ describe("ProcessView", () => {
     expect(html).toContain("3/7 (43%)");
   });
 
-  it("renderiza a barra de abas com role='tablist' e os 3 botões com ícones e labels", () => {
+  it("renderiza a barra de abas com role='tablist' e as abas com ícones e labels", () => {
     const html = renderToStaticMarkup(<ProcessView {...BASE_PROPS} />);
 
     expect(html).toContain('role="tablist"');
+    expect(html).toContain("Aprovações");
     expect(html).toContain("Documentação (7+N)");
     expect(html).toContain("Atas e contratos");
     expect(html).toContain("Governança &amp; Histórico");

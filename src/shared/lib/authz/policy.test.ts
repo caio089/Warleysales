@@ -19,7 +19,7 @@ const roleMatrix: readonly [PermissionAction, boolean, boolean, boolean, boolean
   ["document.attach", true, true, false, true],
   ["document.unlink", true, false, false, true],
   ["request.create", true, true, false, true],
-  ["request.decide", true, false, false, true],
+  ["request.decide", false, false, false, true],
   ["transfer.request", true, true, false, true],
   ["transfer.decide", true, false, false, true],
   ["stock.move", true, true, false, true],
