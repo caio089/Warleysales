@@ -12,7 +12,7 @@ export async function createProcessFormAction(_previous: ActionState, formData: 
   );
   if (result.status !== "success" || !result.data) return result.status === "success" ? result : result;
   revalidatePath("/processos");
-  redirect(`/processos/${result.data.id}`);
+  redirect(`/solicitacoes/processos/${result.data.id}`);
 }
 
 export async function changeProcessStatusFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {

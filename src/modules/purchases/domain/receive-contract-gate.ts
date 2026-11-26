@@ -1,4 +1,5 @@
 import type { ProcessContractingMode } from "@/modules/processes/contracting-mode";
+import { addQuantity, subtractQuantity } from "@/shared/lib/decimal";
 import { fail, ok, type Result } from "@/shared/lib/result";
 
 /** Forma mínima do contrato para o gate de entrada no estoque. */
@@ -22,13 +23,30 @@ export function contractedQuantityByAtaItem(
 ): Map<string, number> {
   const map = new Map<string, number>();
   for (const contract of contracts) {
-    if (!processId || contract.processId !== processId) continue;
+    if (!processId || contract.processId !== processId || !contract.ataId) continue;
     for (const line of contract.ataItems ?? []) {
       if (line.quantity <= 0) continue;
-      map.set(line.ataItemId, (map.get(line.ataItemId) ?? 0) + line.quantity);
+      map.set(line.ataItemId, addQuantity(map.get(line.ataItemId) ?? 0, line.quantity));
     }
   }
   return map;
+}
+
+/** Inclui recebimentos de todas as solicitações do processo, inclusive encerradas. */
+export function receivedQuantitiesByProcess(
+  requests: readonly { processId?: string | null; items: readonly RequestItemForReceiveGate[] }[],
+): Map<string, Map<string, number>> {
+  const byProcess = new Map<string, Map<string, number>>();
+  for (const request of requests) {
+    if (!request.processId) continue;
+    const byItem = byProcess.get(request.processId) ?? new Map<string, number>();
+    byProcess.set(request.processId, byItem);
+    for (const item of request.items) {
+      if (!item.ataItemId) continue;
+      byItem.set(item.ataItemId, addQuantity(byItem.get(item.ataItemId) ?? 0, item.receivedTotal));
+    }
+  }
+  return byProcess;
 }
 
 /**
@@ -58,9 +76,7 @@ export function assertContractAllowsReceive(input: {
         "Cadastre o contrato vinculado à ata antes de liberar entrada no estoque.",
       );
     }
-    const withAta = processContracts.filter(
-      (contract) => Boolean(contract.ataId) || (contract.ataItems?.length ?? 0) > 0,
-    );
+    const withAta = processContracts.filter((contract) => Boolean(contract.ataId));
     if (withAta.length === 0) {
       return fail(
         "INVALID_STATE",
@@ -96,12 +112,33 @@ export function assertContractAllowsReceive(input: {
 export function maxReceivableAgainstContract(
   item: RequestItemForReceiveGate,
   contractedByAtaItem: Map<string, number>,
+  receivedByAtaItem?: Map<string, number>,
+  incomingForAtaItem = 0,
 ): number {
-  const pending = Math.max(0, item.quantity - item.receivedTotal);
+  // Quantidades persistidas têm três casas decimais.
+  const pending = Math.max(0, subtractQuantity(item.quantity, item.receivedTotal));
   if (!item.ataItemId) return pending;
   const contracted = contractedByAtaItem.get(item.ataItemId) ?? 0;
-  const remainingOnContract = Math.max(0, contracted - item.receivedTotal);
+  const previouslyReceived = receivedByAtaItem?.get(item.ataItemId) ?? item.receivedTotal;
+  const remainingOnContract = Math.max(0, subtractQuantity(subtractQuantity(contracted, previouslyReceived), incomingForAtaItem));
   return Math.min(pending, remainingOnContract);
+}
+
+/** Distribui o saldo entre linhas da mesma ata para que os valores iniciais caibam juntos. */
+export function receiptDefaults(
+  items: readonly RequestItemForReceiveGate[],
+  contractedByAtaItem: Map<string, number>,
+  receivedByAtaItem?: Map<string, number>,
+): Map<string, number> {
+  const defaults = new Map<string, number>();
+  const allocatedByAtaItem = new Map<string, number>();
+  for (const item of items) {
+    const allocated = item.ataItemId ? (allocatedByAtaItem.get(item.ataItemId) ?? 0) : 0;
+    const pending = maxReceivableAgainstContract(item, contractedByAtaItem, receivedByAtaItem, allocated);
+    defaults.set(item.id, pending);
+    if (item.ataItemId) allocatedByAtaItem.set(item.ataItemId, addQuantity(allocated, pending));
+  }
+  return defaults;
 }
 
 /** Valida as linhas do recebimento contra o teto contratual. */
@@ -117,9 +154,8 @@ export function assertReceiveLinesWithinContract(input: {
     const item = input.items.find((row) => row.id === line.itemId);
     if (!item) continue;
     if (!item.ataItemId) continue;
-    const previouslyReceived = input.receivedByAtaItem?.get(item.ataItemId) ?? item.receivedTotal;
-    const pendingContract = Math.max(0, (input.contractedByAtaItem.get(item.ataItemId) ?? 0) - previouslyReceived - (incomingByAtaItem.get(item.ataItemId) ?? 0));
-    const max = Math.min(Math.max(0, item.quantity - item.receivedTotal), pendingContract);
+    const incoming = incomingByAtaItem.get(item.ataItemId) ?? 0;
+    const max = maxReceivableAgainstContract(item, input.contractedByAtaItem, input.receivedByAtaItem, incoming);
     if (line.received > max) {
       return fail(
         "VALIDATION",
@@ -127,7 +163,7 @@ export function assertReceiveLinesWithinContract(input: {
         { [`lines.${line.itemId}`]: [`Máximo liberado pelo contrato: ${max}.`] },
       );
     }
-    incomingByAtaItem.set(item.ataItemId, (incomingByAtaItem.get(item.ataItemId) ?? 0) + line.received);
+    incomingByAtaItem.set(item.ataItemId, incoming + line.received);
   }
   return ok(true);
 }

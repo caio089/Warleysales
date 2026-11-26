@@ -11,6 +11,7 @@ import {
   assertContractAllowsReceive,
   assertReceiveLinesWithinContract,
   contractedQuantityByAtaItem,
+  receivedQuantitiesByProcess,
 } from "./domain/receive-contract-gate";
 import { applyReceipt } from "./domain/receipt";
 import { changeRequestStatus, reopenRejected, type PurchaseRequestStatus } from "./domain/request-status";
@@ -230,14 +231,7 @@ export class PurchaseRequestService {
       if (!gate.ok) return gate;
       const contractedByAtaItem = contractedQuantityByAtaItem(contracts, request.processId);
       const linkedRequests = await this.repository.listByCouncils([request.councilId]);
-      const receivedByAtaItem = new Map<string, number>();
-      for (const linked of linkedRequests) {
-        if (linked.processId !== request.processId) continue;
-        for (const item of linked.items) {
-          if (!item.ataItemId) continue;
-          receivedByAtaItem.set(item.ataItemId, (receivedByAtaItem.get(item.ataItemId) ?? 0) + item.receivedTotal);
-        }
-      }
+      const receivedByAtaItem = receivedQuantitiesByProcess(linkedRequests).get(request.processId);
       const within = assertReceiveLinesWithinContract({
         items: request.items,
         lines: parsed.data.lines,

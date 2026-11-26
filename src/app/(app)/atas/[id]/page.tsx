@@ -56,7 +56,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
       processes: processes.data
         .filter((item) => item.process.councilId === councilId)
         .map((item) => ({ value: item.process.id, label: `${item.process.number} — ${item.process.title}` })),
-      processHref: processId ? `/processos/${processId}` : null,
+      processHref: processId ? `/solicitacoes/processos/${processId}` : null,
       processLabel: processes.data.find((item) => item.process.id === processId)?.process.number ?? null,
       relatedContracts: processId
         ? contracts.data

@@ -7,6 +7,7 @@ import { matchPdfItems } from "@/app/(app)/atas/nova/match-pdf-items";
 import { computeInitialEndDate } from "@/modules/atas/domain/validity";
 import type { ExtractedContract } from "@/modules/contracts/pdf-extraction";
 import { createContractFormAction } from "@/modules/contracts/actions";
+import { calculateContractAtaValue } from "@/modules/contracts/domain/ata-value";
 import { formatCurrency, formatNumber } from "@/shared/lib/format";
 import { formatDateOnly } from "@/shared/lib/time";
 import { ActionForm } from "@/shared/ui/forms/action-form";
@@ -88,14 +89,14 @@ export function NewContractForm({
         const pdfIndex = pdfMatches[index];
         const pdfQty = pdfIndex == null ? null : extracted?.items?.[pdfIndex]?.quantity;
         const fallback = pdfQty != null && pdfQty > 0 ? pdfQty : 0;
-        const quantity = Number.isFinite(fromState) && fromState >= 0 ? fromState : fallback;
+        const quantity = raw === undefined ? fallback : Number.isFinite(fromState) && fromState > 0 ? fromState : 0;
         const lineTotal = Math.round(quantity * item.unitPrice * 100) / 100;
         return { ...item, quantity, lineTotal, pdfQuantity: pdfQty, draft: raw ?? (fallback > 0 ? String(fallback) : "") };
       }),
     [ataLines, extracted, pdfMatches, qtyDrafts],
   );
   const computedContractValue = useMemo(
-    () => Math.round(contractLines.reduce((sum, line) => sum + line.lineTotal, 0) * 100) / 100,
+    () => calculateContractAtaValue(contractLines),
     [contractLines],
   );
 

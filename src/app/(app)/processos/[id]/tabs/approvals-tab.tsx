@@ -140,7 +140,7 @@ export function ApprovalsTab({ request, processId }: ApprovalsTabProps) {
           pendingItems={pendingItems}
           summaryOnly
           onApproved={() => {
-            router.push(`/processos/${processId}?aba=documentos`);
+            router.push(`/solicitacoes/processos/${processId}?aba=documentos`);
             router.refresh();
           }}
         />

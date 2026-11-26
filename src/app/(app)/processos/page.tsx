@@ -107,7 +107,7 @@ async function Content({ openApprovals }: { openApprovals: boolean }) {
             description="Abra o processo, anexe os 7 documentos e acompanhe o progresso. Completar a pasta não encerra o processo sozinho."
             actions={
               canCreate ? (
-                <Link href="/processos/novo" className={buttonVariants()}>
+                <Link href="/solicitacoes/processos/novo" className={buttonVariants()}>
                   Novo processo
                 </Link>
               ) : undefined
@@ -156,13 +156,13 @@ async function Content({ openApprovals }: { openApprovals: boolean }) {
                 if (days < 0) return "";
                 return days <= 15 ? "Alta" : days <= 30 ? "Média" : "Baixa";
               })(),
-              href: `/processos/${p.process.id}`,
+              href: `/solicitacoes/processos/${p.process.id}`,
             }))}
             emptyTitle="Nenhum processo ainda"
             emptyDescription="Crie o primeiro processo e anexe DFD, ETP, MR, TR, PP, PJ e ED — o progresso sobe sozinho."
             emptyAction={
               canCreate ? (
-                <Link href="/processos/novo" className={buttonVariants()}>
+                <Link href="/solicitacoes/processos/novo" className={buttonVariants()}>
                   Criar primeiro processo
                 </Link>
               ) : undefined

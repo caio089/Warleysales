@@ -4,6 +4,7 @@ import {
   assertReceiveLinesWithinContract,
   contractedQuantityByAtaItem,
   maxReceivableAgainstContract,
+  receiptDefaults,
 } from "./receive-contract-gate";
 
 describe("receive-contract-gate", () => {
@@ -92,5 +93,20 @@ describe("receive-contract-gate", () => {
       contractedByAtaItem: map,
     });
     expect(okLine.ok).toBe(true);
+  });
+
+  it("distribui o saldo fracionário entre linhas da mesma ata sem exceder o teto", () => {
+    const items = [
+      { id: "r1", ataItemId: "i1", quantity: 0.1, receivedTotal: 0 },
+      { id: "r2", ataItemId: "i1", quantity: 1, receivedTotal: 0 },
+    ];
+    const contractedByAtaItem = new Map([["i1", 0.5]]);
+    const receivedByAtaItem = new Map([["i1", 0.2]]);
+    const defaults = receiptDefaults(items, contractedByAtaItem, receivedByAtaItem);
+    expect([...defaults]).toEqual([["r1", 0.1], ["r2", 0.2]]);
+    const lines = [...defaults].map(([itemId, received]) => ({ itemId, received }));
+    expect(assertReceiveLinesWithinContract({ items, lines, contractedByAtaItem, receivedByAtaItem }).ok).toBe(true);
+    lines[1]!.received = 0.201;
+    expect(assertReceiveLinesWithinContract({ items, lines, contractedByAtaItem, receivedByAtaItem }).ok).toBe(false);
   });
 });

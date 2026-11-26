@@ -67,6 +67,8 @@ export interface ProcessViewProps {
   isWarley: boolean;
   defaultEstimatedValue: number | null;
   requestId: string | null;
+  relatedRequests?: { id: string; title: string; status: string; requested: number; received: number }[];
+  receiptMovements?: { id: string; reference: string; quantity: number; material: string; createdAt: string }[];
   requestItems: Array<{ materialId: string; name: string; quantity: number }>;
   requestNotes?: string[];
   history?: TimelineEntry[];
@@ -107,6 +109,8 @@ export function ProcessView({
   isWarley,
   defaultEstimatedValue,
   requestId,
+  relatedRequests = [],
+  receiptMovements = [],
   requestItems,
   requestNotes = [],
   history = [],
@@ -326,7 +330,8 @@ export function ProcessView({
           tabIndex={0}
         >
           {activeTab === "aprovacoes" ? (
-            <ApprovalsTab request={approvalRequest} processId={view.process.id} />
+            <><ApprovalsTab request={approvalRequest} processId={view.process.id} />
+            {relatedRequests.length > 0 ? <section aria-label="Solicitações relacionadas" className="surface-card mt-4 space-y-2 p-5"><h3 className="font-semibold">Solicitações relacionadas</h3>{relatedRequests.map((item) => <p key={item.id}><Link href={`/solicitacoes/${item.id}`} className="text-primary underline">{item.title}</Link> · {item.status} · solicitado {item.requested} · recebido {item.received}</p>)}</section> : null}{receiptMovements.length > 0 ? <section aria-label="Entradas no estoque relacionadas" className="surface-card mt-4 space-y-2 p-5"><h3 className="font-semibold">Entradas no estoque</h3>{receiptMovements.map((item) => <p key={item.id}>{item.material} · quantidade {item.quantity} · <Link href={`/solicitacoes/${item.reference.slice(8)}`} className="text-primary underline">Solicitação</Link></p>)}</section> : null}</>
           ) : null}
         </div>
 

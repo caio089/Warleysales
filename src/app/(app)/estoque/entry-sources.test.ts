@@ -98,4 +98,39 @@ describe("buildStockEntrySources", () => {
       }),
     ).toEqual([]);
   });
+
+  it("desconta recebimentos de solicitações encerradas do mesmo processo", () => {
+    const request: PurchaseRequest = {
+      id: "aberta",
+      councilId: "c1",
+      title: "Papelaria",
+      status: "aprovada",
+      processId: "proc-1",
+      items: [{ id: "i1", materialId: "m1", ataItemId: "ata-item-1", quantity: 5, receivedTotal: 0 }],
+      events: [],
+      receiptKeys: [],
+      createdBy: "u1",
+      createdAt: new Date("2026-01-01"),
+    };
+    const earlierReceipt: PurchaseRequest = {
+      ...request,
+      id: "encerrada",
+      status: "atendida",
+      items: [{ ...request.items[0]!, id: "i2", receivedTotal: 0.375 }],
+    };
+    const otherProcess = { ...earlierReceipt, id: "outro", processId: "proc-2" };
+    const sources = (contracted: number) => buildStockEntrySources({
+      requests: [request, earlierReceipt, otherProcess],
+      processes: [{ process: { id: "proc-1", contractingMode: "registro_precos" } } as ProcessView],
+      atas: [],
+      materialLabel: {},
+      contracts: [{
+        processId: "proc-1",
+        ataId: "ata-1",
+        ataItems: [{ ataItemId: "ata-item-1", quantity: contracted }],
+      }],
+    });
+    expect(sources(0.5)).toMatchObject([{ requestId: "aberta", items: [{ pending: 0.125, suggested: 0.125 }] }]);
+    expect(sources(0.375)).toEqual([]);
+  });
 });

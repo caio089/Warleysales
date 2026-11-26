@@ -277,8 +277,10 @@ function EntryFromProcessForm({
 }) {
   const processOptions = processes.map((row) => ({ value: row.processId, label: row.label }));
   const [receivedDrafts, setReceivedDrafts] = useState<Record<string, string>>({});
+  const receivedDraft = (item: StockEntrySource["items"][number]) =>
+    receivedDrafts[item.itemId] ?? String(item.suggested ?? item.pending).replace(".", ",");
   const receivedQuantity = (item: StockEntrySource["items"][number]) =>
-    parseQuantityInput(receivedDrafts[item.itemId] ?? String(item.pending));
+    parseQuantityInput(receivedDraft(item));
   const totalValue = source?.items.reduce((sum, item) => {
     const quantity = receivedQuantity(item);
     return sum + (item.unitPrice != null && Number.isFinite(quantity) ? quantity * item.unitPrice : 0);
@@ -392,12 +394,12 @@ function EntryFromProcessForm({
                           {formatNumber(item.ordered)}
                         </td>
                         <td className="px-3 py-2 text-right">
+                          <input type="hidden" name="received" value={String(receivedQuantity(item))} />
                           <input
-                            name="received"
                             type="text"
                             inputMode="decimal"
                             required
-                            value={receivedDrafts[item.itemId] ?? String(item.pending)}
+                            value={receivedDraft(item)}
                             onChange={(event) => setReceivedDrafts((current) => ({ ...current, [item.itemId]: event.target.value }))}
                             className="h-9 w-24 rounded-md border border-input bg-background px-2 text-right text-sm tabular-nums"
                             aria-label={`Quantidade a receber de ${item.materialLabel}`}

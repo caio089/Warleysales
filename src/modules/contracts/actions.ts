@@ -7,6 +7,7 @@ import { can } from "@/shared/lib/authz/policy";
 import { computeInitialEndDate } from "@/modules/atas/domain/validity";
 import { diffInDays, isValidDateOnly } from "@/shared/lib/time";
 import { createContractSchema } from "./schemas";
+import { calculateContractAtaValue } from "./domain/ata-value";
 import type { ActionState } from "@/shared/ui/forms/action-state";
 
 const optionalNumber = (v: FormDataEntryValue | null) => (String(v ?? "").trim() ? Number(String(v).replace(",", ".")) : undefined);
@@ -27,10 +28,11 @@ export async function createContractFormAction(_previous: ActionState, formData:
     (isValidDateOnly(startDateRaw) ? computeInitialEndDate(startDateRaw) : endDateRaw);
 
   const ataItems: { ataItemId: string; quantity: number; unitPrice?: number }[] = [];
-  for (let index = 0; index < 40; index += 1) {
-    const ataItemId = optionalText(formData.get(`ataItems.${index}.ataItemId`));
+  for (const field of new Set(formData.keys())) {
+    const index = /^ataItems\.(\d+)\.ataItemId$/.exec(field)?.[1];
+    if (index === undefined) continue;
+    const ataItemId = optionalText(formData.get(field));
     const quantity = optionalNumber(formData.get(`ataItems.${index}.quantity`));
-    if (!ataItemId && (quantity == null || quantity <= 0)) continue;
     if (!ataItemId || quantity == null || quantity <= 0) continue;
     ataItems.push({
       ataItemId,
@@ -39,11 +41,6 @@ export async function createContractFormAction(_previous: ActionState, formData:
     });
   }
 
-  // Com itens da ata, o valor do contrato é sempre a soma qtd × unitário (não digitado à mão).
-  const valueFromAtaItems = ataItems.reduce(
-    (sum, item) => sum + item.quantity * (item.unitPrice ?? 0),
-    0,
-  );
   const input = {
     councilId: formData.get("councilId"),
     number: formData.get("number"),
@@ -54,7 +51,7 @@ export async function createContractFormAction(_previous: ActionState, formData:
     endDate,
     value:
       ataItems.length > 0
-        ? Math.round(valueFromAtaItems * 100) / 100
+        ? calculateContractAtaValue(ataItems)
         : (optionalNumber(formData.get("value")) ?? 0),
     ataItems,
   };

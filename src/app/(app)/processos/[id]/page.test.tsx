@@ -17,7 +17,8 @@ describe("process detail required queries", () => {
       processes: { getDetail: vi.fn().mockResolvedValue(ok({ view: { process: { councilId: COUNCIL_A, createdAt: new Date("2026-11-25T12:00:00Z") } }, documents: [] })) },
       formalizations: { getByProcess: vi.fn().mockResolvedValue(fail("INTERNAL", "query failed")) },
       suppliers: { list: vi.fn().mockResolvedValue(ok([])) },
-      purchases: { findLinkedByProcess: vi.fn().mockResolvedValue(ok(null)) },
+      purchases: { findLinkedByProcess: vi.fn().mockResolvedValue(ok(null)), list: vi.fn().mockResolvedValue(ok([])) },
+      inventory: { listMovements: vi.fn().mockResolvedValue(ok([])) },
       atas: { list: vi.fn().mockResolvedValue(ok([])) },
       contracts: { list: vi.fn().mockResolvedValue(ok([])) },
     } as never;
@@ -29,7 +30,8 @@ describe("process detail required queries", () => {
       processes: { getDetail: vi.fn().mockResolvedValue(ok({ view: { process: { councilId: COUNCIL_A, number: "1", title: "x", createdAt: new Date("2026-11-25T12:00:00Z"), documentalCompletedAt: null } }, documents: [] })) },
       formalizations: { getByProcess: vi.fn().mockResolvedValue(ok(null)) },
       suppliers: { list: vi.fn().mockResolvedValue(ok([])) },
-      purchases: { findLinkedByProcess: vi.fn().mockResolvedValue(ok(null)) },
+      purchases: { findLinkedByProcess: vi.fn().mockResolvedValue(ok(null)), list: vi.fn().mockResolvedValue(ok([])) },
+      inventory: { listMovements: vi.fn().mockResolvedValue(ok([])) },
       atas: { list: vi.fn().mockResolvedValue(ok([])) },
       contracts: { list: vi.fn().mockResolvedValue(ok([])) },
     } as never;

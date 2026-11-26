@@ -48,40 +48,21 @@ insert into public.ata_items (id, ata_id, description, material_id, registered_q
 -- B tem alocação de 4 no item 1 (item 1 registrado = 10)
 insert into public.ata_allocations (item_id, council_id, quantity) values ('51000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-00000000000b', 4);
 
--- Solicitação R1 (conselho B): item1 qtd 4 + item2 qtd 5 (item2 só tem 3 => deve falhar sem comprometer o item1)
+-- Aprovação e cancelamento alteram estado e histórico, sem comprometer a ata.
 insert into public.purchase_requests (id, council_id, title, status, created_by) values
   ('70000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-00000000000b', 'R1 multi-item', 'em_analise', '00000000-0000-0000-0000-0000000000b1');
 insert into public.purchase_request_items (request_id, material_id, quantity, ata_item_id) values
   ('70000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 4, '51000000-0000-0000-0000-000000000001'),
   ('70000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', 5, '51000000-0000-0000-0000-000000000002');
-
--- ───────── Aprovação multi-item é tudo-ou-nada ─────────
-select pg_temp.check_that((public.approve_purchase_request('70000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b1', now())) ->> 'code' = 'INSUFFICIENT_BALANCE',
-  'aprovação falha quando a 2ª linha excede o saldo');
-select pg_temp.check_that((select count(*) from public.ata_commitments) = 0, 'nenhum comprometimento parcial após falha (1ª linha desfeita)');
-select pg_temp.check_that((select status from public.purchase_requests where id = '70000000-0000-0000-0000-000000000001') = 'em_analise', 'status permanece em_analise após falha');
-select pg_temp.check_that((select count(*) from public.purchase_request_events) = 0, 'nenhum evento gravado após falha');
-
-update public.purchase_request_items set quantity = 3 where ata_item_id = '51000000-0000-0000-0000-000000000002';
-select pg_temp.check_that((public.approve_purchase_request('70000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b1', now(), 'ok')) ->> 'ok' = 'true', 'aprovação multi-item bem-sucedida');
-select pg_temp.check_that((select count(*) from public.ata_commitments where event_type = 'commit') = 2, 'dois comprometimentos gravados');
+select pg_temp.check_that((public.approve_purchase_request('70000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b1', now())) ->> 'ok' = 'true', 'aprovação não depende do saldo da ata');
+select pg_temp.check_that((select count(*) from public.ata_commitments) = 0, 'aprovação não compromete a ata');
 select pg_temp.check_that((select status from public.purchase_requests where id = '70000000-0000-0000-0000-000000000001') = 'aprovada', 'status aprovada');
 select pg_temp.check_that((select count(*) from public.purchase_request_events where position = 0 and to_status = 'aprovada') = 1, 'evento de aprovação registrado');
-select pg_temp.check_that((public.approve_purchase_request('70000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b1', now())) ->> 'code' = 'INVALID_STATE', 'reaprovar é recusado (não duplica compromisso)');
-select pg_temp.check_that((select count(*) from public.ata_commitments) = 2, 'reaprovação não duplicou o ledger');
-
--- Alocação do conselho B (4): nova solicitação de 1 estoura a alocação (4 já comprometidos)
-insert into public.purchase_requests (id, council_id, title, status, created_by) values
-  ('70000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-00000000000b', 'R2', 'em_analise', '00000000-0000-0000-0000-0000000000b1');
-insert into public.purchase_request_items (request_id, material_id, quantity, ata_item_id) values
-  ('70000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', 1, '51000000-0000-0000-0000-000000000001');
-select pg_temp.check_that((public.approve_purchase_request('70000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-0000000000b1', now())) ->> 'message' like '%alocação%', 'alocação por conselho é respeitada no banco');
-
--- Cancelamento devolve tudo
+select pg_temp.check_that((public.approve_purchase_request('70000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b1', now())) ->> 'code' = 'INVALID_STATE', 'reaprovação recusada');
+select pg_temp.check_that((select count(*) from public.purchase_request_events) = 1, 'reaprovação não duplica o histórico');
 select pg_temp.check_that((public.cancel_purchase_request('70000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b1', now(), 'desistência')) ->> 'ok' = 'true', 'cancelamento de aprovada');
-select pg_temp.check_that((select coalesce(sum(case event_type when 'commit' then quantity else -quantity end), 0) from public.ata_commitments) = 0, 'saldo devolvido integralmente ao cancelar');
+select pg_temp.check_that((select count(*) from public.ata_commitments) = 0, 'cancelamento não altera compromissos da ata');
 select pg_temp.check_that((public.cancel_purchase_request('70000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b1', now())) ->> 'code' = 'INVALID_STATE', 'cancelar duas vezes é recusado');
-
 -- ───────── Transferência: fluxo completo e atomicidade ─────────
 -- Origem A: M1 físico 10; M2 físico 1. Destino B vazio.
 select public.apply_stock_mutation('10000000-0000-0000-0000-00000000000a', '20000000-0000-0000-0000-000000000001', 0, 10, 0, '{"type":"entry","quantity":10,"idempotency_key":"seed1"}');

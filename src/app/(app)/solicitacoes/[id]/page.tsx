@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import type { ProcessView } from "@/modules/processes/service";
+import {
+  assertContractAllowsReceive,
+  contractedQuantityByAtaItem,
+  maxReceivableAgainstContract,
+  receiptDefaults,
+  receivedQuantitiesByProcess,
+} from "@/modules/purchases/domain/receive-contract-gate";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { ok } from "@/shared/lib/result";
@@ -47,6 +54,38 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
       }
     }
 
+    const canReceive = can(ctx.actor, "stock.move", councilId);
+    const pendingItems: { id: string; label: string; pending: number }[] = [];
+    if (canReceive && linkedProcess && ["aprovada", "em_atendimento", "parcialmente_atendida"].includes(request.data.status)) {
+      const processId = linkedProcess.process.id;
+      const [contracts, requests] = await Promise.all([
+        ctx.services.contracts.list(ctx.actor, { id: processId, councilId }),
+        ctx.services.purchases.list(ctx.actor),
+      ]);
+      if (!contracts.ok) return contracts;
+      if (!requests.ok) return requests;
+      const processContracts = contracts.data.map(({ contract }) => contract);
+      const gate = assertContractAllowsReceive({
+        processId,
+        contractingMode: linkedProcess.process.contractingMode,
+        requestItems: request.data.items,
+        contracts: processContracts,
+      });
+      if (gate.ok) {
+        const contracted = contractedQuantityByAtaItem(processContracts, processId);
+        const received = receivedQuantitiesByProcess(requests.data).get(processId);
+        const defaults = receiptDefaults(request.data.items, contracted, received);
+        for (const item of request.data.items) {
+          if (maxReceivableAgainstContract(item, contracted, received) <= 0) continue;
+          pendingItems.push({
+            id: item.id,
+            label: lookups.data.materialName[item.materialId] ?? lookups.data.materialLabel[item.materialId] ?? "—",
+            pending: defaults.get(item.id) ?? 0,
+          });
+        }
+      }
+    }
+
     return ok({
       request: request.data,
       revision,
@@ -59,22 +98,16 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
       linkedProcess,
       canDecide: can(ctx.actor, "request.decide", councilId),
       canCreate: can(ctx.actor, "request.create", councilId),
-      canReceive: can(ctx.actor, "stock.move", councilId),
+      canReceive,
+      pendingItems,
     });
   });
   return (
     <Screen result={result}>
-      {({ request, lookups, linkedProcess, canDecide, canCreate, canReceive, revision, correctionItems, correctionCouncils }) => {
+      {({ request, lookups, linkedProcess, canDecide, canCreate, canReceive, pendingItems, revision, correctionItems, correctionCouncils }) => {
         const status = presentationOf(REQUEST_STATUS, request.status);
         const next = requestNextStep(request.status, { canCreate, canDecide, canReceive });
         const dossier = planDossier(request.events.map((event) => event.note), request.estimatedValue, request.title);
-        const pendingItems = request.items
-          .filter((i) => i.quantity - i.receivedTotal > 0)
-          .map((i) => ({
-            id: i.id,
-            label: lookups.materialName[i.materialId] ?? lookups.materialLabel[i.materialId] ?? "—",
-            pending: i.quantity - i.receivedTotal,
-          }));
         return (
           <>
             <PageHeader

@@ -51,7 +51,7 @@ insert into public.stock_transfers (id, origin_council_id, destination_council_i
   ('40000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000b', 'solicitada');
 
 -- ───────── Seed / unicidade ─────────
-select pg_temp.check_that((select count(*) from public.document_types) = 7, 'seed possui os 7 tipos documentais');
+select pg_temp.check_that((select count(*) from public.document_types where is_required) = 7, 'seed possui os 7 tipos documentais');
 select pg_temp.check_that((select count(*) from storage.buckets where id = 'process-documents' and public = false) = 1, 'bucket process-documents existe e é privado');
 select pg_temp.check_that((select count(*) from public.profiles) = 4, 'trigger on_auth_user_created criou 4 perfis');
 select pg_temp.check_that(not exists (select 1 from public.profiles where id <> '00000000-0000-0000-0000-0000000000d1' and (is_central_admin or is_special_deleter)), 'perfis novos nascem sem privilégios');

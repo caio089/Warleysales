@@ -250,7 +250,7 @@ export function ContractingTab({
                     }}
                   />
                 ) : (
-                  <Link href={`/atas/novo?processId=${processId}`} className="text-sm font-medium text-primary hover:underline">
+                  <Link href={`/atas/nova?processId=${processId}`} className="text-sm font-medium text-primary hover:underline">
                     Criar ata deste processo
                   </Link>
                 )}

@@ -24,21 +24,21 @@ async function Content() {
     const [requests, lookups] = await Promise.all([ctx.services.purchases.list(ctx.actor), loadLookups(ctx)]);
     if (!requests.ok) return requests;
     if (!lookups.ok) return lookups;
-    return ok({ requests: requests.data, lookups: lookups.data, canCreate: canInAnyCouncil(ctx.actor, "request.create") });
+    return ok({ requests: requests.data, lookups: lookups.data, canCreate: canInAnyCouncil(ctx.actor, "request.create"), canCreateProcess: canInAnyCouncil(ctx.actor, "process.create") });
   });
   return (
     <Screen result={result}>
-      {({ requests, lookups, canCreate }) => (
+      {({ requests, lookups, canCreate, canCreateProcess }) => (
         <>
           <PageHeader
             eyebrow="Compras"
             title="Solicitações"
             description="Peça material, envie para o gestor, aprove e só depois registre o recebimento no estoque."
             actions={
-              canCreate ? (
-                <Link href="/solicitacoes/nova" className={buttonVariants()}>
+              canCreate || canCreateProcess ? (
+                <div className="flex gap-2">{canCreate ? <Link href="/solicitacoes/nova" className={buttonVariants()}>
                   Nova solicitação
-                </Link>
+                </Link> : null}{canCreateProcess ? <Link href="/solicitacoes/processos/novo" className={buttonVariants()}>Novo processo</Link> : null}</div>
               ) : (
                 <Button
                   disabled
@@ -107,13 +107,7 @@ async function Content() {
             ]}
             emptyTitle="Nenhuma solicitação ainda"
             emptyDescription="Comece criando uma solicitação. Depois é só enviar → aprovar → receber no estoque."
-            emptyAction={
-              canCreate ? (
-                <Link href="/solicitacoes/nova" className={buttonVariants()}>
-                  Criar primeira solicitação
-                </Link>
-              ) : undefined
-            }
+            emptyAction={canCreate || canCreateProcess ? <div className="flex gap-2">{canCreate ? <Link href="/solicitacoes/nova" className={buttonVariants()}>Criar primeira solicitação</Link> : null}{canCreateProcess ? <Link href="/solicitacoes/processos/novo" className={buttonVariants()}>Novo processo</Link> : null}</div> : undefined}
           />
         </>
       )}

@@ -3,6 +3,8 @@ import {
   assertContractAllowsReceive,
   contractedQuantityByAtaItem,
   maxReceivableAgainstContract,
+  receiptDefaults,
+  receivedQuantitiesByProcess,
   type ContractForReceiveGate,
 } from "@/modules/purchases/domain/receive-contract-gate";
 import type { PurchaseRequest } from "@/modules/purchases/schemas";
@@ -14,6 +16,7 @@ export type StockEntryItem = {
   materialLabel: string;
   ordered: number;
   pending: number;
+  suggested?: number;
   unitPrice: number | null;
   lineTotal: number | null;
 };
@@ -51,6 +54,7 @@ export function buildStockEntrySources(input: {
     }
   }
   const allContracts = input.contracts ?? [];
+  const receivedByProcess = receivedQuantitiesByProcess(input.requests);
 
   const sources: StockEntrySource[] = [];
   for (const request of input.requests) {
@@ -70,10 +74,13 @@ export function buildStockEntrySources(input: {
     if (!gate.ok) continue;
 
     const contractedByAtaItem = contractedQuantityByAtaItem(processContracts, request.processId);
-    const pendingItems = request.items
+    const receivedByAtaItem = receivedByProcess.get(request.processId);
+    const eligibleItems = request.items.filter((item) => Boolean(item.materialId));
+    const defaults = receiptDefaults(eligibleItems, contractedByAtaItem, receivedByAtaItem);
+    const pendingItems = eligibleItems
       .map((item) => {
-        const pending = maxReceivableAgainstContract(item, contractedByAtaItem);
-        if (pending <= 0 || !item.materialId) return null;
+        const pending = maxReceivableAgainstContract(item, contractedByAtaItem, receivedByAtaItem);
+        if (pending <= 0) return null;
         const unitFromAta = item.ataItemId ? (ataUnitByItemId.get(item.ataItemId) ?? null) : null;
         return { item, pending, unitFromAta };
       })
@@ -101,6 +108,7 @@ export function buildStockEntrySources(input: {
           materialLabel: input.materialLabel[item.materialId] ?? "Material",
           ordered: item.quantity,
           pending,
+          suggested: defaults.get(item.id),
           unitPrice,
           lineTotal: unitPrice != null ? unitPrice * pending : null,
         };
