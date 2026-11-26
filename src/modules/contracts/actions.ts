@@ -103,6 +103,17 @@ export async function addAmendmentFormAction(_previous: ActionState, formData: F
   return result.status === "success" ? { status: "success", message: result.message } : result;
 }
 
+export async function closeContractFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  const contractId = String(formData.get("contractId"));
+  const result = await runAction(({ services, actor }) => services.contracts.close(actor, { contractId }), "Contrato encerrado administrativamente.");
+  if (result.status === "success") {
+    revalidatePath(`/contratos/${contractId}`);
+    revalidatePath("/contratos");
+    revalidatePath("/relatorios");
+  }
+  return result.status === "success" ? { status: "success", message: result.message } : result;
+}
+
 /** Liga o contrato ao processo já escolhido na ata, ou a outro processo do mesmo órgão. */
 export async function linkContractProcessFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
   const contractId = String(formData.get("contractId"));

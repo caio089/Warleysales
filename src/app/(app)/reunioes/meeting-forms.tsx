@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { draftMeetingMinutesAction } from "@/modules/meetings/media-actions";
-import { addActionItemFormAction, meetingStepFormAction, saveMinutesFormAction, scheduleMeetingFormAction } from "@/modules/meetings/actions";
+import { meetingEvidenceFormAction, addActionItemFormAction, meetingStepFormAction, saveMinutesFormAction, scheduleMeetingFormAction } from "@/modules/meetings/actions";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { SelectField, TextAreaField, TextField } from "@/shared/ui/forms/fields";
 
@@ -126,4 +126,20 @@ export function MeetingActions({ meetings, done, actionable }: { meetings: Optio
       ) : null}
     </div>
   );
+}
+
+export function MeetingEvidenceForm({ meetingId, kind, options }: {
+  meetingId: string;
+  kind: "attendance" | "completion";
+  options: Option[];
+}) {
+  if (!options.length) return null;
+  const attendance = kind === "attendance";
+  return <ActionForm action={meetingEvidenceFormAction} submitLabel={attendance ? "Confirmar presença" : "Concluir tarefa"}>
+    {(errors) => <>
+      <input type="hidden" name="meetingId" value={meetingId} />
+      <input type="hidden" name="kind" value={kind} />
+      <SelectField name="targetId" label={attendance ? "Participante presente" : "Tarefa pendente"} options={options} required errors={errors.targetId} />
+    </>}
+  </ActionForm>;
 }

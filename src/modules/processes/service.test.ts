@@ -46,6 +46,19 @@ let ctx: Ctx;
 beforeEach(() => { ctx = setup(); });
 
 describe("ProcessService", () => {
+  it("mantém criador separado de responsável e audita a edição do tipo", async () => {
+    const creator = managerOf(COUNCIL_A);
+    const assigned = crypto.randomUUID();
+    const created = await ctx.processes.create(creator, { councilId: COUNCIL_A, number: "070/2026", title: "Processo classificado", responsibleId: assigned, processType: "Compras" });
+    if (!created.ok) throw new Error(created.message);
+    expect(created.data.createdBy).toBe(creator.userId);
+    expect(created.data.responsibleId).toBe(assigned);
+    const changed = await ctx.processes.classify(creator, { processId: created.data.id, responsibleId: null, processType: "Serviço" });
+    expect(changed.ok && changed.data.responsibleId).toBeNull();
+    expect(changed.ok && changed.data.processType).toBe("Serviço");
+    expect(ctx.auditRepo.all().some((event) => event.action === "process.update" && event.entityId === created.data.id)).toBe(true);
+    expect((await ctx.processes.classify(managerOf(COUNCIL_B), { processId: created.data.id, responsibleId: null, processType: null })).ok).toBe(false);
+  });
   it("calcula o próximo número sequencial para o conselho no ano vigente", async () => {
     const next1 = await ctx.processes.getNextNumber(COUNCIL_A, 2026);
     expect(next1).toBe("001/2026");

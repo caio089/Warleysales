@@ -17,6 +17,8 @@ interface SnapshotJson {
 }
 
 interface ProcessRow {
+  responsible_id?: string | null;
+  process_type?: string | null;
   estimated_value?: number | null;
   price_research_lines?: AdministrativeProcess["priceResearchLines"];
   validity_start_date?: string | null;
@@ -37,6 +39,8 @@ interface ProcessRow {
 }
 
 const toProcess = (row: ProcessRow): AdministrativeProcess => ({
+  responsibleId: row.responsible_id ?? null,
+  processType: row.process_type ?? null,
   estimatedValue: row.estimated_value ?? null,
   priceResearchLines: row.price_research_lines ?? null,
   validityStartDate: row.validity_start_date ?? null,
@@ -62,6 +66,8 @@ const snapshotToJson = (snapshot: DocumentalSnapshot | null): SnapshotJson | nul
 /** Converte somente os campos presentes em `changes` (update parcial). */
 function toProcessChanges(changes: Partial<AdministrativeProcess>): Record<string, unknown> {
   const row: Record<string, unknown> = {};
+  if (changes.responsibleId !== undefined) row.responsible_id = changes.responsibleId;
+  if (changes.processType !== undefined) row.process_type = changes.processType;
   if (changes.title !== undefined) row.title = changes.title;
   if (changes.status !== undefined) row.status = changes.status;
   if (changes.documentalCompletedAt !== undefined) row.documental_completed_at = toIsoOrNull(changes.documentalCompletedAt);
@@ -79,6 +85,7 @@ export class SupabaseProcessRepository implements ProcessRepository {
   async insert(process: AdministrativeProcess) {
     const row = {
       id: process.id, council_id: process.councilId, sequence: process.sequence, year: process.year, number: process.number,
+      responsible_id: process.responsibleId ?? null, process_type: process.processType ?? null,
       title: process.title, status: process.status, documental_completed_at: toIsoOrNull(process.documentalCompletedAt),
       documental_snapshot: snapshotToJson(process.snapshot), closing_report_registered: process.closingReportRegistered,
       created_by: process.createdBy, created_at: toIso(process.createdAt),

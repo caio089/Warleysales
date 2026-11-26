@@ -6,6 +6,8 @@ import type { ProcessContractingMode } from "./contracting-mode";
 import type { PriceResearchLine } from "./price-research";
 
 export interface AdministrativeProcess {
+  responsibleId?: string | null;
+  processType?: string | null;
   estimatedValue?: number | null;
   /** Linhas da pesquisa de preços (valor de referência por item). */
   priceResearchLines?: PriceResearchLine[] | null;
@@ -33,8 +35,15 @@ export interface AdministrativeProcess {
 
 export const createProcessSchema = z.object({
   councilId: idSchema,
+  responsibleId: idSchema.nullable().optional(),
+  processType: z.string().trim().max(80).nullable().optional(),
   number: z.string().trim().regex(/^\d{1,6}\/\d{4}$/, "Use o formato NNN/AAAA."),
   title: z.string().trim().min(3, "Informe ao menos 3 caracteres.").max(200),
+});
+export const classifyProcessSchema = z.object({
+  processId: idSchema,
+  responsibleId: idSchema.nullable(),
+  processType: z.string().trim().max(80).nullable(),
 });
 export type CreateProcessInput = z.infer<typeof createProcessSchema>;
 

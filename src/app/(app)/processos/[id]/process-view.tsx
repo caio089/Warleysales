@@ -20,6 +20,7 @@ import { PlanDossierCard } from "@/app/(app)/solicitacoes/plan-dossier-card";
 import { planDossier } from "@/app/(app)/solicitacoes/request-facets";
 import type { TimelineEntry } from "@/shared/ui/activity-timeline";
 import { ProcessHeader } from "./process-header";
+import { ProcessClassificationForm } from "./process-classification-form";
 import {
   ApprovalsTab,
   type ApprovalsTabRequest,
@@ -62,6 +63,7 @@ export interface ProcessViewProps {
   formalization: ProcessFormalization | null;
   suppliers: FormalizationSupplier[];
   canManage: boolean;
+  assignees?: { value: string; label: string }[];
   canUnlink: boolean;
   canRegisterClosing: boolean;
   isWarley: boolean;
@@ -104,6 +106,7 @@ export function ProcessView({
   formalization,
   suppliers,
   canManage,
+  assignees = [],
   canUnlink,
   canRegisterClosing,
   isWarley,
@@ -256,6 +259,12 @@ export function ProcessView({
         displayPercent={view.displayPercent}
         releaseStatusText={releaseStatusText}
       />
+
+      <section className="surface-card max-w-lg space-y-3 p-4" aria-label="Responsável e tipo do processo">
+        <p className="text-sm">Responsável: {assignees.find((person) => person.value === view.process.responsibleId)?.label ?? (view.process.responsibleId || "Não atribuído")}</p>
+        <p className="text-sm">Tipo: {view.process.processType || "Não classificado"}</p>
+        {canManage ? <ProcessClassificationForm processId={view.process.id} responsibleId={view.process.responsibleId ?? null} processType={view.process.processType ?? null} people={assignees} /> : null}
+      </section>
 
       <PlanDossierCard dossier={dossier} objectText={productName} />
       {requestId && canManage ? <Link href={`/solicitacoes/${requestId}`} className="inline-flex rounded-md border px-4 py-2 text-sm font-medium">Corrigir solicitação vinculada</Link> : null}

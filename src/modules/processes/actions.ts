@@ -4,15 +4,38 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { runAction } from "@/server/action-runner";
 import type { ActionState } from "@/shared/ui/forms/action-state";
+import { fail } from "@/shared/lib/result";
 
 export async function createProcessFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
   const result = await runAction(
-    ({ services, actor }) => services.processes.create(actor, { councilId: formData.get("councilId"), number: formData.get("number"), title: formData.get("title") }),
+    async ({ services, actor }) => {
+      const councilId = String(formData.get("councilId") || "");
+      const responsibleId = String(formData.get("responsibleId") || "") || null;
+      if (responsibleId && !(await services.memberships.processAssignees(actor, councilId)).some((person) => person.id === responsibleId))
+        return fail("VALIDATION", "O responsável precisa ser usuário ativo do órgão do processo.");
+      return services.processes.create(actor, { councilId, number: formData.get("number"), title: formData.get("title"), responsibleId, processType: formData.get("processType") || null });
+    },
     "Processo criado com sucesso.",
   );
   if (result.status !== "success" || !result.data) return result.status === "success" ? result : result;
   revalidatePath("/processos");
   redirect(`/solicitacoes/processos/${result.data.id}`);
+}
+
+export async function classifyProcessFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  const processId = String(formData.get("processId"));
+  const result = await runAction(async ({ services, actor }) => {
+    const responsibleId = String(formData.get("responsibleId") || "") || null;
+    if (responsibleId) {
+      const process = await services.processes.get(actor, processId);
+      if (!process.ok) return process;
+      if (!(await services.memberships.processAssignees(actor, process.data.process.councilId)).some((person) => person.id === responsibleId))
+        return fail("VALIDATION", "O responsável precisa ser usuário ativo do órgão do processo.");
+    }
+    return services.processes.classify(actor, { processId, responsibleId, processType: formData.get("processType") || null });
+  }, "Dados do processo atualizados.");
+  if (result.status === "success") revalidatePath(`/solicitacoes/processos/${processId}`);
+  return result.status === "success" ? { status: "success", message: result.message } : result;
 }
 
 export async function changeProcessStatusFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {

@@ -188,8 +188,9 @@ export class PurchaseRequestService {
     }
 
     if (this.repository.receiveAtomically) {
+      if (!parsed.data.contractId) return fail("VALIDATION", "Selecione o contrato deste recebimento.");
       const received = await this.repository.receiveAtomically({
-        requestId: request.id, actorId: actor.userId, at: this.runtime.now(),
+        requestId: request.id, contractId: parsed.data.contractId, actorId: actor.userId, at: this.runtime.now(),
         receiptKey: parsed.data.receiptKey, lines: parsed.data.lines,
         closeIncomplete: parsed.data.closeIncomplete,
         incompleteJustification: parsed.data.incompleteJustification,

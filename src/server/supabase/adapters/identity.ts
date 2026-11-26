@@ -91,9 +91,14 @@ export class SupabaseMembershipRepository implements MembershipRepository {
   async listProfiles(): Promise<ProfileSummary[]> {
     const rows = unwrap(
       "memberships.profiles",
-      await this.db.from("profiles").select("id, full_name, active").order("full_name").returns<{ id: string; full_name: string; active: boolean }[]>(),
+      await this.db.from("profiles").select("id, full_name, active, staff_category").order("full_name").returns<{ id: string; full_name: string; active: boolean; staff_category: "unclassified" | "collaborator" | "intern" }[]>(),
     );
-    return rows.map((r) => ({ id: r.id, fullName: r.full_name, active: r.active }));
+    return rows.map((r) => ({ id: r.id, fullName: r.full_name, active: r.active, staffCategory: r.staff_category }));
+  }
+
+  async setStaffCategory(userId: string, category: "unclassified" | "collaborator" | "intern"): Promise<boolean> {
+    const rows = unwrap("memberships.setStaffCategory", await this.db.from("profiles").update({ staff_category: category }).eq("id", userId).select("id").returns<{ id: string }[]>());
+    return rows.length > 0;
   }
 
   async upsert(record: MembershipRecord): Promise<void> {

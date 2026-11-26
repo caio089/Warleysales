@@ -27,6 +27,7 @@ describe("process detail required queries", () => {
     expect(JSON.stringify(failed)).toContain("query failed");
 
     const emptyServices = {
+      memberships: { processAssignees: vi.fn().mockResolvedValue([]) },
       processes: { getDetail: vi.fn().mockResolvedValue(ok({ view: { process: { councilId: COUNCIL_A, number: "1", title: "x", createdAt: new Date("2026-11-25T12:00:00Z"), documentalCompletedAt: null } }, documents: [] })) },
       formalizations: { getByProcess: vi.fn().mockResolvedValue(ok(null)) },
       suppliers: { list: vi.fn().mockResolvedValue(ok([])) },

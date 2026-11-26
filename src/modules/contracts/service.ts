@@ -8,14 +8,14 @@ import { parseInput, type RuntimeDeps } from "@/shared/lib/service-support";
 import { diffInDays, toFortalezaDate } from "@/shared/lib/time";
 import { addAmendment, currentTerms, elapsedPercent, remainingDays, type ContractTerms } from "./domain/terms";
 import type { ContractRepository } from "./repository";
-import { addAmendmentSchema, createContractSchema, linkContractProcessSchema, type Contract, type ContractAtaItem } from "./schemas";
+import { addAmendmentSchema, closeContractSchema, createContractSchema, linkContractProcessSchema, type Contract, type ContractAtaItem } from "./schemas";
 
 export interface ContractView {
   contract: Contract;
   terms: ContractTerms;
   remainingDays: number;
   elapsedPercent: number;
-  status: "vigente" | "vencido";
+  status: "vigente" | "vencido" | "encerrado";
 }
 
 export class ContractService {
@@ -26,6 +26,27 @@ export class ContractService {
     private readonly processes?: ProcessRepository,
     private readonly atas?: AtaService,
   ) {}
+
+  async listReceiptLines(actor: Actor): Promise<Result<{ requestId: string; receiptKey: string; requestItemId: string; contractId: string; ataItemId: string | null; quantity: number }[]>> {
+    const scope = readableCouncilIds(actor);
+    if (scope !== "all" && scope.length === 0) return ok([]);
+    return ok(this.repository.listReceiptLines ? await this.repository.listReceiptLines(scope) : []);
+  }
+
+  async close(actor: Actor, input: unknown): Promise<Result<Contract>> {
+    const parsed = parseInput(closeContractSchema, input);
+    if (!parsed.ok) return parsed;
+    const contract = await this.repository.findById(parsed.data.contractId);
+    if (!contract) return fail("NOT_FOUND", "Contrato não encontrado.");
+    const allowed = await guard(this.audit, actor, "contract.manage", contract.councilId, "contract", contract.id);
+    if (!allowed.ok) return allowed;
+    if (contract.closedAt) return fail("INVALID_STATE", "Contrato já encerrado.");
+    if (!this.repository.close) return fail("UNAVAILABLE", "Encerramento indisponível.");
+    const closed = await this.repository.close(contract.id, actor.userId, this.runtime.now());
+    if (!closed) return fail("CONFLICT", "O contrato já foi encerrado por outra operação.");
+    await this.audit.record({ actorId: actor.userId, action: "contract.close", entity: "contract", entityId: contract.id, councilId: contract.councilId, result: "success", details: { closedAt: closed.closedAt?.toISOString() } });
+    return ok(closed);
+  }
 
   private async sameCouncilProcess(councilId: string, processId: string | null | undefined): Promise<Result<string | null>> {
     if (!processId) return ok(null);
@@ -256,7 +277,7 @@ export class ContractService {
       terms,
       remainingDays: days,
       elapsedPercent: elapsedPercent(terms, today),
-      status: days >= 0 ? "vigente" : "vencido",
+      status: contract.closedAt ? "encerrado" : days >= 0 ? "vigente" : "vencido",
     };
   }
 }

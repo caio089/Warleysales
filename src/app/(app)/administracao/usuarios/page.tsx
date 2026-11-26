@@ -7,7 +7,7 @@ import { KpiCard } from "@/shared/ui/kpi-card";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { SimpleTable } from "@/shared/ui/simple-table";
-import { MembershipForms, ProvisionCouncilForm } from "./membership-forms";
+import { MembershipForms, ProvisionCouncilForm, StaffCategoryForm } from "./membership-forms";
 
 export const metadata: Metadata = { title: "Usuários e vínculos" };
 
@@ -45,6 +45,7 @@ async function Content() {
               label: `${m.userName} · ${m.councilLabel} · ${dir.roles.find((r) => r.value === m.role)?.label ?? m.role}`,
             }))}
           />
+          <StaffCategoryForm users={dir.profiles.map((p) => ({ value: p.id, label: `${p.fullName || p.id.slice(0, 8)} · ${p.staffCategory === "intern" ? "Estagiário" : p.staffCategory === "collaborator" ? "Colaborador" : "Não classificado"}` }))} />
         </div>
       )}
     </Screen>

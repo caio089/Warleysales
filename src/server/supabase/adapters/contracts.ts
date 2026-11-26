@@ -5,6 +5,8 @@ import type { Contract } from "@/modules/contracts/schemas";
 import { callRpc, rpcOutcomeToResult, selectAll, toDate, toIso, toNumber, unwrap, type RpcOutcome } from "../db";
 
 interface ContractRow {
+  closed_at?: string | null;
+  closed_by?: string | null;
   id: string;
   council_id: string;
   number: string;
@@ -38,6 +40,8 @@ interface ContractRow {
 const SELECT = "*, contract_amendments(*), contract_ata_items(*)";
 
 const toContract = (row: ContractRow): Contract => ({
+  closedAt: row.closed_at ? toDate(row.closed_at) : null,
+  closedBy: row.closed_by ?? null,
   id: row.id,
   councilId: row.council_id,
   number: row.number,
@@ -95,6 +99,25 @@ const toPayload = (c: Contract) => ({
 
 export class SupabaseContractRepository implements ContractRepository {
   constructor(private readonly db: SupabaseClient) {}
+
+  async listReceiptLines(councilIds: readonly string[] | "all") {
+    if (councilIds !== "all" && councilIds.length === 0) return [];
+    const rows = await selectAll<{ request_id: string; receipt_key: string; request_item_id: string; contract_id: string; ata_item_id: string | null; quantity: number | string }>("contracts.receipts", (from, to) =>
+      this.db.from("contract_receipt_lines")
+        .select("request_id, receipt_key, request_item_id, contract_id, ata_item_id, quantity")
+        .order("request_id").order("receipt_key").order("request_item_id").range(from, to));
+    if (councilIds === "all") return rows.map((row) => ({ requestId: row.request_id, receiptKey: row.receipt_key, requestItemId: row.request_item_id, contractId: row.contract_id, ataItemId: row.ata_item_id, quantity: toNumber(row.quantity) }));
+    const contracts = await this.listByCouncils(councilIds);
+    const visible = new Set(contracts.map((contract) => contract.id));
+    return rows.filter((row) => visible.has(row.contract_id)).map((row) => ({ requestId: row.request_id, receiptKey: row.receipt_key, requestItemId: row.request_item_id, contractId: row.contract_id, ataItemId: row.ata_item_id, quantity: toNumber(row.quantity) }));
+  }
+
+  async close(id: string, actorId: string, at: Date) {
+    const row = unwrap("contracts.close", await this.db.from("contracts")
+      .update({ closed_at: toIso(at), closed_by: actorId }).eq("id", id).is("closed_at", null)
+      .select(SELECT).maybeSingle<ContractRow>());
+    return row ? toContract(row) : null;
+  }
 
   async insertAtomically(contract: Contract) {
     const outcome = await callRpc<RpcOutcome>(this.db, "create_contract_with_ata", { p: toPayload(contract) });

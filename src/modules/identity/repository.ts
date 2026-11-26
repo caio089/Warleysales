@@ -13,6 +13,7 @@ export interface MembershipRepository {
   listByCouncil(councilId: string): Promise<MembershipRecord[]>;
   listAll(): Promise<MembershipRecord[]>;
   listProfiles(): Promise<ProfileSummary[]>;
+  setStaffCategory(userId: string, category: "unclassified" | "collaborator" | "intern"): Promise<boolean>;
   upsert(record: MembershipRecord): Promise<void>;
   remove(userId: string, councilId: string): Promise<boolean>;
   /** Usuários gestores do conselho (destinatários de alertas). */

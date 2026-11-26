@@ -43,3 +43,16 @@ export async function addActionItemFormAction(_previous: ActionState, formData: 
   if (result.status === "success") revalidatePath("/reunioes");
   return result.status === "success" ? { status: "success", message: result.message } : result;
 }
+
+export async function meetingEvidenceFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  const result = await runAction(({ services, actor }) => services.meetings.recordEvidence(actor, {
+    meetingId: formData.get("meetingId"),
+    targetId: formData.get("targetId"),
+    kind: formData.get("kind"),
+  }), "Registro confirmado.");
+  if (result.status === "success") {
+    revalidatePath("/reunioes");
+    revalidatePath("/relatorios");
+  }
+  return result.status === "success" ? { status: "success", message: result.message } : result;
+}

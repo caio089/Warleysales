@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { assignMembershipFormAction, removeMembershipFormAction } from "@/modules/identity/council-actions";
+import { assignMembershipFormAction, removeMembershipFormAction, setStaffCategoryFormAction } from "@/modules/identity/council-actions";
 import { provisionCouncilAccess } from "@/modules/identity/provision-action";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { SelectField } from "@/shared/ui/forms/fields";
@@ -78,4 +78,16 @@ export function MembershipForms({
       ) : null}
     </div>
   );
+}
+
+export function StaffCategoryForm({ users }: { users: Option[] }) {
+  return <section className="surface-card p-6">
+    <h2 className="mb-3 font-heading text-lg font-medium text-primary">Classificação para relatórios de equipe</h2>
+    <ActionForm action={setStaffCategoryFormAction} submitLabel="Salvar classificação">
+      {(errors) => <>
+        <SelectField name="userId" label="Usuário" required options={users} errors={errors.userId} />
+        <SelectField name="category" label="Classificação" required options={[{ value: "unclassified", label: "Não classificado" }, { value: "collaborator", label: "Colaborador" }, { value: "intern", label: "Estagiário" }]} errors={errors.category} />
+      </>}
+    </ActionForm>
+  </section>;
 }

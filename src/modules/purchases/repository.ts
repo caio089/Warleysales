@@ -11,6 +11,7 @@ export interface AtomicDecision {
 
 export interface AtomicReceipt {
   requestId: string;
+  contractId?: string;
   actorId: string;
   at: Date;
   receiptKey: string;

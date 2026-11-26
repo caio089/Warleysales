@@ -9,7 +9,7 @@ import { calculateProgress, type DocumentalProgress, type ProcessAttachment } fr
 import { changeProcessStatus } from "./domain/process-status";
 import { formatProcessNumber, parseProcessNumber } from "./domain/process-number";
 import type { ProcessRepository } from "./repository";
-import { changeProcessStatusSchema, createProcessSchema, registerClosingSchema, type AdministrativeProcess } from "./schemas";
+import { changeProcessStatusSchema, classifyProcessSchema, createProcessSchema, registerClosingSchema, type AdministrativeProcess } from "./schemas";
 
 /** Visão de leitura: processo + progresso derivado (nunca editável, R3). */
 export interface ProcessView {
@@ -37,7 +37,7 @@ export class ProcessService {
   async create(actor: Actor, input: unknown): Promise<Result<AdministrativeProcess>> {
     const parsed = parseInput(createProcessSchema, input);
     if (!parsed.ok) return parsed;
-    const { councilId, number, title } = parsed.data;
+    const { councilId, number, title, responsibleId, processType } = parsed.data;
 
     const allowed = await guard(this.audit, actor, "process.create", councilId, "administrative_process");
     if (!allowed.ok) return allowed;
@@ -53,6 +53,8 @@ export class ProcessService {
         year: parsedNumber.data.year,
         number: formatProcessNumber(parsedNumber.data.sequence, parsedNumber.data.year),
         title,
+        responsibleId: responsibleId ?? null,
+        processType: processType || null,
         status: "em_andamento",
         documentalCompletedAt: null,
         snapshot: null,
@@ -61,11 +63,25 @@ export class ProcessService {
         createdAt: this.runtime.now(),
       });
       if (!saved.ok) return saved;
-      await this.audit.record({ actorId: actor.userId, action: "process.create", entity: "administrative_process", entityId: saved.data.id, councilId, result: "success", details: { number } });
+      await this.audit.record({ actorId: actor.userId, action: "process.create", entity: "administrative_process", entityId: saved.data.id, councilId, result: "success", details: { number, responsibleId: responsibleId ?? null, processType: processType || null } });
       return saved;
     } catch {
       return internalError();
     }
+  }
+
+  async classify(actor: Actor, input: unknown): Promise<Result<AdministrativeProcess>> {
+    const parsed = parseInput(classifyProcessSchema, input);
+    if (!parsed.ok) return parsed;
+    const process = await this.processes.findById(parsed.data.processId);
+    if (!process) return fail("NOT_FOUND", "Processo não encontrado.");
+    const allowed = await guard(this.audit, actor, "process.create", process.councilId, "administrative_process", process.id);
+    if (!allowed.ok) return allowed;
+    const changes = { responsibleId: parsed.data.responsibleId, processType: parsed.data.processType || null };
+    const updated = await this.processes.update(process.id, changes);
+    if (!updated) return fail("NOT_FOUND", "Processo não encontrado.");
+    await this.audit.record({ actorId: actor.userId, action: "process.update", entity: "administrative_process", entityId: process.id, councilId: process.councilId, result: "success", details: { responsibleId: { from: process.responsibleId ?? null, to: changes.responsibleId }, processType: { from: process.processType ?? null, to: changes.processType } } });
+    return ok(updated);
   }
 
   async get(actor: Actor, processId: string): Promise<Result<ProcessView>> {

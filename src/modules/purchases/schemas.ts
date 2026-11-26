@@ -65,6 +65,7 @@ export const cancelSchema = z.object({ requestId: idSchema, note: z.string().tri
 export const reopenSchema = z.object({ requestId: idSchema, justification: z.string().trim().max(500) });
 export const receiveSchema = z.object({
   requestId: idSchema,
+  contractId: idSchema.optional(),
   /** Chave gerada pelo cliente por recebimento: reenvio não duplica entrada de estoque. */
   receiptKey: z.string().trim().min(8).max(100),
   lines: z.array(z.object({ itemId: idSchema, received: positiveQuantitySchema })),

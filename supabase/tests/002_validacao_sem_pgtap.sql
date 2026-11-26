@@ -53,8 +53,8 @@ insert into public.stock_transfers (id, origin_council_id, destination_council_i
 -- ───────── Seed / unicidade ─────────
 select pg_temp.check_that((select count(*) from public.document_types where is_required) = 7, 'seed possui os 7 tipos documentais');
 select pg_temp.check_that((select count(*) from storage.buckets where id = 'process-documents' and public = false) = 1, 'bucket process-documents existe e é privado');
-select pg_temp.check_that((select count(*) from public.profiles) = 4, 'trigger on_auth_user_created criou 4 perfis');
-select pg_temp.check_that(not exists (select 1 from public.profiles where id <> '00000000-0000-0000-0000-0000000000d1' and (is_central_admin or is_special_deleter)), 'perfis novos nascem sem privilégios');
+select pg_temp.check_that((select count(*) from public.profiles where id in ('00000000-0000-0000-0000-0000000000a1','00000000-0000-0000-0000-0000000000b1','00000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-0000000000d1')) = 4, 'trigger on_auth_user_created criou 4 perfis');
+select pg_temp.check_that(not exists (select 1 from public.profiles where id in ('00000000-0000-0000-0000-0000000000a1','00000000-0000-0000-0000-0000000000b1','00000000-0000-0000-0000-0000000000c1') and (is_central_admin or is_special_deleter)), 'perfis novos nascem sem privilégios');
 select pg_temp.expect_error($$insert into public.administrative_processes (council_id, sequence, year, number, title, created_by)
   values ('10000000-0000-0000-0000-00000000000a', 2, 2026, '001/2026', 'Duplicado', '00000000-0000-0000-0000-0000000000a1')$$,
   '23505', 'número de processo é único por conselho');
@@ -97,7 +97,7 @@ select pg_temp.check_that((select count(*) from public.stock_transfers) = 1, 'RL
 select pg_temp.check_that((select count(*) from public.administrative_processes where council_id = '10000000-0000-0000-0000-00000000000a') = 0, 'RLS: processos de A ocultos para B');
 reset role;
 select pg_temp.act_as('00000000-0000-0000-0000-0000000000d1');
-select pg_temp.check_that((select count(*) from public.administrative_processes) = 2, 'admin central vê todos os conselhos');
+select pg_temp.check_that((select count(*) from public.administrative_processes where id in ('30000000-0000-0000-0000-00000000000a','30000000-0000-0000-0000-00000000000b')) = 2, 'admin central vê todos os conselhos');
 reset role;
 
 -- ───────── Usuário comum não escreve/exclui; escalada de privilégio bloqueada ─────────

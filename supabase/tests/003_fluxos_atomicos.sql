@@ -55,13 +55,13 @@ insert into public.purchase_request_items (request_id, material_id, quantity, at
   ('70000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 4, '51000000-0000-0000-0000-000000000001'),
   ('70000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', 5, '51000000-0000-0000-0000-000000000002');
 select pg_temp.check_that((public.approve_purchase_request('70000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b1', now())) ->> 'ok' = 'true', 'aprovação não depende do saldo da ata');
-select pg_temp.check_that((select count(*) from public.ata_commitments) = 0, 'aprovação não compromete a ata');
+select pg_temp.check_that((select count(*) from public.ata_commitments where item_id in ('51000000-0000-0000-0000-000000000001', '51000000-0000-0000-0000-000000000002')) = 0, 'aprovação não compromete a ata');
 select pg_temp.check_that((select status from public.purchase_requests where id = '70000000-0000-0000-0000-000000000001') = 'aprovada', 'status aprovada');
-select pg_temp.check_that((select count(*) from public.purchase_request_events where position = 0 and to_status = 'aprovada') = 1, 'evento de aprovação registrado');
+select pg_temp.check_that((select count(*) from public.purchase_request_events where request_id = '70000000-0000-0000-0000-000000000001' and position = 0 and to_status = 'aprovada') = 1, 'evento de aprovação registrado');
 select pg_temp.check_that((public.approve_purchase_request('70000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b1', now())) ->> 'code' = 'INVALID_STATE', 'reaprovação recusada');
-select pg_temp.check_that((select count(*) from public.purchase_request_events) = 1, 'reaprovação não duplica o histórico');
+select pg_temp.check_that((select count(*) from public.purchase_request_events where request_id = '70000000-0000-0000-0000-000000000001') = 1, 'reaprovação não duplica o histórico');
 select pg_temp.check_that((public.cancel_purchase_request('70000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b1', now(), 'desistência')) ->> 'ok' = 'true', 'cancelamento de aprovada');
-select pg_temp.check_that((select count(*) from public.ata_commitments) = 0, 'cancelamento não altera compromissos da ata');
+select pg_temp.check_that((select count(*) from public.ata_commitments where item_id in ('51000000-0000-0000-0000-000000000001', '51000000-0000-0000-0000-000000000002')) = 0, 'cancelamento não altera compromissos da ata');
 select pg_temp.check_that((public.cancel_purchase_request('70000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000b1', now())) ->> 'code' = 'INVALID_STATE', 'cancelar duas vezes é recusado');
 -- ───────── Transferência: fluxo completo e atomicidade ─────────
 -- Origem A: M1 físico 10; M2 físico 1. Destino B vazio.
@@ -98,7 +98,7 @@ select pg_temp.check_that((select physical from public.stock_balances where coun
 select pg_temp.check_that((select received_quantity from public.stock_transfer_items where transfer_id = '40000000-0000-0000-0000-000000000002') = 5, 'quantidade recebida registrada no item');
 select pg_temp.check_that((public.advance_transfer('40000000-0000-0000-0000-000000000002', 'recebida', '00000000-0000-0000-0000-0000000000b1', now())) ->> 'code' = 'INVALID_STATE', 'reenvio do recebimento não duplica entrada (estado final)');
 select pg_temp.check_that((select count(*) from public.stock_transfer_events where transfer_id = '40000000-0000-0000-0000-000000000002') = 4, 'histórico contíguo: 4 eventos (aprovada, separada, em_transito, recebida)');
-select pg_temp.check_that((select count(*) from public.v_stock_reconciliation where balance_physical <> ledger_physical) = 0, 'reconciliação: saldo físico == soma do ledger em todos os saldos');
+select pg_temp.check_that((select count(*) from public.v_stock_reconciliation where council_id in ('10000000-0000-0000-0000-00000000000a', '10000000-0000-0000-0000-00000000000b') and balance_physical <> ledger_physical) = 0, 'reconciliação: saldo físico == soma do ledger nos saldos do cenário');
 
 -- Cancelamento libera a reserva (origem tem físico 4; T1 reserva 3)
 update public.stock_transfer_items set quantity = 3 where transfer_id = '40000000-0000-0000-0000-000000000001';

@@ -6,7 +6,7 @@ import { nextStates } from "@/shared/lib/state-machine";
 import { REQUEST_TRANSITIONS, type PurchaseRequestStatus } from "@/modules/purchases/domain/request-status";
 import { Button } from "@/components/ui/button";
 import { ActionForm } from "@/shared/ui/forms/action-form";
-import { TextAreaField, TextField } from "@/shared/ui/forms/fields";
+import { SelectField, TextAreaField, TextField } from "@/shared/ui/forms/fields";
 
 interface Props {
   requestId: string;
@@ -15,6 +15,7 @@ interface Props {
   canCreate: boolean;
   canReceive: boolean;
   pendingItems: { id: string; label: string; pending: number }[];
+  receiptContracts?: { value: string; label: string; items: { id: string; pending: number }[] }[];
   /** Após aprovar, leva direto à documentação do processo. */
   onApproved?: () => void;
   /** Modo resumido: só aprovar / não (e cancelar). */
@@ -32,10 +33,12 @@ export function RequestActions({
   canCreate,
   canReceive,
   pendingItems,
+  receiptContracts = [],
   onApproved,
   summaryOnly = false,
 }: Props) {
   const [panel, setPanel] = useState<Panel>(null);
+  const [receiptContractId, setReceiptContractId] = useState("");
   const [decline, setDecline] = useState<DeclinePath | null>(null);
   const next = nextStates(REQUEST_TRANSITIONS, status);
   const pendingDecision = canDecide && (status === "enviada" || status === "em_analise");
@@ -50,7 +53,7 @@ export function RequestActions({
     !summaryOnly &&
     canReceive &&
     ["aprovada", "em_atendimento", "parcialmente_atendida"].includes(status) &&
-    pendingItems.length > 0;
+    receiptContracts.length > 0;
 
   const deciding = canApprove;
   const openDecline = (path: DeclinePath) => {
@@ -172,14 +175,15 @@ export function RequestActions({
           <h3 className="mb-1 font-heading text-lg font-medium tracking-tight text-primary">O que chegou?</h3>
           <p className="mb-4 text-sm text-muted-foreground">O número já vem preenchido com tudo. Diminua só se chegou menos.</p>
           <ActionForm action={receiveFormAction} submitLabel="Lançar no estoque" pendingLabel="Lançando…" hiddenFields={{ requestId }} idempotencyField="receiptKey">
-            {() =>
-              pendingItems.map((item) => (
+            {(errors) => <>
+              <SelectField name="contractId" label="Contrato deste recebimento" required onChange={setReceiptContractId} options={receiptContracts} errors={errors.contractId} />
+              {pendingItems.filter((item) => receiptContracts.find((contract) => contract.value === receiptContractId)?.items.some((line) => line.id === item.id)).map((item) => (
                 <div key={item.id}>
                   <input type="hidden" name="itemId" value={item.id} />
-                  <TextField name="received" label={item.label} type="number" step="0.001" min="0" defaultValue={String(item.pending)} />
+                  <TextField key={`${receiptContractId}:${item.id}`} name="received" label={item.label} type="number" step="0.001" min="0" defaultValue={String(receiptContracts.find((contract) => contract.value === receiptContractId)?.items.find((line) => line.id === item.id)?.pending ?? 0)} />
                 </div>
-              ))
-            }
+              ))}
+            </>}
           </ActionForm>
         </div>
       ) : null}

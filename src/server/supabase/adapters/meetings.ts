@@ -16,10 +16,11 @@ interface MeetingRow {
   audio_path: string | null;
   transcript_text: string | null;
   created_by: string;
-  meeting_action_items: { id: string; seq: number; description: string; responsible_id: string | null; due_date: string | null; done: boolean }[];
+  meeting_attendance: { participant_id: string; recorded_by: string; recorded_at: string }[];
+  meeting_action_items: { id: string; seq: number; description: string; responsible_id: string | null; due_date: string | null; done: boolean; meeting_task_completions: { completed_by: string; completed_at: string; due_date: string | null } | null }[];
 }
 
-const SELECT = "*, meeting_action_items(*)";
+const SELECT = "*, meeting_attendance(*), meeting_action_items(*, meeting_task_completions(*))";
 
 const toMeeting = (row: MeetingRow): Meeting => ({
   id: row.id,
@@ -33,9 +34,11 @@ const toMeeting = (row: MeetingRow): Meeting => ({
   audioPath: row.audio_path,
   transcript: row.transcript_text,
   actionItems: [...row.meeting_action_items].sort((a, b) => a.seq - b.seq).map((i) => ({
+    completion: i.meeting_task_completions ? { actorId: i.meeting_task_completions.completed_by, at: toDate(i.meeting_task_completions.completed_at), dueDate: i.meeting_task_completions.due_date } : undefined,
     id: i.id, description: i.description, responsibleId: i.responsible_id, dueDate: i.due_date, done: i.done,
   })),
   createdBy: row.created_by,
+  attendance: row.meeting_attendance.map((a) => ({ participantId: a.participant_id, recordedBy: a.recorded_by, at: toDate(a.recorded_at) })),
 });
 
 const toPayload = (m: Meeting) => ({
@@ -47,6 +50,12 @@ const toPayload = (m: Meeting) => ({
 
 export class SupabaseMeetingRepository implements MeetingRepository {
   constructor(private readonly db: SupabaseClient) {}
+
+  async recordEvidence(meetingId: string, actorId: string, targetId: string, kind: "attendance" | "completion") {
+    return callRpc<boolean>(this.db, "record_meeting_evidence", {
+      p_meeting: meetingId, p_actor: actorId, p_target: targetId, p_kind: kind,
+    });
+  }
 
   async insert(meeting: Meeting) {
     await callRpc(this.db, "save_meeting", { p: toPayload(meeting) });

@@ -1521,4 +1521,1154 @@ create index if not exists idx_councils_organization_type
 comment on column public.councils.organization_type is
   'public_body para órgão público; private_company para empresa privada atendida pela assessoria.';
 
+-- ===== 20261119000001_process_archive_uploads.sql =====
+update storage.buckets
+set allowed_mime_types = array(
+  select distinct unnest(coalesce(allowed_mime_types, array[]::text[]) || array[
+    'application/zip',
+    'application/vnd.oasis.opendocument.text',
+    'application/vnd.oasis.opendocument.spreadsheet'
+  ])
+)
+where id = 'process-documents';
+
+-- ===== 20261120000001_request_corrections.sql =====
+alter table public.administrative_processes add column if not exists document_exceptions jsonb not null default '{}';
+update public.document_types set name='Parecer Jurídico / Técnico' where code='PJ';
+update public.document_types set name='Edital de Licitação / Aviso' where code='ED';
+
+create or replace function public.set_document_exception(p_process uuid, p_type text, p_actor uuid, p_reason text, p_remove boolean default false)
+returns void language plpgsql security definer set search_path = '' as $$
+declare v public.administrative_processes; resolved integer; exceptions jsonb;
+begin
+  select * into strict v from public.administrative_processes where id = p_process for update;
+  if not exists(select 1 from public.profiles where id=p_actor and active and
+    (is_central_admin or exists(select 1 from public.council_memberships where user_id=p_actor and council_id=v.council_id and role in ('council_manager','council_operator'))))
+    then raise exception 'Sem permissão para alterar o processo.'; end if;
+  if p_type not in ('DFD','ETP','MR','TR','PP','PJ','ED') or length(trim(p_reason)) not between 10 and 1000 then
+    raise exception 'Etapa ou justificativa inválida.'; end if;
+  if v.documental_snapshot is not null or v.status in ('cancelado','arquivado') then raise exception 'Este processo está encerrado para alterações documentais.'; end if;
+  exceptions := case when p_remove then v.document_exceptions - p_type else
+    v.document_exceptions || jsonb_build_object(p_type,jsonb_build_object('justification',trim(p_reason),'actorId',p_actor,'at',now())) end;
+  select count(*) into resolved from (
+    select type_code from public.attachments where process_id=p_process and upload_status='confirmed' and link_status='active' and retention_state<>'disposed'
+    union select jsonb_object_keys(exceptions)
+  ) types where type_code in ('DFD','ETP','MR','TR','PP','PJ','ED');
+  update public.administrative_processes set document_exceptions=exceptions,
+    documental_completed_at=case when resolved=7 then coalesce(documental_completed_at,now()) else null end where id=p_process;
+  insert into public.audit_logs(actor_id,action,entity,entity_id,council_id,details)
+    values(p_actor,'process.document_exception','administrative_process',p_process::text,v.council_id,
+      jsonb_build_object('type',p_type,'reason',p_reason,'removed',p_remove,'before',v.document_exceptions,'after',exceptions));
+end $$;
+revoke all on function public.set_document_exception(uuid,text,uuid,text,boolean) from public,anon,authenticated;
+grant execute on function public.set_document_exception(uuid,text,uuid,text,boolean) to service_role;
+
+create or replace function public.correct_purchase_request(p_request uuid,p_actor uuid,p_expected text,p_data jsonb)
+returns void language plpgsql security definer set search_path = '' as $$
+declare
+  r public.purchase_requests; target uuid; item jsonb; material uuid; next_status text;
+  reason text; priority text; amount numeric; structural boolean; old_items jsonb; new_items jsonb := '[]';
+  balance record; delta numeric; locked boolean; position integer; previous jsonb;
+begin
+  select * into strict r from public.purchase_requests where id=p_request for update;
+  if p_expected <> (select md5(to_jsonb(q)::text) from (
+    select r.*, (select jsonb_agg(to_jsonb(i) order by i.seq) from public.purchase_request_items i where request_id=r.id) items,
+    (select count(*) from public.purchase_request_events where request_id=r.id) events_count
+  ) q) then raise exception 'A solicitação mudou. Atualize a página antes de corrigir.'; end if;
+  target := (p_data->>'councilId')::uuid;
+  if not exists(select 1 from public.profiles where id=p_actor and active and
+    (is_central_admin or (exists(select 1 from public.council_memberships where user_id=p_actor and council_id=r.council_id and role in ('council_manager','council_operator'))
+    and exists(select 1 from public.council_memberships where user_id=p_actor and council_id=target and role in ('council_manager','council_operator')))))
+    then raise exception 'Sem permissão para corrigir esta solicitação ou transferir para este órgão.'; end if;
+  if not exists(select 1 from public.councils where id=target and active) then raise exception 'Órgão inativo.'; end if;
+  if r.status in ('cancelada','atendida','rejeitada') then raise exception 'Esta solicitação está encerrada.'; end if;
+  reason := trim(p_data->>'justification'); priority := p_data->>'priority';
+  amount := nullif(p_data->>'estimatedValue','')::numeric;
+  if length(reason) not between 10 and 1000 or priority not in ('Alta','Média','Baixa') or
+     length(trim(p_data->>'title')) not between 3 and 200 or amount < 0 or jsonb_array_length(p_data->'items') < 1 then
+    raise exception 'Confira os campos e informe uma justificativa de pelo menos 10 caracteres.'; end if;
+  select coalesce(jsonb_agg(to_jsonb(i) order by i.seq),'[]') into old_items from public.purchase_request_items i where request_id=r.id;
+  previous := jsonb_build_object('request',to_jsonb(r),'items',old_items);
+  for item in select value from jsonb_array_elements(p_data->'items') loop
+    if (item->>'quantity')::numeric <= 0 or length(trim(item->>'description')) not between 2 and 160 or length(trim(item->>'unit')) not between 1 and 20 then raise exception 'Material, unidade ou quantidade inválida.'; end if;
+    select m.id into material from public.materials m
+      join public.purchase_request_items i on i.material_id=m.id and i.request_id=r.id
+      where m.id=nullif(item->>'materialId','')::uuid and m.name=trim(item->>'description') and m.unit=trim(item->>'unit') limit 1;
+    if material is null then
+      select id into material from public.materials where name=trim(item->>'description') and unit=trim(item->>'unit') and active order by id limit 1;
+    end if;
+    if material is null then
+      material := gen_random_uuid();
+      insert into public.materials(id,code,name,unit) values(material,'COR-'||material::text,trim(item->>'description'),trim(item->>'unit'));
+    end if;
+    new_items := new_items || jsonb_build_array(jsonb_build_object('material_id',material,'quantity',(item->>'quantity')::numeric));
+  end loop;
+  structural := target<>r.council_id or
+    (select jsonb_agg(jsonb_build_object('material_id',i->>'material_id','quantity',(i->>'quantity')::numeric) order by ord)
+      from jsonb_array_elements(old_items) with ordinality t(i,ord)) is distinct from new_items;
+  locked := exists(select 1 from public.process_formalizations where process_id=r.process_id)
+    or exists(select 1 from public.purchase_request_items where request_id=r.id and (received_total>0 or ata_item_id is not null));
+  if structural and locked then raise exception 'Materiais, quantidades e órgão só podem ser corrigidos antes da formalização, do recebimento e do compromisso de ata.'; end if;
+  if target<>r.council_id and (
+    exists(select 1 from public.price_registration_atas where process_id=r.process_id) or
+    exists(select 1 from public.contracts where process_id=r.process_id)
+  ) then raise exception 'O processo possui instrumentos vinculados. Revise esses vínculos antes de trocar o órgão.'; end if;
+  if structural then
+    for balance in
+      select owner,mat,sum(qty) qty from (
+        select r.council_id owner,(i->>'material_id')::uuid mat,-(i->>'quantity')::numeric qty from jsonb_array_elements(old_items) i
+        union all select target,(i->>'material_id')::uuid,(i->>'quantity')::numeric from jsonb_array_elements(new_items) i
+      ) changes group by owner,mat order by owner,mat
+    loop
+      insert into public.stock_balances(council_id,material_id) values(balance.owner,balance.mat) on conflict do nothing;
+      perform 1 from public.stock_balances where council_id=balance.owner and material_id=balance.mat for update;
+      update public.stock_balances set blocked=blocked+balance.qty,version=version+1
+        where council_id=balance.owner and material_id=balance.mat and blocked+balance.qty>=0;
+      if not found then raise exception 'Saldo bloqueado incompatível. A correção foi cancelada.'; end if;
+    end loop;
+    delete from public.purchase_request_items where request_id=r.id;
+    for item in select value from jsonb_array_elements(new_items) loop
+      insert into public.purchase_request_items(request_id,material_id,quantity) values(r.id,(item->>'material_id')::uuid,(item->>'quantity')::numeric);
+    end loop;
+  end if;
+  next_status := case when structural and r.status<>'rascunho' then 'em_analise' else r.status end;
+  update public.purchase_requests set title=trim(p_data->>'title'),council_id=target,estimated_value=amount,status=next_status where id=r.id;
+  update public.administrative_processes set title=trim(p_data->>'title'),council_id=target where id=r.process_id;
+  if target<>r.council_id then update public.attachments set council_id=target where process_id=r.process_id; end if;
+  update public.process_formalizations set estimated_value=coalesce(amount,0),
+    savings_value=coalesce(amount,0)-contracted_value,
+    savings_percent=case when amount>0 then round((amount-contracted_value)/amount*100,2) else 0 end
+    where process_id=r.process_id;
+  select coalesce(max(e.position),-1)+1 into position from public.purchase_request_events e where request_id=r.id;
+  insert into public.purchase_request_events(request_id,position,from_status,to_status,actor_id,at,note)
+    values(r.id,position,r.status,next_status,p_actor,now(),'Correção: '||reason||' | Prioridade '||priority||
+      ' | Valor estimado: '||coalesce(r.estimated_value::text,'não informado')||' → '||coalesce(amount::text,'não informado')||
+      ' | Objeto: '||r.title||' → '||trim(p_data->>'title')||
+      case when structural then ' | Órgão, materiais ou quantidades alterados. Retornou para análise.' else '' end);
+  insert into public.audit_logs(actor_id,action,entity,entity_id,council_id,details)
+    values(p_actor,'request.correct','purchase_request',r.id::text,target,
+      jsonb_build_object('before',previous,'after',p_data,'structural',structural,'status',next_status));
+end $$;
+revoke all on function public.correct_purchase_request(uuid,uuid,text,jsonb) from public,anon,authenticated;
+grant execute on function public.correct_purchase_request(uuid,uuid,text,jsonb) to service_role;
+
+create or replace function public.purchase_request_revision(p_request uuid)
+returns text language sql security definer set search_path = '' as $$
+  select md5(to_jsonb(q)::text) from (
+    select r.*, (select jsonb_agg(to_jsonb(i) order by i.seq) from public.purchase_request_items i where request_id=r.id) items,
+    (select count(*) from public.purchase_request_events where request_id=r.id) events_count
+    from public.purchase_requests r where id=p_request
+  ) q
+$$;
+revoke all on function public.purchase_request_revision(uuid) from public,anon,authenticated;
+grant execute on function public.purchase_request_revision(uuid) to service_role;
+
+create or replace view public.v_process_progress with (security_invoker = true) as
+  select p.id as process_id,
+    (select count(*) from (
+      select type_code from public.attachments where process_id=p.id and link_status='active'
+        and upload_status='confirmed' and retention_state<>'disposed'
+      union select jsonb_object_keys(p.document_exceptions)
+    ) resolved where type_code in ('DFD','ETP','MR','TR','PP','PJ','ED')) as valid_types,
+    round((select count(*) from (
+      select type_code from public.attachments where process_id=p.id and link_status='active'
+        and upload_status='confirmed' and retention_state<>'disposed'
+      union select jsonb_object_keys(p.document_exceptions)
+    ) resolved where type_code in ('DFD','ETP','MR','TR','PP','PJ','ED'))*100.0/7,2) as percent
+  from public.administrative_processes p;
+
+-- ===== 20261123000001_process_estimated_value.sql =====
+alter table public.administrative_processes
+  add column if not exists estimated_value numeric(15,2) check (estimated_value >= 0);
+
+create or replace function public.set_process_estimated_value(p_process uuid, p_actor uuid, p_value numeric)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  process_row public.administrative_processes;
+  request_row public.purchase_requests;
+  previous_value numeric;
+begin
+  if p_value is null or p_value < 0 or p_value > 9999999999999.99 or p_value <> round(p_value, 2) then
+    raise exception 'Informe um valor estimado válido.';
+  end if;
+
+  -- Same lock order as request corrections.
+  select * into request_row from public.purchase_requests
+    where process_id = p_process order by created_at desc, id desc limit 1 for update;
+  select * into strict process_row from public.administrative_processes
+    where id = p_process for update;
+
+  if not exists (
+    select 1 from public.profiles where id = p_actor and active and (
+      is_central_admin or exists (
+        select 1 from public.council_memberships where user_id = p_actor
+          and council_id = process_row.council_id and role in ('council_manager', 'council_operator')
+      )
+    )
+  ) or (request_row.id is not null and request_row.council_id <> process_row.council_id) then
+    raise exception 'Sem permissão para alterar o valor estimado deste processo.';
+  end if;
+
+  if process_row.documental_snapshot is not null or process_row.status in ('cancelado', 'arquivado') then
+    raise exception 'Este processo está encerrado para alterações.';
+  end if;
+
+  if request_row.id is not null then
+    previous_value := request_row.estimated_value;
+    update public.purchase_requests set estimated_value = p_value where id = request_row.id;
+  else
+    previous_value := process_row.estimated_value;
+    update public.administrative_processes set estimated_value = p_value where id = p_process;
+  end if;
+
+  update public.process_formalizations
+    set estimated_value = p_value,
+        savings_value = p_value - contracted_value,
+        savings_percent = case when p_value > 0 then round((p_value - contracted_value) / p_value * 100, 2) else 0 end
+    where process_id = p_process;
+
+  if previous_value is distinct from p_value then
+    insert into public.audit_logs(actor_id, action, entity, entity_id, council_id, details)
+      values (p_actor, 'process.estimated_value', 'administrative_process', p_process::text, process_row.council_id,
+        jsonb_build_object('before', previous_value, 'after', p_value, 'requestId', request_row.id));
+  end if;
+end;
+$$;
+
+revoke all on function public.set_process_estimated_value(uuid, uuid, numeric) from public, anon, authenticated;
+grant execute on function public.set_process_estimated_value(uuid, uuid, numeric) to service_role;
+
+-- ===== 20261125000001_process_validity_start.sql =====
+-- Vigência informada no TR e reutilizada na ata e no contrato.
+alter table public.administrative_processes
+  add column if not exists validity_start_date date;
+
+create or replace function public.set_process_validity_start_date(p_process uuid, p_actor uuid, p_start date)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  process_row public.administrative_processes;
+  previous_value date;
+begin
+  if p_start is null then
+    raise exception 'Informe a data de início da vigência.';
+  end if;
+
+  select * into strict process_row from public.administrative_processes
+    where id = p_process for update;
+
+  if not exists (
+    select 1 from public.profiles where id = p_actor and active and (
+      is_central_admin or exists (
+        select 1 from public.council_memberships where user_id = p_actor
+          and council_id = process_row.council_id and role in ('council_manager', 'council_operator')
+      )
+    )
+  ) then
+    raise exception 'Sem permissão para alterar a vigência deste processo.';
+  end if;
+
+  if process_row.documental_snapshot is not null or process_row.status in ('cancelado', 'arquivado') then
+    raise exception 'Este processo está encerrado para alterações.';
+  end if;
+
+  previous_value := process_row.validity_start_date;
+  update public.administrative_processes
+    set validity_start_date = p_start
+    where id = p_process;
+
+  if previous_value is distinct from p_start then
+    insert into public.audit_logs(actor_id, action, entity, entity_id, council_id, details)
+      values (
+        p_actor,
+        'process.validity_start',
+        'administrative_process',
+        p_process::text,
+        process_row.council_id,
+        jsonb_build_object('before', previous_value, 'after', p_start)
+      );
+  end if;
+end;
+$$;
+
+revoke all on function public.set_process_validity_start_date(uuid, uuid, date) from public, anon, authenticated;
+grant execute on function public.set_process_validity_start_date(uuid, uuid, date) to service_role;
+
+-- ===== 20261125000002_process_contracting_mode.sql =====
+-- Define se o processo usa registro de preços (ata + contrato) ou só contrato.
+alter table public.administrative_processes
+  add column if not exists contracting_mode text
+  check (contracting_mode is null or contracting_mode in ('registro_precos', 'contrato'));
+
+create or replace function public.set_process_contracting_mode(p_process uuid, p_actor uuid, p_mode text)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  process_row public.administrative_processes;
+  previous_value text;
+begin
+  if p_mode is null or p_mode not in ('registro_precos', 'contrato') then
+    raise exception 'Informe se é registro de preços ou somente contrato.';
+  end if;
+
+  select * into strict process_row from public.administrative_processes
+    where id = p_process for update;
+
+  if not exists (
+    select 1 from public.profiles where id = p_actor and active and (
+      is_central_admin or exists (
+        select 1 from public.council_memberships where user_id = p_actor
+          and council_id = process_row.council_id and role in ('council_manager', 'council_operator')
+      )
+    )
+  ) then
+    raise exception 'Sem permissão para alterar o modo de contratação deste processo.';
+  end if;
+
+  if process_row.documental_snapshot is not null or process_row.status in ('cancelado', 'arquivado') then
+    raise exception 'Este processo está encerrado para alterações.';
+  end if;
+
+  previous_value := process_row.contracting_mode;
+  update public.administrative_processes
+    set contracting_mode = p_mode
+    where id = p_process;
+
+  if previous_value is distinct from p_mode then
+    insert into public.audit_logs(actor_id, action, entity, entity_id, council_id, details)
+      values (
+        p_actor,
+        'process.contracting_mode',
+        'administrative_process',
+        p_process::text,
+        process_row.council_id,
+        jsonb_build_object('before', previous_value, 'after', p_mode)
+      );
+  end if;
+end;
+$$;
+
+revoke all on function public.set_process_contracting_mode(uuid, uuid, text) from public, anon, authenticated;
+grant execute on function public.set_process_contracting_mode(uuid, uuid, text) to service_role;
+
+-- ===== 20261125000003_process_price_research_lines.sql =====
+-- Linhas da pesquisa de preços (valor de referência por item) + total estimado.
+alter table public.administrative_processes
+  add column if not exists price_research_lines jsonb;
+
+create or replace function public.set_process_price_research(p_process uuid, p_actor uuid, p_lines jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  process_row public.administrative_processes;
+  request_row public.purchase_requests;
+  previous_value numeric;
+  total_value numeric := 0;
+  line jsonb;
+  line_total numeric;
+begin
+  if p_lines is null or jsonb_typeof(p_lines) <> 'array' or jsonb_array_length(p_lines) < 1 then
+    raise exception 'Informe ao menos um item com valor de referência.';
+  end if;
+
+  for line in select * from jsonb_array_elements(p_lines)
+  loop
+    begin
+      line_total := (line ->> 'lineTotal')::numeric;
+    exception when others then
+      raise exception 'Valor de referência inválido em um dos itens.';
+    end;
+    if line_total is null or line_total < 0 or line_total > 9999999999999.99 or line_total <> round(line_total, 2) then
+      raise exception 'Informe valores de referência válidos, com até duas casas decimais.';
+    end if;
+    total_value := total_value + line_total;
+  end loop;
+
+  total_value := round(total_value, 2);
+
+  select * into request_row from public.purchase_requests
+    where process_id = p_process order by created_at desc, id desc limit 1 for update;
+  select * into strict process_row from public.administrative_processes
+    where id = p_process for update;
+
+  if not exists (
+    select 1 from public.profiles where id = p_actor and active and (
+      is_central_admin or exists (
+        select 1 from public.council_memberships where user_id = p_actor
+          and council_id = process_row.council_id and role in ('council_manager', 'council_operator')
+      )
+    )
+  ) or (request_row.id is not null and request_row.council_id <> process_row.council_id) then
+    raise exception 'Sem permissão para alterar a pesquisa de preços deste processo.';
+  end if;
+
+  if process_row.documental_snapshot is not null or process_row.status in ('cancelado', 'arquivado') then
+    raise exception 'Este processo está encerrado para alterações.';
+  end if;
+
+  if request_row.id is not null then
+    previous_value := request_row.estimated_value;
+    update public.purchase_requests set estimated_value = total_value where id = request_row.id;
+  else
+    previous_value := process_row.estimated_value;
+  end if;
+
+  update public.administrative_processes
+    set estimated_value = total_value,
+        price_research_lines = p_lines
+    where id = p_process;
+
+  update public.process_formalizations
+    set estimated_value = total_value,
+        savings_value = total_value - contracted_value,
+        savings_percent = case when total_value > 0 then round((total_value - contracted_value) / total_value * 100, 2) else 0 end
+    where process_id = p_process;
+
+  if previous_value is distinct from total_value then
+    insert into public.audit_logs(actor_id, action, entity, entity_id, council_id, details)
+      values (
+        p_actor,
+        'process.price_research',
+        'administrative_process',
+        p_process::text,
+        process_row.council_id,
+        jsonb_build_object('before', previous_value, 'after', total_value, 'lines', p_lines, 'requestId', request_row.id)
+      );
+  end if;
+end;
+$$;
+
+revoke all on function public.set_process_price_research(uuid, uuid, jsonb) from public, anon, authenticated;
+grant execute on function public.set_process_price_research(uuid, uuid, jsonb) to service_role;
+
+-- ===== 20261125000004_contract_ata_link.sql =====
+-- Contrato pode consumir saldo de uma ata (vários contratos por ata).
+-- Itens do contrato apontam para itens da ata e gravam a quantidade comprometida.
+
+alter table public.contracts
+  add column if not exists ata_id uuid references public.price_registration_atas (id);
+
+create index if not exists contracts_ata_id_idx on public.contracts (ata_id);
+
+create table if not exists public.contract_ata_items (
+  id uuid primary key default gen_random_uuid(),
+  contract_id uuid not null references public.contracts (id) on delete cascade,
+  ata_item_id uuid not null references public.ata_items (id),
+  quantity numeric(15,3) not null check (quantity > 0),
+  unit_price numeric(15,4) not null default 0 check (unit_price >= 0)
+);
+
+create index if not exists contract_ata_items_contract_id_idx on public.contract_ata_items (contract_id);
+create index if not exists contract_ata_items_ata_item_id_idx on public.contract_ata_items (ata_item_id);
+
+alter table public.contract_ata_items enable row level security;
+
+drop policy if exists contract_ata_items_select on public.contract_ata_items;
+create policy contract_ata_items_select on public.contract_ata_items
+  for select to authenticated
+  using (
+    exists (
+      select 1 from public.contracts c
+      where c.id = contract_id
+        and private.has_council_access(c.council_id)
+    )
+  );
+
+create or replace function public.save_contract(p jsonb) returns void
+language plpgsql set search_path = '' as $$
+begin
+  insert into public.contracts (
+    id, council_id, number, supplier_id, object, start_date, end_date, value, created_at, process_id, ata_id
+  )
+  values (
+    (p ->> 'id')::uuid,
+    (p ->> 'council_id')::uuid,
+    p ->> 'number',
+    nullif(p ->> 'supplier_id', '')::uuid,
+    p ->> 'object',
+    (p ->> 'start_date')::date,
+    (p ->> 'end_date')::date,
+    (p ->> 'value')::numeric,
+    (p ->> 'created_at')::timestamptz,
+    nullif(p ->> 'process_id', '')::uuid,
+    nullif(p ->> 'ata_id', '')::uuid
+  )
+  on conflict (id) do update set
+    supplier_id = excluded.supplier_id,
+    process_id = excluded.process_id,
+    ata_id = excluded.ata_id;
+
+  insert into public.contract_amendments (
+    contract_id, sequence, reason, signed_at,
+    previous_start_date, previous_end_date, previous_value,
+    next_start_date, next_end_date, next_value
+  )
+  select
+    (p ->> 'id')::uuid,
+    (a ->> 'sequence')::integer,
+    a ->> 'reason',
+    (a ->> 'signed_at')::date,
+    (a ->> 'previous_start_date')::date,
+    (a ->> 'previous_end_date')::date,
+    (a ->> 'previous_value')::numeric,
+    (a ->> 'next_start_date')::date,
+    (a ->> 'next_end_date')::date,
+    (a ->> 'next_value')::numeric
+  from jsonb_array_elements(coalesce(p -> 'amendments', '[]'::jsonb)) a
+  on conflict do nothing;
+
+  insert into public.contract_ata_items (id, contract_id, ata_item_id, quantity, unit_price)
+  select
+    (i ->> 'id')::uuid,
+    (p ->> 'id')::uuid,
+    (i ->> 'ata_item_id')::uuid,
+    (i ->> 'quantity')::numeric,
+    coalesce((i ->> 'unit_price')::numeric, 0)
+  from jsonb_array_elements(coalesce(p -> 'ata_items', '[]'::jsonb)) i
+  on conflict (id) do update set
+    quantity = excluded.quantity,
+    unit_price = excluded.unit_price;
+end $$;
+
+notify pgrst, 'reload schema';
+
+-- ===== 20261126011635_contract_ata_and_request_reservation.sql =====
+-- As políticas de leitura criadas depois do hardening não concedem privilégio de tabela.
+-- O RLS continua restringindo as linhas por órgão.
+grant select on public.process_formalizations to authenticated;
+grant select on public.material_orders to authenticated;
+grant select on public.material_order_items to authenticated;
+grant select on public.contract_ata_items to authenticated;
+
+-- A ata passa a ser comprometida pelo contrato. Aprovar/cancelar uma solicitação
+-- somente muda seu estado e registra o histórico, na mesma transação.
+create or replace function public.approve_purchase_request(
+  p_request uuid, p_actor uuid, p_at timestamptz, p_note text default null
+) returns jsonb
+language plpgsql set search_path = '' as $$
+declare
+  v_request public.purchase_requests%rowtype;
+begin
+  select * into v_request from public.purchase_requests where id = p_request for update;
+  if not found then
+    return jsonb_build_object('ok', false, 'code', 'NOT_FOUND', 'message', 'Solicitação não encontrada.');
+  end if;
+  if v_request.status <> 'em_analise' then
+    return jsonb_build_object('ok', false, 'code', 'INVALID_STATE', 'message', 'Somente solicitações em análise podem ser aprovadas.');
+  end if;
+
+  update public.purchase_requests set status = 'aprovada' where id = p_request;
+  insert into public.purchase_request_events (request_id, position, from_status, to_status, actor_id, at, note)
+  values (p_request, private.next_request_event_position(p_request), v_request.status, 'aprovada', p_actor, p_at, p_note);
+  return jsonb_build_object('ok', true);
+end $$;
+
+-- Impede que updates posteriores desfaçam o vínculo ata/processo. Updates
+-- de aditivo que não mudam estes campos continuam válidos para dados legados.
+create or replace function private.check_contract_ata_process() returns trigger
+language plpgsql set search_path = '' as $$
+declare
+  v_ata_council uuid;
+  v_ata_process uuid;
+begin
+  if new.ata_id is null then return new; end if;
+  select council_id, process_id into v_ata_council, v_ata_process
+    from public.price_registration_atas where id = new.ata_id;
+  if not found or v_ata_council is distinct from new.council_id then
+    raise exception 'A ata deve pertencer ao órgão do contrato.' using errcode = '23514';
+  end if;
+  if v_ata_process is not null and new.process_id is distinct from v_ata_process then
+    raise exception 'A ata e o contrato devem pertencer ao mesmo processo.' using errcode = '23514';
+  end if;
+  return new;
+end $$;
+
+create trigger contract_ata_process_insert
+  before insert on public.contracts for each row
+  execute function private.check_contract_ata_process();
+create trigger contract_ata_process_update
+  before update of ata_id, process_id on public.contracts for each row
+  when (old.ata_id is distinct from new.ata_id or old.process_id is distinct from new.process_id)
+  execute function private.check_contract_ata_process();
+
+-- Criação de contrato e consumo da ata em uma única transação. A trava da linha
+-- de cada item serializa a conferência do saldo com outros compromissos.
+create or replace function public.create_contract_with_ata(p jsonb) returns jsonb
+language plpgsql set search_path = '' as $$
+declare
+  v_ata public.price_registration_atas%rowtype;
+  v_item record;
+  v_contract_council uuid := (p ->> 'council_id')::uuid;
+  v_contract_process uuid := nullif(p ->> 'process_id', '')::uuid;
+  v_ata_id uuid := nullif(p ->> 'ata_id', '')::uuid;
+  v_committed numeric;
+  v_allocated numeric;
+  v_council_committed numeric;
+  v_end_date date;
+begin
+  -- Serializa reenvios concorrentes do mesmo contrato antes da checagem de ID.
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p ->> 'id', 0));
+  if exists (select 1 from public.contracts where id = (p ->> 'id')::uuid) then
+    return jsonb_build_object('ok', false, 'code', 'CONFLICT', 'message', 'Contrato já cadastrado.');
+  end if;
+  if v_ata_id is null then
+    if jsonb_array_length(coalesce(p -> 'ata_items', '[]'::jsonb)) > 0 then
+      return jsonb_build_object('ok', false, 'code', 'VALIDATION', 'message', 'Informe a ata dos itens contratados.');
+    end if;
+    perform public.save_contract(p);
+    return jsonb_build_object('ok', true);
+  end if;
+
+  select * into v_ata from public.price_registration_atas where id = v_ata_id;
+  if not found then
+    return jsonb_build_object('ok', false, 'code', 'NOT_FOUND', 'message', 'Ata não encontrada.');
+  end if;
+  if v_ata.council_id <> v_contract_council then
+    return jsonb_build_object('ok', false, 'code', 'VALIDATION', 'message', 'A ata deve pertencer ao órgão do contrato.');
+  end if;
+  if v_ata.status <> 'vigente' then
+    return jsonb_build_object('ok', false, 'code', 'INVALID_STATE', 'message', 'A ata não está vigente.');
+  end if;
+  if v_ata.process_id is not null and v_contract_process is distinct from v_ata.process_id then
+    return jsonb_build_object('ok', false, 'code', 'VALIDATION', 'message', 'Ata e contrato devem pertencer ao mesmo processo.');
+  end if;
+  select coalesce(max(new_end_date), (v_ata.start_date + interval '1 year' - interval '1 day')::date)
+    into v_end_date from public.ata_extensions where ata_id = v_ata_id;
+  if (now() at time zone 'America/Fortaleza')::date > v_end_date then
+    return jsonb_build_object('ok', false, 'code', 'INVALID_STATE', 'message', 'A ata está vencida.');
+  end if;
+  if jsonb_array_length(coalesce(p -> 'ata_items', '[]'::jsonb)) = 0 then
+    return jsonb_build_object('ok', false, 'code', 'VALIDATION', 'message', 'Informe ao menos um item da ata.');
+  end if;
+  if exists (
+    select 1 from jsonb_array_elements(p -> 'ata_items') i
+    group by i ->> 'ata_item_id' having count(*) > 1
+  ) then
+    return jsonb_build_object('ok', false, 'code', 'VALIDATION', 'message', 'Item da ata repetido no contrato.');
+  end if;
+
+  for v_item in
+    select (i ->> 'ata_item_id')::uuid as item_id, (i ->> 'quantity')::numeric as quantity
+      from jsonb_array_elements(p -> 'ata_items') i
+     order by (i ->> 'ata_item_id')::uuid
+  loop
+    perform 1 from public.ata_items where id = v_item.item_id and ata_id = v_ata_id for update;
+    if not found then
+      return jsonb_build_object('ok', false, 'code', 'VALIDATION', 'message', 'Item não pertence à ata selecionada.');
+    end if;
+    if v_item.quantity is null or v_item.quantity <= 0 then
+      return jsonb_build_object('ok', false, 'code', 'VALIDATION', 'message', 'Quantidade contratada inválida.');
+    end if;
+    select coalesce(sum(case when event_type = 'commit' then quantity else -quantity end), 0)
+      into v_committed from public.ata_commitments where item_id = v_item.item_id;
+    if v_item.quantity > (select registered_quantity from public.ata_items where id = v_item.item_id) - v_committed then
+      return jsonb_build_object('ok', false, 'code', 'INSUFFICIENT_BALANCE', 'message', 'Saldo insuficiente na ata.');
+    end if;
+    select quantity into v_allocated from public.ata_allocations
+      where item_id = v_item.item_id and council_id = v_contract_council;
+    if found then
+      select coalesce(sum(case when event_type = 'commit' then quantity else -quantity end), 0)
+        into v_council_committed from public.ata_commitments
+       where item_id = v_item.item_id and council_id = v_contract_council;
+      if v_item.quantity > v_allocated - v_council_committed then
+        return jsonb_build_object('ok', false, 'code', 'INSUFFICIENT_BALANCE', 'message', 'Alocação insuficiente na ata.');
+      end if;
+    end if;
+  end loop;
+
+  perform public.save_contract(p);
+  insert into public.ata_commitments (item_id, event_type, quantity, council_id, legal_basis)
+  select (i ->> 'ata_item_id')::uuid, 'commit', (i ->> 'quantity')::numeric,
+         v_contract_council, 'contract:' || (p ->> 'id')
+    from jsonb_array_elements(p -> 'ata_items') i;
+  return jsonb_build_object('ok', true);
+end $$;
+
+revoke all on function public.create_contract_with_ata(jsonb) from public, anon, authenticated;
+grant execute on function public.create_contract_with_ata(jsonb) to service_role;
+
+create or replace function public.cancel_purchase_request(
+  p_request uuid, p_actor uuid, p_at timestamptz, p_note text default null
+) returns jsonb
+language plpgsql set search_path = '' as $$
+declare
+  v_request public.purchase_requests%rowtype;
+begin
+  select * into v_request from public.purchase_requests where id = p_request for update;
+  if not found then
+    return jsonb_build_object('ok', false, 'code', 'NOT_FOUND', 'message', 'Solicitação não encontrada.');
+  end if;
+  if v_request.status not in ('rascunho', 'enviada', 'em_analise', 'aprovada') then
+    return jsonb_build_object('ok', false, 'code', 'INVALID_STATE', 'message', 'A solicitação não pode mais ser cancelada.');
+  end if;
+
+  update public.purchase_requests set status = 'cancelada' where id = p_request;
+  insert into public.purchase_request_events (request_id, position, from_status, to_status, actor_id, at, note)
+  values (p_request, private.next_request_event_position(p_request), v_request.status, 'cancelada', p_actor, p_at, p_note);
+  return jsonb_build_object('ok', true);
+end $$;
+
+revoke all on function public.approve_purchase_request(uuid, uuid, timestamptz, text) from public, anon, authenticated;
+revoke all on function public.cancel_purchase_request(uuid, uuid, timestamptz, text) from public, anon, authenticated;
+grant execute on function public.approve_purchase_request(uuid, uuid, timestamptz, text) to service_role;
+grant execute on function public.cancel_purchase_request(uuid, uuid, timestamptz, text) to service_role;
+
+-- Ledger append-only: libera exatamente o saldo líquido das reservas antigas
+-- feitas na aprovação. Considera cancelamentos já lançados e a marca desta
+-- migração para permitir reaplicação segura em um ambiente de desenvolvimento.
+do $$
+declare
+  reservation record;
+  committed numeric;
+  released numeric;
+  outstanding numeric;
+  available_committed numeric;
+begin
+  for reservation in
+    select item_id, council_id, substring(legal_basis from 9) as request_id
+    from public.ata_commitments
+    where event_type = 'commit'
+      and legal_basis ~ '^request:[0-9a-fA-F-]{36}$'
+    group by item_id, council_id, substring(legal_basis from 9)
+    order by item_id, council_id, substring(legal_basis from 9)
+  loop
+    perform 1 from public.ata_items where id = reservation.item_id for update;
+
+    select coalesce(sum(quantity), 0) into committed
+    from public.ata_commitments
+    where item_id = reservation.item_id and council_id = reservation.council_id
+      and event_type = 'commit' and legal_basis = 'request:' || reservation.request_id;
+    select coalesce(sum(quantity), 0) into released
+    from public.ata_commitments
+    where item_id = reservation.item_id and council_id = reservation.council_id
+      and event_type = 'release'
+      and legal_basis in ('cancelamento ' || reservation.request_id,
+                          'migration:release:request:' || reservation.request_id);
+    outstanding := committed - released;
+    if outstanding < 0 then
+      raise exception 'Reserva antiga da solicitação % já foi liberada em excesso.', reservation.request_id;
+    end if;
+    if outstanding = 0 then continue; end if;
+
+    select coalesce(sum(case when event_type = 'commit' then quantity else -quantity end), 0)
+      into available_committed
+    from public.ata_commitments where item_id = reservation.item_id;
+    if outstanding > available_committed then
+      raise exception 'Saldo comprometido insuficiente para liberar a reserva antiga da solicitação %.', reservation.request_id;
+    end if;
+    insert into public.ata_commitments (item_id, event_type, quantity, council_id, legal_basis)
+    values (reservation.item_id, 'release', outstanding, reservation.council_id,
+            'migration:release:request:' || reservation.request_id);
+  end loop;
+end $$;
+
+-- ===== 20261126011903_atomic_purchase_receipt.sql =====
+-- Recebimento em uma transação: a linha do processo serializa todos os
+-- recebimentos que concorrem pelo mesmo teto contratual.
+create function public.receive_purchase_request(
+  p_request uuid, p_actor uuid, p_at timestamptz,
+  p_receipt_key text, p_lines jsonb,
+  p_close_incomplete boolean default false, p_justification text default null
+) returns jsonb
+language plpgsql set search_path = '' as $$
+declare
+  v_request public.purchase_requests%rowtype;
+  v_process public.administrative_processes%rowtype;
+  v_line record;
+  v_ata_line record;
+  v_item public.purchase_request_items%rowtype;
+  v_contract_count integer;
+  v_ata_contract_count integer;
+  v_contract_total numeric;
+  v_received_total numeric;
+  v_complete boolean;
+  v_target text;
+  v_from text;
+  v_balance public.stock_balances%rowtype;
+begin
+  if p_receipt_key is null or length(trim(p_receipt_key)) < 8
+     or p_lines is null or jsonb_typeof(p_lines) <> 'array' then
+    return jsonb_build_object('ok', false, 'code', 'VALIDATION', 'message', 'Informe uma chave e itens válidos.');
+  end if;
+  if jsonb_array_length(p_lines) = 0 then
+    return jsonb_build_object('ok', false, 'code', 'VALIDATION', 'message', 'Informe uma chave e itens válidos.');
+  end if;
+
+  -- Ler o processo antes da solicitação evita deadlock com outros recebimentos.
+  select * into v_request from public.purchase_requests where id = p_request;
+  if not found then
+    return jsonb_build_object('ok', false, 'code', 'NOT_FOUND', 'message', 'Solicitação não encontrada.');
+  end if;
+  if v_request.process_id is null then
+    return jsonb_build_object('ok', false, 'code', 'INVALID_STATE', 'message', 'Vincule a solicitação a um processo antes do recebimento.');
+  end if;
+  select * into v_process from public.administrative_processes
+    where id = v_request.process_id and council_id = v_request.council_id for update;
+  if not found then
+    return jsonb_build_object('ok', false, 'code', 'INVALID_STATE', 'message', 'Processo da solicitação não encontrado no órgão.');
+  end if;
+  select * into v_request from public.purchase_requests where id = p_request for update;
+  if v_request.process_id is distinct from v_process.id or v_request.council_id is distinct from v_process.council_id then
+    return jsonb_build_object('ok', false, 'code', 'CONFLICT', 'message', 'O vínculo da solicitação com o processo mudou.');
+  end if;
+  if exists(select 1 from public.purchase_receipt_keys where request_id = p_request and receipt_key = p_receipt_key) then
+    return jsonb_build_object('ok', true);
+  end if;
+  if v_request.status not in ('aprovada', 'em_atendimento', 'parcialmente_atendida') then
+    return jsonb_build_object('ok', false, 'code', 'INVALID_STATE', 'message', 'A solicitação não está em fase de recebimento.');
+  end if;
+
+  select count(*), count(*) filter (where ata_id is not null)
+    into v_contract_count, v_ata_contract_count
+    from public.contracts where process_id = v_request.process_id and council_id = v_request.council_id;
+  if v_contract_count = 0 or (v_process.contracting_mode = 'registro_precos' and v_ata_contract_count = 0) then
+    return jsonb_build_object('ok', false, 'code', 'INVALID_STATE', 'message', 'Cadastre o contrato vinculado ao processo antes do recebimento.');
+  end if;
+
+  begin
+    -- Conferir o teto uma vez por item da ata antes de alterar qualquer total.
+    -- Assim duas linhas do mesmo item não contam a primeira duas vezes.
+    for v_ata_line in
+      select ri.ata_item_id, sum((line.value ->> 'received')::numeric) as incoming
+        from jsonb_array_elements(p_lines) line
+        join public.purchase_request_items ri on ri.id = (line.value ->> 'item_id')::uuid
+       where ri.request_id = p_request and ri.ata_item_id is not null
+       group by ri.ata_item_id
+    loop
+      select coalesce(sum(ci.quantity), 0) into v_contract_total
+        from public.contract_ata_items ci
+        join public.contracts c on c.id = ci.contract_id
+       where c.process_id = v_request.process_id and c.council_id = v_request.council_id
+         and c.ata_id is not null and ci.ata_item_id = v_ata_line.ata_item_id;
+      select coalesce(sum(ri.received_total), 0) into v_received_total
+        from public.purchase_request_items ri
+        join public.purchase_requests r on r.id = ri.request_id
+       where r.process_id = v_request.process_id and ri.ata_item_id = v_ata_line.ata_item_id;
+      if v_contract_total = 0 or v_received_total + v_ata_line.incoming > v_contract_total then
+        perform private.business_error('VALIDATION', 'Quantidade acima do contratado para o item da ata.');
+      end if;
+    end loop;
+
+    for v_line in
+      select (value ->> 'item_id')::uuid as item_id, sum((value ->> 'received')::numeric) as quantity
+        from jsonb_array_elements(p_lines) value
+       group by (value ->> 'item_id')::uuid
+       order by (value ->> 'item_id')::uuid
+    loop
+      select * into v_item from public.purchase_request_items
+        where id = v_line.item_id and request_id = p_request for update;
+      if not found then perform private.business_error('NOT_FOUND', 'Item não pertence à solicitação.'); end if;
+      if v_line.quantity <= 0 or v_item.received_total + v_line.quantity > v_item.quantity then
+        perform private.business_error('VALIDATION', 'Quantidade recebida excede o pedido.');
+      end if;
+      insert into public.stock_balances (council_id, material_id)
+      values (v_request.council_id, v_item.material_id) on conflict do nothing;
+      select * into v_balance from public.stock_balances
+        where council_id = v_request.council_id and material_id = v_item.material_id for update;
+      insert into public.stock_movements
+        (council_id, material_id, type, quantity, idempotency_key, reason, reference, actor_id)
+      values (v_request.council_id, v_item.material_id, 'entry', v_line.quantity,
+        'receipt:' || p_receipt_key || ':' || v_item.id, 'Recebimento de compra',
+        'request:' || p_request, p_actor);
+      update public.stock_balances
+         set physical = physical + v_line.quantity, version = version + 1, updated_at = now()
+       where council_id = v_request.council_id and material_id = v_item.material_id;
+      update public.purchase_request_items
+         set received_total = received_total + v_line.quantity where id = v_item.id;
+    end loop;
+
+    select bool_and(received_total = quantity) into v_complete
+      from public.purchase_request_items where request_id = p_request;
+    if p_close_incomplete and not v_complete and length(trim(coalesce(p_justification, ''))) < 15 then
+      perform private.business_error('VALIDATION', 'A justificativa deve ter no mínimo 15 caracteres.');
+    end if;
+    v_target := case when p_close_incomplete or v_complete then 'atendida' else 'parcialmente_atendida' end;
+    v_from := v_request.status;
+    if v_from = 'aprovada' then
+      insert into public.purchase_request_events (request_id, position, from_status, to_status, actor_id, at)
+      values (p_request, private.next_request_event_position(p_request), 'aprovada', 'em_atendimento', p_actor, p_at);
+      v_from := 'em_atendimento';
+    end if;
+    update public.purchase_requests set status = v_target where id = p_request;
+    insert into public.purchase_request_events (request_id, position, from_status, to_status, actor_id, at, note)
+    values (p_request, private.next_request_event_position(p_request), v_from, v_target, p_actor, p_at,
+      case when p_close_incomplete and not v_complete then trim(p_justification) else null end);
+    insert into public.purchase_receipt_keys (request_id, receipt_key) values (p_request, p_receipt_key);
+  exception when sqlstate 'P0001' then
+    return jsonb_build_object('ok', false, 'code', split_part(sqlerrm, '|', 1), 'message', split_part(sqlerrm, '|', 2));
+  end;
+  return jsonb_build_object('ok', true);
+end $$;
+
+revoke all on function public.receive_purchase_request(uuid, uuid, timestamptz, text, jsonb, boolean, text)
+  from public, anon, authenticated;
+grant execute on function public.receive_purchase_request(uuid, uuid, timestamptz, text, jsonb, boolean, text)
+  to service_role;
+
+-- ===== 20261126020000_profile_staff_category.sql =====
+-- Classificação declarada para relatórios individuais/mensais. Registros antigos permanecem sem classificação.
+alter table public.profiles add column staff_category text not null default 'unclassified'
+  check (staff_category in ('unclassified', 'collaborator', 'intern'));
+create index idx_profiles_staff_category on public.profiles (staff_category) where staff_category = 'intern';
+
+-- ===== 20261126020100_meeting_evidence.sql =====
+create table public.meeting_attendance (
+  meeting_id uuid not null references public.meetings(id),
+  participant_id uuid not null references public.profiles(id),
+  recorded_by uuid not null references public.profiles(id),
+  recorded_at timestamptz not null default now(),
+  primary key (meeting_id, participant_id)
+);
+create table public.meeting_task_completions (
+  task_id uuid primary key references public.meeting_action_items(id),
+  completed_by uuid not null references public.profiles(id),
+  completed_at timestamptz not null default now(),
+  due_date date
+);
+alter table public.meeting_attendance enable row level security;
+alter table public.meeting_task_completions enable row level security;
+revoke all on public.meeting_attendance, public.meeting_task_completions from anon, authenticated;
+grant select on public.meeting_attendance, public.meeting_task_completions to service_role;
+
+-- Writes go through the authorized server operation and commit together with the audit event.
+create function public.record_meeting_evidence(p_meeting uuid, p_actor uuid, p_target uuid, p_kind text)
+returns boolean language plpgsql security definer set search_path = '' as $$
+declare
+  m public.meetings%rowtype;
+  changed integer;
+begin
+  select * into m from public.meetings where id = p_meeting for update;
+  if not found or not exists (
+    select 1 from public.profiles p where p.id = p_actor and p.active and
+      (p.is_central_admin or exists (select 1 from public.council_memberships cm
+        where cm.council_id = m.council_id and cm.user_id = p_actor
+          and cm.role in ('council_manager','council_operator')))
+  ) then return false; end if;
+
+  if p_kind = 'attendance' then
+    if m.status <> 'realizada' or not exists (
+      select 1 from public.council_memberships where council_id = m.council_id and user_id = p_target
+    ) then return false; end if;
+    insert into public.meeting_attendance (meeting_id, participant_id, recorded_by)
+      values (p_meeting, p_target, p_actor) on conflict do nothing;
+  elsif p_kind = 'completion' then
+    insert into public.meeting_task_completions (task_id, completed_by, due_date)
+      select id, p_actor, due_date from public.meeting_action_items
+      where id = p_target and meeting_id = p_meeting and not done
+      on conflict do nothing;
+  else return false;
+  end if;
+
+  get diagnostics changed = row_count;
+  if changed = 0 then return false; end if;
+  if p_kind = 'completion' then
+    update public.meeting_action_items set done = true where id = p_target;
+  end if;
+  insert into public.audit_logs (actor_id, action, entity, entity_id, council_id, details)
+    values (p_actor, 'meeting.' || p_kind, 'meeting', p_meeting::text, m.council_id,
+      jsonb_build_object('targetId', p_target));
+  return true;
+end $$;
+revoke all on function public.record_meeting_evidence(uuid,uuid,uuid,text) from public, anon, authenticated;
+grant execute on function public.record_meeting_evidence(uuid,uuid,uuid,text) to service_role;
+
+-- A save based on an older meeting snapshot cannot undo a recorded completion.
+create function private.keep_meeting_task_completion() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if exists (select 1 from public.meeting_task_completions where task_id = old.id) then
+    new.done := true;
+  end if;
+  return new;
+end $$;
+create trigger keep_meeting_task_completion before update on public.meeting_action_items
+for each row execute function private.keep_meeting_task_completion();
+
+-- ===== 20261126020200_process_assignment_contract_closure.sql =====
+-- Campos opcionais preservam os processos e contratos anteriores.
+alter table public.administrative_processes
+  add column responsible_id uuid references public.profiles(id),
+  add column process_type text check (process_type is null or length(trim(process_type)) between 1 and 80);
+create index administrative_processes_responsible_id_idx on public.administrative_processes(responsible_id)
+  where responsible_id is not null;
+
+create function private.check_process_responsible_membership() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if new.responsible_id is not null and not exists (
+    select 1 from public.council_memberships m join public.profiles p on p.id = m.user_id
+    where m.user_id = new.responsible_id and m.council_id = new.council_id and p.active
+  ) then
+    raise check_violation using message = 'O responsável precisa ser usuário ativo do órgão do processo.';
+  end if;
+  return new;
+end $$;
+create trigger administrative_processes_responsible_membership
+before insert or update of responsible_id, council_id on public.administrative_processes
+for each row execute function private.check_process_responsible_membership();
+
+alter table public.contracts
+  add column closed_at timestamptz,
+  add column closed_by uuid references public.profiles(id);
+alter table public.contracts add constraint contracts_closure_pair
+  check ((closed_at is null) = (closed_by is null));
+
+-- O recebimento antigo continua sem contrato individual conhecido.
+create table public.contract_receipt_lines (
+  request_id uuid not null references public.purchase_requests(id),
+  receipt_key text not null,
+  request_item_id uuid not null references public.purchase_request_items(id),
+  contract_id uuid not null references public.contracts(id),
+  ata_item_id uuid references public.ata_items(id),
+  quantity numeric(15,3) not null check (quantity > 0),
+  created_at timestamptz not null default now(),
+  primary key (request_id, receipt_key, request_item_id),
+  foreign key (request_id, receipt_key) references public.purchase_receipt_keys(request_id, receipt_key)
+);
+create index contract_receipt_lines_contract_idx on public.contract_receipt_lines(contract_id);
+alter table public.contract_receipt_lines enable row level security;
+create policy contract_receipt_lines_select on public.contract_receipt_lines
+for select to authenticated using (exists (
+  select 1 from public.purchase_requests r where r.id = request_id
+  and private.has_council_access(r.council_id)
+));
+grant select on public.contract_receipt_lines to authenticated;
+
+-- O wrapper preserva todas as regras da RPC vigente e grava a atribuição na
+-- mesma transação. Falha de qualquer inserção reverte o recebimento inteiro.
+create function public.receive_purchase_request_for_contract(
+  p_request uuid, p_contract uuid, p_actor uuid, p_at timestamptz,
+  p_receipt_key text, p_lines jsonb,
+  p_close_incomplete boolean default false, p_justification text default null
+) returns jsonb language plpgsql set search_path = '' as $$
+declare
+  v_request public.purchase_requests%rowtype;
+  v_contract public.contracts%rowtype;
+  v_line record;
+  v_contract_total numeric;
+  v_attributed numeric;
+  v_received_total numeric;
+  v_other_contracts integer;
+  v_result jsonb;
+begin
+  if p_contract is null or p_lines is null or jsonb_typeof(p_lines) <> 'array' then
+    return jsonb_build_object('ok', false, 'code', 'VALIDATION', 'message', 'Selecione um contrato válido.');
+  end if;
+  select * into v_request from public.purchase_requests where id = p_request;
+  if not found then
+    return jsonb_build_object('ok', false, 'code', 'NOT_FOUND', 'message', 'Solicitação não encontrada.');
+  end if;
+  -- A mesma linha de processo serializa recebimentos de contratos distintos.
+  perform 1 from public.administrative_processes
+    where id = v_request.process_id and council_id = v_request.council_id for update;
+  select * into v_contract from public.contracts where id = p_contract;
+  if not found or v_contract.process_id is distinct from v_request.process_id
+    or v_contract.council_id is distinct from v_request.council_id then
+    return jsonb_build_object('ok', false, 'code', 'VALIDATION', 'message', 'Contrato incompatível com a solicitação e o órgão.');
+  end if;
+  if exists(select 1 from public.purchase_receipt_keys where request_id = p_request and receipt_key = p_receipt_key) then
+    if exists(select 1 from public.contract_receipt_lines
+      where request_id = p_request and receipt_key = p_receipt_key and contract_id <> p_contract) then
+      return jsonb_build_object('ok', false, 'code', 'CONFLICT', 'message', 'A chave de recebimento já pertence a outro contrato.');
+    end if;
+    return jsonb_build_object('ok', true);
+  end if;
+  for v_line in
+    select ri.id as item_id, ri.ata_item_id, sum((line.value ->> 'received')::numeric) as quantity
+    from jsonb_array_elements(p_lines) line
+    join public.purchase_request_items ri on ri.id = (line.value ->> 'item_id')::uuid
+    where ri.request_id = p_request
+    group by ri.id, ri.ata_item_id
+  loop
+    if v_line.ata_item_id is not null then
+      select coalesce(sum(ci.quantity), 0) into v_contract_total
+      from public.contract_ata_items ci where ci.contract_id = p_contract and ci.ata_item_id = v_line.ata_item_id;
+      if v_contract.ata_id is null or v_contract_total = 0 then
+        return jsonb_build_object('ok', false, 'code', 'VALIDATION', 'message', 'Item da ata não pertence ao contrato escolhido.');
+      end if;
+      select coalesce(sum(cr.quantity), 0) into v_attributed
+      from public.contract_receipt_lines cr where cr.contract_id = p_contract and cr.ata_item_id = v_line.ata_item_id;
+      select coalesce(sum(ri.received_total), 0) into v_received_total
+      from public.purchase_request_items ri join public.purchase_requests r on r.id = ri.request_id
+      where r.process_id = v_request.process_id and r.council_id = v_request.council_id
+        and ri.ata_item_id = v_line.ata_item_id;
+      select count(*) into v_other_contracts from public.contract_ata_items ci
+      join public.contracts c on c.id = ci.contract_id
+      where c.id <> p_contract and c.process_id = v_request.process_id and c.council_id = v_request.council_id
+        and ci.ata_item_id = v_line.ata_item_id;
+      if v_other_contracts > 0 and v_received_total > (
+        select coalesce(sum(cr.quantity), 0) from public.contract_receipt_lines cr
+        join public.contracts c on c.id = cr.contract_id
+        where c.process_id = v_request.process_id and c.council_id = v_request.council_id
+          and cr.ata_item_id = v_line.ata_item_id
+      ) then
+        return jsonb_build_object('ok', false, 'code', 'CONFLICT', 'message', 'Há recebimentos históricos sem contrato individual comprovado para este item.');
+      end if;
+      if v_attributed + (case when v_other_contracts = 0 then v_received_total - v_attributed else 0 end) + v_line.quantity > v_contract_total then
+        return jsonb_build_object('ok', false, 'code', 'VALIDATION', 'message', 'Quantidade acima do saldo contratado para este contrato.');
+      end if;
+    elsif v_contract.ata_id is not null then
+      return jsonb_build_object('ok', false, 'code', 'VALIDATION', 'message', 'Item sem ata não corresponde ao contrato escolhido.');
+    end if;
+  end loop;
+  v_result := public.receive_purchase_request(p_request, p_actor, p_at, p_receipt_key,
+    p_lines, p_close_incomplete, p_justification);
+  if not coalesce((v_result ->> 'ok')::boolean, false) then return v_result; end if;
+  insert into public.contract_receipt_lines(request_id, receipt_key, request_item_id, contract_id, ata_item_id, quantity)
+  select p_request, p_receipt_key, ri.id, p_contract, ri.ata_item_id, sum((line.value ->> 'received')::numeric)
+  from jsonb_array_elements(p_lines) line
+  join public.purchase_request_items ri on ri.id = (line.value ->> 'item_id')::uuid
+  where ri.request_id = p_request
+  group by ri.id, ri.ata_item_id;
+  return v_result;
+end $$;
+revoke all on function public.receive_purchase_request_for_contract(uuid, uuid, uuid, timestamptz, text, jsonb, boolean, text)
+  from public, anon, authenticated;
+grant execute on function public.receive_purchase_request_for_contract(uuid, uuid, uuid, timestamptz, text, jsonb, boolean, text)
+  to service_role;
+
+-- ===== 20261126020300_contract_receipt_integrity.sql =====
+-- Protege o vínculo mesmo se uma gravação contornar a RPC de recebimento.
+create function private.check_contract_receipt_line() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if not exists (
+    select 1
+    from public.purchase_request_items ri
+    join public.purchase_requests r on r.id = ri.request_id
+    join public.contracts c on c.id = new.contract_id
+    where ri.id = new.request_item_id and ri.request_id = new.request_id
+      and c.council_id = r.council_id and c.process_id = r.process_id
+      and ri.ata_item_id is not distinct from new.ata_item_id
+      and (
+        (ri.ata_item_id is null and c.ata_id is null)
+        or exists (
+          select 1 from public.contract_ata_items ci
+          join public.ata_items ai on ai.id = ci.ata_item_id
+          where ci.contract_id = c.id and ci.ata_item_id = ri.ata_item_id
+            and ai.ata_id = c.ata_id
+        )
+      )
+  ) then
+    raise check_violation using message = 'Recebimento, contrato, item da ata e órgão incompatíveis.';
+  end if;
+  return new;
+end $$;
+create trigger contract_receipt_line_integrity
+before insert or update on public.contract_receipt_lines
+for each row execute function private.check_contract_receipt_line();
+
 commit;

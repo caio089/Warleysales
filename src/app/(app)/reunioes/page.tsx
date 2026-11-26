@@ -13,7 +13,7 @@ import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { SimpleTable } from "@/shared/ui/simple-table";
-import { MeetingActions, NewMeetingForm } from "./meeting-forms";
+import { MeetingEvidenceForm, MeetingActions, NewMeetingForm } from "./meeting-forms";
 import { MeetingMediaPanel } from "./meeting-media-panel";
 
 export const metadata: Metadata = { title: "Reuniões" };
@@ -24,11 +24,15 @@ async function Content({ searchParams }: { searchParams: Promise<{ reuniao?: str
     const [meetings, lookups] = await Promise.all([ctx.services.meetings.list(ctx.actor), loadLookups(ctx)]);
     if (!meetings.ok) return meetings;
     if (!lookups.ok) return lookups;
-    return ok({ meetings: meetings.data, lookups: lookups.data, canManage: canInAnyCouncil(ctx.actor, "meeting.manage"), manageableMeetingIds: meetings.data.filter((m) => can(ctx.actor, "meeting.manage", m.councilId)).map((m) => m.id) });
+    const selected = meetings.data.find((meeting) => meeting.id === selectedId);
+    const participants = selected?.status === "realizada"
+      ? await ctx.services.memberships.meetingParticipants(ctx.actor, selected.councilId)
+      : [];
+    return ok({ participants, meetings: meetings.data, lookups: lookups.data, canManage: canInAnyCouncil(ctx.actor, "meeting.manage"), manageableMeetingIds: meetings.data.filter((m) => can(ctx.actor, "meeting.manage", m.councilId)).map((m) => m.id) });
   });
   return (
     <Screen result={result}>
-      {({ meetings, lookups, canManage, manageableMeetingIds }) => {
+      {({ meetings, lookups, canManage, manageableMeetingIds, participants }) => {
         const selected = meetings.find((meeting) => meeting.id === selectedId);
         const totalMeetings = meetings.length;
         const upcomingMeetings = meetings.filter((m) => m.status === "agendada").length;
@@ -41,6 +45,13 @@ async function Content({ searchParams }: { searchParams: Promise<{ reuniao?: str
             {selected ? <section className="surface-card space-y-2 p-5" aria-labelledby="reuniao-selecionada">
               <h2 id="reuniao-selecionada" className="font-semibold">{selected.title}</h2>
               <p className="text-sm">{lookups.councilLabel[selected.councilId]} · {selected.scheduledAt.toLocaleString("pt-BR", { timeZone: "America/Fortaleza" })} · {selected.status}</p>
+              {manageableMeetingIds.includes(selected.id) && <>
+                <MeetingEvidenceForm meetingId={selected.id} kind="attendance" options={participants
+                  .filter((person) => !selected.attendance?.some((row) => row.participantId === person.id))
+                  .map((person) => ({ value: person.id, label: person.fullName || person.id }))} />
+                <MeetingEvidenceForm meetingId={selected.id} kind="completion" options={selected.actionItems
+                  .filter((item) => !item.done).map((item) => ({ value: item.id, label: item.description }))} />
+              </>}
               {selected.minutes ? <p className="whitespace-pre-wrap text-sm">{selected.minutes.text}</p> : null}
             </section> : null}
             <FlowGuide title="Da agenda à ata" steps={[

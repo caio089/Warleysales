@@ -22,4 +22,5 @@ export interface ProfileSummary {
   id: string;
   fullName: string;
   active: boolean;
+  staffCategory?: "unclassified" | "collaborator" | "intern";
 }

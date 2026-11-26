@@ -15,10 +15,16 @@ export class InMemoryCouncilRepository implements CouncilRepository {
 }
 
 export class InMemoryMembershipRepository implements MembershipRepository {
-  constructor(private readonly records: MembershipRecord[] = [], private readonly profiles: { id: string; fullName: string; active: boolean }[] = []) {}
+  constructor(private readonly records: MembershipRecord[] = [], private readonly profiles: { id: string; fullName: string; active: boolean; staffCategory?: "unclassified" | "collaborator" | "intern" }[] = []) {}
   async listByCouncil(councilId: string) { return this.records.filter((r) => r.councilId === councilId); }
   async listAll() { return [...this.records]; }
   async listProfiles() { return [...this.profiles]; }
+  async setStaffCategory(userId: string, category: "unclassified" | "collaborator" | "intern") {
+    const profile = this.profiles.find((p) => p.id === userId);
+    if (!profile) return false;
+    profile.staffCategory = category;
+    return true;
+  }
   async upsert(record: MembershipRecord) {
     const i = this.records.findIndex((r) => r.userId === record.userId && r.councilId === record.councilId);
     if (i >= 0) this.records[i] = record;

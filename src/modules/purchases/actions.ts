@@ -100,6 +100,7 @@ export async function receiveFormAction(_previous: ActionState, formData: FormDa
     ({ services, actor }) =>
       services.purchases.receive(actor, {
         requestId,
+        contractId: String(formData.get("contractId") || "") || undefined,
         receiptKey: String(formData.get("receiptKey")),
         lines,
         closeIncomplete,

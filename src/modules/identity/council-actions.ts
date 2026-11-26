@@ -65,3 +65,15 @@ export async function removeMembershipFormAction(_previous: ActionState, formDat
   if (result.status === "success") revalidatePath("/administracao/usuarios");
   return result.status === "success" ? { status: "success", message: result.message } : result;
 }
+
+export async function setStaffCategoryFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  const result = await runAction(
+    ({ services, actor }) => services.memberships.setStaffCategory(actor, { userId: formData.get("userId"), category: formData.get("category") }),
+    "Classificação registrada.",
+  );
+  if (result.status === "success") {
+    revalidatePath("/administracao/usuarios");
+    revalidatePath("/relatorios");
+  }
+  return result.status === "success" ? { status: "success", message: result.message } : result;
+}

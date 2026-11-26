@@ -1,8 +1,9 @@
+import { z } from "zod";
 import type { AuditRecorder } from "@/modules/audit/service";
 import { guard } from "@/shared/lib/authz/guard";
 import { can, readableCouncilIds, type Actor } from "@/shared/lib/authz/policy";
 import { fail, ok, type Result } from "@/shared/lib/result";
-import { parseInput, type RuntimeDeps } from "@/shared/lib/service-support";
+import { idSchema, parseInput, type RuntimeDeps } from "@/shared/lib/service-support";
 import { changeMeetingStatus } from "./domain/meeting-status";
 import type { MeetingRepository } from "./repository";
 import { actionItemSchema, changeMeetingStatusSchema, minutesSchema, scheduleMeetingSchema, type Meeting } from "./schemas";
@@ -71,6 +72,18 @@ export class MeetingService {
     const saved = await this.repository.save({ ...meeting, actionItems: [...meeting.actionItems, item] });
     await this.audit.record({ actorId: actor.userId, action: "meeting.action_item", entity: "meeting", entityId: meeting.id, councilId: meeting.councilId, result: "success", details: { description: item.description } });
     return ok(saved);
+  }
+
+  async recordEvidence(actor: Actor, input: unknown): Promise<Result<true>> {
+    const parsed = parseInput(z.object({ meetingId: idSchema, targetId: idSchema, kind: z.enum(["attendance", "completion"]) }), input);
+    if (!parsed.ok) return parsed;
+    const { meetingId, targetId, kind } = parsed.data;
+    const meeting = await this.repository.findById(meetingId);
+    if (!meeting) return fail("NOT_FOUND", "Reunião não encontrada.");
+    const allowed = await guard(this.audit, actor, "meeting.manage", meeting.councilId, "meeting", meetingId);
+    if (!allowed.ok) return allowed;
+    const saved = await this.repository.recordEvidence(meetingId, actor.userId, targetId, kind);
+    return saved ? ok(true) : fail("INVALID_STATE", "Registro já confirmado ou indisponível para esta reunião.");
   }
 
   async list(actor: Actor): Promise<Result<Meeting[]>> {

@@ -12,6 +12,8 @@ export interface ContractAtaItem {
 
 /** R8: contrato é entidade distinta de ata de registro de preços e de estoque. */
 export interface Contract {
+  closedAt?: Date | null;
+  closedBy?: string | null;
   id: string;
   councilId: string;
   number: string;
@@ -53,6 +55,7 @@ export const linkContractProcessSchema = z.object({
   contractId: idSchema,
   processId: idSchema.nullable(),
 });
+export const closeContractSchema = z.object({ contractId: idSchema });
 
 export const addAmendmentSchema = z.object({
   contractId: idSchema,

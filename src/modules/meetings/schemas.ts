@@ -15,6 +15,7 @@ export interface ActionItem {
   responsibleId: string | null;
   dueDate: string | null;
   done: boolean;
+  completion?: { actorId: string; at: Date; dueDate: string | null };
 }
 
 export interface Meeting {
@@ -28,6 +29,7 @@ export interface Meeting {
   transcript: string | null;
   actionItems: ActionItem[];
   createdBy: string;
+  attendance?: { participantId: string; recordedBy: string; at: Date }[];
 }
 
 export const scheduleMeetingSchema = z.object({

@@ -9,10 +9,12 @@ import { ContractService } from "./service";
 
 function setup() {
   const runtime = makeRuntime("2026-07-02T15:00:00Z");
-  const audit = new AuditService(new InMemoryAuditRepository(runtime.now));
+  const auditRepo = new InMemoryAuditRepository(runtime.now);
+  const audit = new AuditService(auditRepo);
   const atas = new AtaService(new InMemoryAtaRepository(), audit, runtime);
   return {
     runtime,
+    auditRepo,
     atas,
     service: new ContractService(new InMemoryContractRepository(), audit, runtime, undefined, atas),
   };
@@ -20,6 +22,19 @@ function setup() {
 const input = { councilId: COUNCIL_A, number: "10/2026", object: "Fornecimento de material de expediente", startDate: "2026-01-01", endDate: "2026-12-31", value: 1000 };
 
 describe("ContractService", () => {
+  it("registra encerramento administrativo sem alterar a vigência", async () => {
+    const { service, auditRepo } = setup();
+    const created = await service.create(managerOf(COUNCIL_A), input);
+    if (!created.ok) throw new Error(created.message);
+    expect((await service.close(managerOf(COUNCIL_B), { contractId: created.data.id })).ok).toBe(false);
+    const closed = await service.close(managerOf(COUNCIL_A), { contractId: created.data.id });
+    expect(closed.ok && closed.data.closedAt).toBeInstanceOf(Date);
+    expect(closed.ok && closed.data.original.endDate).toBe(input.endDate);
+    expect(auditRepo.all().some((event) => event.action === "contract.close" && event.entityId === created.data.id && event.actorId === (closed.ok ? closed.data.closedBy : null))).toBe(true);
+    const view = await service.get(managerOf(COUNCIL_A), created.data.id);
+    expect(view.ok && view.data.status).toBe("encerrado");
+    expect((await service.close(managerOf(COUNCIL_A), { contractId: created.data.id })).ok).toBe(false);
+  });
   it("cria e calcula dias restantes/percentual com o dia civil de Fortaleza", async () => {
     const { service } = setup();
     const created = await service.create(managerOf(COUNCIL_A), input);

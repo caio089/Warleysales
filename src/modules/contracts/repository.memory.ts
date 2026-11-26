@@ -4,6 +4,7 @@ import type { Contract } from "./schemas";
 
 export class InMemoryContractRepository implements ContractRepository {
   private table = new MemoryTable<Contract>();
+  async listReceiptLines() { return []; }
   async insert(c: Contract) { return this.table.insert(c); }
   async findById(id: string) { return this.table.get(id); }
   async listByCouncils(ids: readonly string[] | "all", process?: { id: string; councilId: string }) {
@@ -13,4 +14,8 @@ export class InMemoryContractRepository implements ContractRepository {
     );
   }
   async save(c: Contract) { this.table.insert(c); return c; }
+  async close(id: string, actorId: string, at: Date) {
+    const existing = this.table.get(id);
+    return existing && !existing.closedAt ? this.table.update(id, { closedAt: at, closedBy: actorId }) : null;
+  }
 }

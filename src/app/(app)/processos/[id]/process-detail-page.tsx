@@ -98,6 +98,7 @@ export async function ProcessContent({
       formalization: formalization.data,
       suppliers: suppliers.data,
       canManage: can(actor, "process.create", councilId),
+      assignees: (await services.memberships.processAssignees(actor, councilId)).map((person) => ({ value: person.id, label: person.fullName || person.id })),
       canUnlink: can(actor, "document.unlink", councilId),
       canRegisterClosing: can(actor, "retention.manage", councilId),
       isWarley: actor.isCentralAdmin,

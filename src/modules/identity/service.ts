@@ -102,6 +102,42 @@ export class MembershipService {
     private readonly audit: AuditRecorder,
   ) {}
 
+  async processAssignees(actor: Actor, councilId: string): Promise<ProfileSummary[]> {
+    if (!can(actor, "council.read", councilId)) return [];
+    const members = await this.memberships.listByCouncil(councilId);
+    const ids = new Set(members.map((member) => member.userId));
+    return (await this.memberships.listProfiles()).filter((profile) => profile.active && ids.has(profile.id));
+  }
+
+  /** Nomes de colaboradores limitados aos órgãos para os quais há permissão de relatório. */
+  async meetingParticipants(actor: Actor, councilId: string): Promise<ProfileSummary[]> {
+    if (!can(actor, "meeting.manage", councilId)) return [];
+    const members = await this.memberships.listByCouncil(councilId);
+    const ids = new Set(members.map((member) => member.userId));
+    return (await this.memberships.listProfiles()).filter((profile) => ids.has(profile.id));
+  }
+
+  async reportDirectory(actor: Actor): Promise<Result<ProfileSummary[]>> {
+    const councils = actor.isCentralAdmin
+      ? "all" as const
+      : actor.memberships.filter((m) => can(actor, "report.view", m.councilId)).map((m) => m.councilId);
+    if (councils !== "all" && councils.length === 0) return fail("FORBIDDEN", "Você não tem permissão para consultar colaboradores.");
+    const [memberships, profiles] = await Promise.all([this.memberships.listAll(), this.memberships.listProfiles()]);
+    const visible = new Set(memberships.filter((m) => councils === "all" || councils.includes(m.councilId)).map((m) => m.userId));
+    return ok(profiles.filter((p) => visible.has(p.id)));
+  }
+
+  async setStaffCategory(actor: Actor, input: unknown): Promise<Result<true>> {
+    const parsed = parseInput(z.object({ userId: idSchema, category: z.enum(["unclassified", "collaborator", "intern"]) }), input);
+    if (!parsed.ok) return parsed;
+    const allowed = await guard(this.audit, actor, "user.manage", undefined, "profile", parsed.data.userId);
+    if (!allowed.ok) return allowed;
+    const updated = await this.memberships.setStaffCategory(parsed.data.userId, parsed.data.category);
+    if (!updated) return fail("NOT_FOUND", "Usuário não encontrado.");
+    await this.audit.record({ actorId: actor.userId, action: "profile.staff_category", entity: "profile", entityId: parsed.data.userId, councilId: null, result: "success", details: { category: parsed.data.category } });
+    return ok(true);
+  }
+
   async directory(actor: Actor): Promise<Result<MembershipDirectory>> {
     const allowed = await guard(this.audit, actor, "user.manage", undefined, "council_membership");
     if (!allowed.ok) return allowed;

@@ -33,7 +33,7 @@ interface RequestRow {
   purchase_receipt_keys: { receipt_key: string }[];
 }
 
-const SELECT = "*, purchase_request_items(*), purchase_request_events(*), purchase_receipt_keys(receipt_key)";
+const SELECT = "*, purchase_request_items!purchase_request_items_request_id_fkey(*), purchase_request_events(*), purchase_receipt_keys!purchase_receipt_keys_request_id_fkey(receipt_key)";
 
 interface LinkedRequestNotesRow {
   process_id: string;
@@ -92,8 +92,9 @@ export class SupabasePurchaseRequestRepository implements PurchaseRequestReposit
   }
 
   async receiveAtomically(receipt: AtomicReceipt): Promise<Result<PurchaseRequest>> {
-    const outcome = await callRpc<RpcOutcome>(this.db, "receive_purchase_request", {
+    const outcome = await callRpc<RpcOutcome>(this.db, receipt.contractId ? "receive_purchase_request_for_contract" : "receive_purchase_request", {
       p_request: receipt.requestId,
+      ...(receipt.contractId ? { p_contract: receipt.contractId } : {}),
       p_actor: receipt.actorId,
       p_at: toIso(receipt.at),
       p_receipt_key: receipt.receiptKey,

@@ -56,14 +56,17 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
 
     const canReceive = can(ctx.actor, "stock.move", councilId);
     const pendingItems: { id: string; label: string; pending: number }[] = [];
+    let receiptContracts: { value: string; label: string; items: { id: string; pending: number }[] }[] = [];
     if (canReceive && linkedProcess && ["aprovada", "em_atendimento", "parcialmente_atendida"].includes(request.data.status)) {
       const processId = linkedProcess.process.id;
-      const [contracts, requests] = await Promise.all([
+      const [contracts, requests, receiptLines] = await Promise.all([
         ctx.services.contracts.list(ctx.actor, { id: processId, councilId }),
         ctx.services.purchases.list(ctx.actor),
+        ctx.services.contracts.listReceiptLines(ctx.actor),
       ]);
       if (!contracts.ok) return contracts;
       if (!requests.ok) return requests;
+      if (!receiptLines.ok) return receiptLines;
       const processContracts = contracts.data.map(({ contract }) => contract);
       const gate = assertContractAllowsReceive({
         processId,
@@ -83,6 +86,30 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
             pending: defaults.get(item.id) ?? 0,
           });
         }
+        const contractIds = new Set(processContracts.filter((c) => c.processId === processId).map((c) => c.id));
+        const linkedByAtaItem = new Map<string, number>();
+        for (const line of receiptLines.data) {
+          if (!contractIds.has(line.contractId) || !line.ataItemId) continue;
+          linkedByAtaItem.set(line.ataItemId, (linkedByAtaItem.get(line.ataItemId) ?? 0) + line.quantity);
+        }
+        receiptContracts = processContracts.filter((contract) => contract.processId === processId).map((contract) => {
+          const ownContracted = contractedQuantityByAtaItem([contract], processId);
+          const ownReceived = new Map<string, number>();
+          for (const line of receiptLines.data) if (line.contractId === contract.id && line.ataItemId) {
+            ownReceived.set(line.ataItemId, (ownReceived.get(line.ataItemId) ?? 0) + line.quantity);
+          }
+          for (const [ataItemId, quantity] of ownContracted) {
+            const unknown = Math.max(0, (received?.get(ataItemId) ?? 0) - (linkedByAtaItem.get(ataItemId) ?? 0));
+            const shared = processContracts.some((other) => other.id !== contract.id && other.processId === processId && other.ataItems.some((line) => line.ataItemId === ataItemId));
+            ownReceived.set(ataItemId, (ownReceived.get(ataItemId) ?? 0) + (shared && unknown > 0 ? quantity : unknown));
+          }
+          const itemDefaults = receiptDefaults(request.data.items, ownContracted, ownReceived);
+          const items = pendingItems.filter((item) => {
+            const source = request.data.items.find((row) => row.id === item.id)!;
+            return source.ataItemId ? ownContracted.has(source.ataItemId) : !contract.ataId;
+          }).map((item) => ({ id: item.id, pending: itemDefaults.get(item.id) ?? 0 })).filter((item) => item.pending > 0);
+          return { value: contract.id, label: contract.number, items };
+        }).filter((contract) => contract.items.length > 0);
       }
     }
 
@@ -100,11 +127,12 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
       canCreate: can(ctx.actor, "request.create", councilId),
       canReceive,
       pendingItems,
+      receiptContracts,
     });
   });
   return (
     <Screen result={result}>
-      {({ request, lookups, linkedProcess, canDecide, canCreate, canReceive, pendingItems, revision, correctionItems, correctionCouncils }) => {
+      {({ request, lookups, linkedProcess, canDecide, canCreate, canReceive, pendingItems, receiptContracts, revision, correctionItems, correctionCouncils }) => {
         const status = presentationOf(REQUEST_STATUS, request.status);
         const next = requestNextStep(request.status, { canCreate, canDecide, canReceive });
         const dossier = planDossier(request.events.map((event) => event.note), request.estimatedValue, request.title);
@@ -157,6 +185,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
                 canCreate={canCreate}
                 canReceive={canReceive}
                 pendingItems={pendingItems}
+                receiptContracts={receiptContracts}
               />
               <section aria-labelledby="hist">
                 <h2 id="hist" className="mb-3 text-base font-semibold">

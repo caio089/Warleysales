@@ -13,7 +13,9 @@ import { ProgressBar } from "@/shared/ui/progress-bar";
 import { Screen } from "@/shared/ui/screen";
 import { SimpleTable } from "@/shared/ui/simple-table";
 import { formatCurrency } from "@/shared/lib/format";
+import { toFortalezaDate } from "@/shared/lib/time";
 import { AmendmentForm } from "./amendment-form";
+import { CloseContractForm } from "./close-contract-form";
 
 export const metadata: Metadata = { title: "Contrato" };
 
@@ -53,6 +55,10 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
       {({ view, canManage, processes, processHref, processLabel, relatedAtas, councilAtas }) => (
         <>
           <PageHeader eyebrow="Acompanhamento · Contratos" backHref="/contratos" returnToPath="/contratos" backLabel="Todos os contratos" title={`Contrato ${view.contract.number}`} description={view.contract.object} />
+          <section className="surface-card mb-4 max-w-lg space-y-3 p-4">
+            <p className="text-sm">Situação administrativa: {view.status === "encerrado" && view.contract.closedAt ? `Encerrado em ${toFortalezaDate(view.contract.closedAt)} por ${view.contract.closedBy}` : "Sem encerramento registrado"}</p>
+            {canManage && !view.contract.closedAt ? <CloseContractForm contractId={view.contract.id} /> : null}
+          </section>
           <section aria-label="Processo e atas" className="surface-card mb-8 max-w-lg space-y-4 p-6">
             <div>
               <h2 className="font-heading text-lg font-medium tracking-tight text-primary">Processo vinculado</h2>

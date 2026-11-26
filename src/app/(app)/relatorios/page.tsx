@@ -19,6 +19,7 @@ import { ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { presentationOf, PROCESS_STATUS } from "@/shared/ui/status-presentation";
 import { AuditTrailTab } from "./audit-trail-tab";
 import { ReportAnalysisPanel } from "./report-analysis";
+import { ReportCentral } from "./central";
 
 export const metadata: Metadata = { title: "Relatórios" };
 
@@ -204,7 +205,7 @@ async function AuditContent({ rawParams }: { rawParams: Record<string, string | 
 
 export default async function ReportsPage(props: ReportsPageProps) {
   const rawParams = props.searchParams ? await props.searchParams : {};
-  const tab = one(rawParams.tab) === "auditoria" ? "auditoria" : "indicadores";
+  const tab = one(rawParams.tab) === "auditoria" ? "auditoria" : one(rawParams.tab) === "central" ? "central" : "indicadores";
   const officialOnly = one(rawParams.mode) === "official";
 
   return (
@@ -215,6 +216,7 @@ export default async function ReportsPage(props: ReportsPageProps) {
       />
       <div className="space-y-6">
         <div role="tablist" aria-label="Abas de relatórios" className="flex flex-wrap gap-2 border-b border-border pb-4">
+          <Link href="/relatorios?tab=central" role="tab" aria-selected={tab === "central"} className={cn("inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium", tab === "central" ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground")}>Central de Relatórios</Link>
           <Link
             href="/relatorios?tab=indicadores"
             role="tab"
@@ -246,7 +248,7 @@ export default async function ReportsPage(props: ReportsPageProps) {
         </div>
 
         <Suspense key={`${tab}-${officialOnly}`} fallback={<LoadingState />}>
-          {tab === "indicadores" ? (
+          {tab === "central" ? <ReportCentral raw={rawParams} /> : tab === "indicadores" ? (
             <OperationalContent officialOnly={officialOnly} />
           ) : (
             <AuditContent rawParams={rawParams} />
