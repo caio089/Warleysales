@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseDashboardQuery } from "@/modules/reports/dashboard-query";
-import { buildBriefingFacts, parseBriefingText } from "./briefing";
+import { briefingUsesOnlyKnownNumbers, buildBriefingFacts, parseBriefingText } from "./briefing";
 
 const emptySummary = {
   processes: { total: 0, completed: 0, pending: 0, averageProgress: null, byStatus: {} },
@@ -39,5 +39,10 @@ describe("briefing e query do dashboard", () => {
       bullets: ["Nada a monitorar ainda."],
       tone: "ok",
     });
+  });
+  it("recusa número inventado pelo resumo de IA", () => {
+    const facts = buildBriefingFacts({ summary: emptySummary, unreadAlerts: 0, alertTitles: [] });
+    expect(briefingUsesOnlyKnownNumbers({ headline: "Há 99 contratos", bullets: ["Revise os contratos."], tone: "atencao" }, facts)).toBe(false);
+    expect(briefingUsesOnlyKnownNumbers({ headline: "Operação estável", bullets: ["Sem alertas pendentes."], tone: "ok" }, facts)).toBe(true);
   });
 });

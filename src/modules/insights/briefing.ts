@@ -50,6 +50,21 @@ export function parseBriefingText(text: string): OperationalBriefing | null {
   return null;
 }
 
+/** Recusa quantidades e datas que não aparecem nos fatos enviados ao modelo. */
+export function briefingUsesOnlyKnownNumbers(briefing: OperationalBriefing, facts: BriefingFacts): boolean {
+  const known = new Set<string>();
+  const collect = (value: unknown): void => {
+    if (typeof value === "number" && Number.isFinite(value)) known.add(String(value));
+    else if (typeof value === "string") {
+      for (const number of value.match(/\d+(?:[.,]\d+)*/g) ?? []) known.add(number.replace(",", "."));
+    } else if (Array.isArray(value)) value.forEach(collect);
+    else if (value && typeof value === "object") Object.values(value).forEach(collect);
+  };
+  collect(facts);
+  const output = [briefing.headline, ...briefing.bullets].join(" ");
+  return (output.match(/\d+(?:[.,]\d+)*/g) ?? []).every((number) => known.has(number.replace(",", ".")));
+}
+
 function coerceBriefing(raw: string): OperationalBriefing | null {
   try {
     const value = JSON.parse(raw) as Record<string, unknown>;

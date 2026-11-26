@@ -4,7 +4,7 @@ import { groq } from "@ai-sdk/groq";
 import { connection } from "next/server";
 import { log } from "@/shared/lib/logger";
 import { fail, ok, type Result } from "@/shared/lib/result";
-import { BRIEFING_SYSTEM_PROMPT, parseBriefingText, type BriefingFacts, type OperationalBriefing } from "./briefing";
+import { BRIEFING_SYSTEM_PROMPT, briefingUsesOnlyKnownNumbers, parseBriefingText, type BriefingFacts, type OperationalBriefing } from "./briefing";
 import type { ModuleFact } from "./module-insight";
 
 const GROQ_MODEL = "openai/gpt-oss-20b";
@@ -44,7 +44,7 @@ export async function generateOperationalBriefing(facts: BriefingFacts): Promise
       prompt: JSON.stringify(facts),
     }));
     const briefing = parseBriefingText(collectModelText(result));
-    if (!briefing) return fail("INTERNAL", "Não foi possível gerar o resumo agora.");
+    if (!briefing || !briefingUsesOnlyKnownNumbers(briefing, facts)) return fail("INTERNAL", "Não foi possível gerar o resumo agora.");
     return ok(briefing);
   } catch {
     return fail("UNAVAILABLE", "O resumo de IA está temporariamente indisponível.");

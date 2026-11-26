@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { computeInitialEndDate } from "@/modules/atas/domain/validity";
 import { formatDateOnly, maskBrDateInput, parseBrDateOnly, toFortalezaDate } from "@/shared/lib/time";
-import { AtaValidityField } from "./ata-validity-field";
+import { AtaValidityField, validStartDateFromInput } from "./ata-validity-field";
 
 describe("parseBrDateOnly / maskBrDateInput", () => {
   it("aceita DD/MM/AAAA e dígitos sem barra", () => {
@@ -19,6 +19,11 @@ describe("parseBrDateOnly / maskBrDateInput", () => {
 });
 
 describe("AtaValidityField", () => {
+  it("limpa o valor enviado quando a data visível fica incompleta ou inválida", () => {
+    expect(validStartDateFromInput("01/03/2026")).toBe("2026-03-01");
+    expect(validStartDateFromInput("01/03/202")).toBe("");
+    expect(validStartDateFromInput("31/02/2026")).toBe("");
+  });
   it("tem um único campo de início e mostra o fim de 1 ano calculado", () => {
     const today = toFortalezaDate(new Date());
     const html = renderToStaticMarkup(<AtaValidityField />);

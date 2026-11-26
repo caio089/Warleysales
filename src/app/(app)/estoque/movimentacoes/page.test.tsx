@@ -18,6 +18,7 @@ describe("stock movements required queries", () => {
         purchases: { list: vi.fn().mockResolvedValue(ok([])) },
         processes: { list: vi.fn().mockResolvedValue(ok([])) },
         atas: { list: vi.fn().mockResolvedValue(ok([])) },
+        contracts: { list: vi.fn().mockResolvedValue(ok([])) },
       } as never;
       loadScreenMock.mockImplementation((fn) => fn({ services, actor: managerOf(COUNCIL_A) }));
       loadLookupsMock.mockResolvedValue(ok({

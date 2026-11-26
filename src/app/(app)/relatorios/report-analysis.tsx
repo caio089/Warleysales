@@ -11,7 +11,7 @@ export async function ReportAnalysisPanel({ sources }: { sources: ReportSource[]
     <section className="surface-card space-y-3 p-5" aria-label="Análise rastreável do relatório">
       <div className="flex items-center gap-2 text-sm font-semibold text-primary">
         <Sparkles className="size-4 text-highlight" aria-hidden />
-        {generatedByAi ? "Análise do relatório com IA" : "Resumo dos indicadores"}
+        {generatedByAi ? "Análise dos indicadores com IA" : "Resumo dos indicadores"}
       </div>
       <p className="text-sm font-medium">{analysis.headline}</p>
       <ul className="space-y-3">
@@ -30,7 +30,7 @@ export async function ReportAnalysisPanel({ sources }: { sources: ReportSource[]
           </li>
         ))}
       </ul>
-      {generatedByAi ? <p className="text-xs text-muted-foreground">Texto gerado por IA; os valores e links de fonte vêm diretamente dos registros do sistema.</p> : null}
+      {generatedByAi ? <p className="text-xs text-muted-foreground">Texto gerado a partir dos indicadores do relatório. Os valores e links vêm do sistema; esta análise não consulta documentos.</p> : null}
     </section>
   );
 }

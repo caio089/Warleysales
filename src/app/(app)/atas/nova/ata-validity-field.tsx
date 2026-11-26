@@ -16,6 +16,10 @@ function firstDayOfMonth(date: string): string {
   return `${date.slice(0, 8)}01`;
 }
 
+export function validStartDateFromInput(value: string): string {
+  return parseBrDateOnly(value) ?? "";
+}
+
 /** Campo único de início da vigência; o fim (+1 ano) é só leitura. */
 export function AtaValidityField({
   errors,
@@ -40,7 +44,7 @@ export function AtaValidityField({
     defaultStartDate && /^\d{4}-\d{2}-\d{2}$/.test(defaultStartDate) ? defaultStartDate : today;
   const [startDate, setStartDate] = useState(initial);
   const [brValue, setBrValue] = useState(formatDateOnly(initial));
-  const endDate = computeInitialEndDate(startDate);
+  const endDate = startDate ? computeInitialEndDate(startDate) : "";
 
   function applyStart(next: string) {
     setStartDate(next);
@@ -50,8 +54,7 @@ export function AtaValidityField({
   function onBrChange(raw: string) {
     const masked = maskBrDateInput(raw);
     setBrValue(masked);
-    const parsed = parseBrDateOnly(masked);
-    if (parsed) setStartDate(parsed);
+    setStartDate(validStartDateFromInput(masked));
   }
 
   return (
@@ -87,7 +90,7 @@ export function AtaValidityField({
         )}
       </FormField>
 
-      {showEndPreview ? (
+      {showEndPreview && startDate ? (
         <p className="rounded-lg border border-primary/15 bg-primary/5 px-3 py-2.5 text-sm text-foreground">
           Vigência:{" "}
           <strong className="tabular-nums">{formatDateOnly(startDate)}</strong>

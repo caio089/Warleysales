@@ -20,7 +20,7 @@ import { cancelSchema, createRequestSchema, decisionSchema, receiveSchema, rejec
 export class PurchaseRequestService {
   constructor(
     private readonly repository: PurchaseRequestRepository,
-    private readonly atas: AtaService,
+    _atas: AtaService,
     private readonly inventory: InventoryService,
     private readonly processes: ProcessService,
     private readonly audit: AuditRecorder,
@@ -110,7 +110,7 @@ export class PurchaseRequestService {
    * Aprovar NÃO libera estoque físico (R11 — isso ocorre na homologação).
    * Libera o processo para documentação e o fluxo de recebimento.
    * De enviada, entra em análise e aprova no mesmo passo.
-   * Itens ligados a ata comprometem saldo atomicamente (R9).
+   * O saldo da ata é comprometido quando o contrato é criado.
    */
   async approve(actor: Actor, input: unknown): Promise<Result<PurchaseRequest>> {
     const parsed = parseInput(decisionSchema, input);
@@ -121,31 +121,18 @@ export class PurchaseRequestService {
     const valid = changeRequestStatus(request.status, "aprovada");
     if (!valid.ok) return valid;
 
-    // Caminho transacional (Supabase): todas as linhas de ata, status e evento em uma única transação SQL.
+    // Caminho transacional (Supabase): status e evento em uma única transação SQL.
     if (this.repository.approveAtomically) {
-      for (const item of request.items.filter((i) => i.ataItemId)) {
-        const committable = await this.atas.checkCommittable(item.ataItemId!);
-        if (!committable.ok) return committable;
-      }
       const saved = await this.repository.approveAtomically({ requestId: request.id, actorId: actor.userId, at: this.runtime.now(), note: parsed.data.note });
       if (!saved.ok) return saved;
       await this.recordTransition(request, "aprovada", actor, parsed.data.note);
       return ok(saved.data);
     }
 
-    const committed: { itemId: string; quantity: number }[] = [];
-    for (const item of request.items.filter((i) => i.ataItemId)) {
-      const result = await this.atas.commitInternal({ itemId: item.ataItemId!, councilId: request.councilId, quantity: item.quantity, reference: `request:${request.id}` });
-      if (!result.ok) {
-        for (const done of committed) await this.atas.releaseInternal({ itemId: done.itemId, councilId: request.councilId, quantity: done.quantity, reason: `rollback aprovação ${request.id}` });
-        return result;
-      }
-      committed.push({ itemId: item.ataItemId!, quantity: item.quantity });
-    }
     return ok(await this.transition(request, "aprovada", actor, parsed.data.note));
   }
 
-  /** Cancelar após aprovação devolve o saldo comprometido da ata. Exige motivo. */
+  /** Cancelar a solicitação não altera o saldo já comprometido por contratos. Exige motivo. */
   async cancel(actor: Actor, input: unknown): Promise<Result<PurchaseRequest>> {
     const parsed = parseInput(cancelSchema, input);
     if (!parsed.ok) return parsed;
@@ -165,11 +152,6 @@ export class PurchaseRequestService {
       return ok(saved.data);
     }
 
-    if (request.status === "aprovada") {
-      for (const item of request.items.filter((i) => i.ataItemId)) {
-        await this.atas.releaseInternal({ itemId: item.ataItemId!, councilId: request.councilId, quantity: item.quantity, reason: `cancelamento ${request.id}` });
-      }
-    }
     return ok(await this.transition(request, "cancelada", actor, parsed.data.note));
   }
 
@@ -204,21 +186,41 @@ export class PurchaseRequestService {
       return fail("INVALID_STATE", "A solicitação não está em fase de recebimento.");
     }
 
+    if (this.repository.receiveAtomically) {
+      const received = await this.repository.receiveAtomically({
+        requestId: request.id, actorId: actor.userId, at: this.runtime.now(),
+        receiptKey: parsed.data.receiptKey, lines: parsed.data.lines,
+        closeIncomplete: parsed.data.closeIncomplete,
+        incompleteJustification: parsed.data.incompleteJustification,
+      });
+      if (!received.ok) return received;
+      await this.audit.record({
+        actorId: actor.userId, action: "purchase.receive", entity: "purchase_request",
+        entityId: request.id, councilId: request.councilId, result: "success",
+        details: { receiptKey: parsed.data.receiptKey },
+      });
+      return received;
+    }
+
     // Parte 3: entrada no estoque só após contrato (e, no registro de preços, contrato↔ata).
-    if (this.contracts && request.processId) {
+    if (!this.contracts) return fail("UNAVAILABLE", "Não foi possível conferir os contratos para o recebimento.");
+    {
+      if (!request.processId) return fail("INVALID_STATE", "Vincule a solicitação a um processo antes do recebimento.");
       const processView = await this.processes.get(actor, request.processId);
-      const contractingMode = processView.ok ? (processView.data.process.contractingMode ?? null) : null;
+      if (!processView.ok) return processView;
+      const contractingMode = processView.data.process.contractingMode ?? null;
       const listed = await this.contracts.list(actor, { id: request.processId, councilId: request.councilId });
-      const contracts = listed.ok
-        ? listed.data.map((view) => ({
+      if (!listed.ok) return listed;
+      const contracts = listed.data
+        .filter((view) => view.contract.processId === request.processId)
+        .map((view) => ({
             processId: view.contract.processId ?? null,
             ataId: view.contract.ataId ?? null,
             ataItems: (view.contract.ataItems ?? []).map((item) => ({
               ataItemId: item.ataItemId,
               quantity: item.quantity,
             })),
-          }))
-        : [];
+          }));
       const gate = assertContractAllowsReceive({
         processId: request.processId,
         contractingMode,
@@ -227,10 +229,20 @@ export class PurchaseRequestService {
       });
       if (!gate.ok) return gate;
       const contractedByAtaItem = contractedQuantityByAtaItem(contracts, request.processId);
+      const linkedRequests = await this.repository.listByCouncils([request.councilId]);
+      const receivedByAtaItem = new Map<string, number>();
+      for (const linked of linkedRequests) {
+        if (linked.processId !== request.processId) continue;
+        for (const item of linked.items) {
+          if (!item.ataItemId) continue;
+          receivedByAtaItem.set(item.ataItemId, (receivedByAtaItem.get(item.ataItemId) ?? 0) + item.receivedTotal);
+        }
+      }
       const within = assertReceiveLinesWithinContract({
         items: request.items,
         lines: parsed.data.lines,
         contractedByAtaItem,
+        receivedByAtaItem,
       });
       if (!within.ok) return within;
     }

@@ -3,6 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("@/modules/processes/estimated-value-action", () => ({ saveProcessEstimatedValue: vi.fn() }));
 import { formatCurrency } from "@/shared/lib/format";
 vi.mock("@/modules/processes/exception-action", () => ({ documentExceptionAction: vi.fn() }));
+vi.mock("@/modules/processes/contracting-mode-action", () => ({ saveProcessContractingMode: vi.fn() }));
+vi.mock("@/modules/processes/validity-start-action", () => ({ saveProcessValidityStartDate: vi.fn() }));
+vi.mock("@/modules/processes/price-research-action", () => ({ saveProcessPriceResearch: vi.fn() }));
 
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),

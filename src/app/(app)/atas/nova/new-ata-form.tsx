@@ -8,6 +8,7 @@ import { ActionForm } from "@/shared/ui/forms/action-form";
 import { CurrencyField, SelectField, TextField } from "@/shared/ui/forms/fields";
 import { AtaMaterialsValues } from "./ata-materials-values";
 import { AtaValidityField } from "./ata-validity-field";
+import { matchPdfItems } from "./match-pdf-items";
 
 type Option = { value: string; label: string };
 type ProcessOption = Option & { councilId: string };
@@ -60,6 +61,7 @@ export function NewAtaForm({
   const [reading, setReading] = useState(false);
   const [message, setMessage] = useState("");
   const [supplierId, setSupplierId] = useState("");
+  const [pdfVersion, setPdfVersion] = useState(0);
 
   async function readPdf() {
     if (!pdfFile) return;
@@ -77,6 +79,7 @@ export function NewAtaForm({
       if (!response.ok) throw new Error(payload.error ?? "Falha na leitura do PDF.");
       const fields = payload.fields as ExtractedAta;
       setExtracted(fields);
+      setPdfVersion((version) => version + 1);
       if (lockedProcess) {
         const match =
           lockedProcess.suppliers.find(
@@ -112,8 +115,10 @@ export function NewAtaForm({
         ? processMaterials
         : [{ materialId: "", name: lockedProcess.processLabel, quantity: 1 }];
     if (!extracted?.items?.length) return base;
+    const matches = matchPdfItems(base.map((line) => [line.name]), extracted.items.map((item) => item.description));
     return base.map((line, index) => {
-      const fromPdf = extracted.items[index];
+      const match = matches[index];
+      const fromPdf = match === null ? null : extracted.items[match];
       if (!fromPdf) return line;
       return {
         ...line,
@@ -125,7 +130,12 @@ export function NewAtaForm({
 
   if (lockedProcess) {
     const lines = lockedLines;
-    const defaultLineTotals = extracted?.items?.map((item) => item.lineTotal) ?? undefined;
+    const matches = extracted?.items?.length
+      ? matchPdfItems((lockedProcess.materials ?? []).map((line) => [line.name]), extracted.items.map((item) => item.description))
+      : [];
+    const defaultLineTotals = extracted?.items?.length
+      ? lines.map((_, index) => matches[index] == null ? null : extracted.items[matches[index]!]!.lineTotal)
+      : undefined;
     const suggestedNumber = suggestAtaNumber(
       extracted?.number?.trim() || `ARP ${lockedProcess.processNumber || "sem-número"}`,
       lockedProcess.existingAtaNumbers ?? [],
@@ -134,11 +144,11 @@ export function NewAtaForm({
 
     return (
       <div className="space-y-4">
-        <section className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-4" aria-label="Anexar e ler ata em PDF">
+        <section className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-4" aria-label="Ler ata em PDF para preencher">
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Anexar ata (PDF)</h3>
+            <h3 className="text-sm font-semibold text-foreground">Ler ata em PDF para preencher</h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              A IA lê empresa, itens, quantidades e valores. Confira tudo antes de registrar.
+              A IA lê empresa, itens, quantidades e valores. Confira tudo antes de registrar; o PDF não é arquivado nesta etapa.
             </p>
           </div>
           <input
@@ -158,7 +168,7 @@ export function NewAtaForm({
         </section>
 
         <ActionForm
-          key={`ata-form-${suggestedNumber}-${extracted?.totalValue ?? "x"}`}
+          key={`ata-form-${suggestedNumber}-${pdfVersion}`}
           action={createAtaFormAction}
           submitLabel="Registrar ata"
           hiddenFields={{
@@ -225,10 +235,13 @@ export function NewAtaForm({
                 lines={lines}
                 councilLabel={lockedProcess.councilLabel}
                 processLabel={lockedProcess.processLabel}
-                defaultTotal={extracted?.totalValue ?? lockedProcess.defaultValue}
+                defaultTotal={matches.some((match) => match === null) ? lockedProcess.defaultValue : (extracted?.totalValue ?? lockedProcess.defaultValue)}
                 defaultLineTotals={defaultLineTotals}
                 errors={e}
               />
+              {extracted?.items?.length && matches.some((match) => match === null) ? (
+                <p role="status" className="text-sm text-amber-700">Alguns itens do PDF não correspondem de forma única aos materiais do processo. Confira quantidades e valores manualmente.</p>
+              ) : null}
 
               <AtaValidityField
                 errors={e.startDate}

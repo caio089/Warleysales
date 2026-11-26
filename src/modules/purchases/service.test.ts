@@ -68,8 +68,14 @@ async function ataItem(quantity: number) {
   return created.data.items[0]!.id;
 }
 async function submitted(items: { quantity: number; ataItemId?: string }[]) {
-  const r = await ctx.service.create(operatorOf(COUNCIL_A), { councilId: COUNCIL_A, title: "Material de expediente", items: items.map((i) => ({ materialId: MATERIAL, ...i })) });
+  const r = await ctx.service.create(operatorOf(COUNCIL_A), { councilId: COUNCIL_A, title: "Material de expediente", createProcess: true, items: items.map((i) => ({ materialId: MATERIAL, ...i })) });
   if (!r.ok) throw new Error(r.message);
+  await ctx.contractRepo.insert({
+    id: ctx.runtime.newId(), councilId: COUNCIL_A, number: `CTR-${r.data.id}`,
+    supplierId: null, processId: r.data.processId, ataId: null,
+    object: "Fornecimento de material", original: { startDate: "2026-11-01", endDate: "2027-10-31", value: 0 },
+    amendments: [], ataItems: [], createdAt: ctx.runtime.now(),
+  });
   await ctx.service.submit(operatorOf(COUNCIL_A), { requestId: r.data.id });
   await ctx.service.startReview(approver(), { requestId: r.data.id });
   return r.data.id;
@@ -188,29 +194,29 @@ describe("PurchaseRequestService", () => {
     expect(r.ok).toBe(false);
     expect(await stockOf()).toBe(0);
   });
-  it("aprovação com item de ata compromete saldo; cancelamento devolve", async () => {
+  it("aprovação e cancelamento não alteram saldo da ata reservado ao contrato", async () => {
     const ataItemId = await ataItem(10);
     const id = await submitted([{ quantity: 7, ataItemId }]);
     await ctx.service.approve(approver(), { requestId: id });
     const atas = await ctx.atas.list(manager());
-    expect(atas.ok && atas.data[0]!.items[0]!.balance.balance).toBe(3);
+    expect(atas.ok && atas.data[0]!.items[0]!.balance.balance).toBe(10);
     await ctx.service.cancel(approver(), { requestId: id, note: "Pedido cancelado pelo gestor." });
     const after = await ctx.atas.list(manager());
     expect(after.ok && after.data[0]!.items[0]!.balance.balance).toBe(10);
   });
-  it("aprovação acima do saldo da ata é bloqueada e a solicitação segue em análise", async () => {
+  it("aprovação acima do saldo da ata aguarda definição de quantidade no contrato", async () => {
     const ataItemId = await ataItem(5);
     const id = await submitted([{ quantity: 7, ataItemId }]);
     const r = await ctx.service.approve(approver(), { requestId: id });
-    expect(!r.ok && r.code).toBe("INSUFFICIENT_BALANCE");
+    expect(r.ok).toBe(true);
     const current = await ctx.service.get(manager(), id);
-    expect(current.ok && current.data.status).toBe("em_analise");
+    expect(current.ok && current.data.status).toBe("aprovada");
   });
-  it("rollback: segundo item falha e o primeiro comprometimento é devolvido", async () => {
+  it("aprovação de vários itens não compromete saldo das atas", async () => {
     const ok1 = await ataItem(10);
     const bad = await ataItem(1);
     const id = await submitted([{ quantity: 5, ataItemId: ok1 }, { quantity: 5, ataItemId: bad }]);
-    expect((await ctx.service.approve(approver(), { requestId: id })).ok).toBe(false);
+    expect((await ctx.service.approve(approver(), { requestId: id })).ok).toBe(true);
     const atas = await ctx.atas.list(manager());
     const balances = atas.ok ? atas.data.flatMap((a) => a.items.map((i) => i.balance.balance)).sort((a, b) => a - b) : [];
     expect(balances).toEqual([1, 10]);

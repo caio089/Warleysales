@@ -67,12 +67,20 @@ export class ContractService {
       if (ata.data.ata.councilId !== d.councilId) {
         return fail("VALIDATION", "A ata precisa ser do mesmo órgão do contrato.");
       }
+      if (ata.data.ata.processId && ata.data.ata.processId !== processId.data) {
+        return fail("VALIDATION", "A ata e o contrato precisam pertencer ao mesmo processo.");
+      }
       if (ata.data.ata.status !== "vigente") {
         return fail("INVALID_STATE", "Ative a ata antes de consumir saldo com o contrato.");
+      }
+      if (new Set(ataLines.map((line) => line.ataItemId)).size !== ataLines.length) {
+        return fail("VALIDATION", "Cada item da ata deve aparecer uma única vez no contrato.");
       }
       for (const line of ataLines) {
         const item = ata.data.items.find((row) => row.itemId === line.ataItemId);
         if (!item) return fail("NOT_FOUND", "Item da ata não encontrado.");
+        const committable = await this.atas.checkCommittable(line.ataItemId);
+        if (!committable.ok) return committable;
         if (line.quantity > item.balance.balance) {
           return fail(
             "VALIDATION",
@@ -90,6 +98,35 @@ export class ContractService {
       quantity: line.quantity,
       unitPrice: line.unitPrice ?? 0,
     }));
+
+    const contract = {
+      id: contractId,
+      councilId: d.councilId,
+      number: d.number,
+      supplierId: d.supplierId ?? null,
+      processId: processId.data,
+      ataId,
+      object: d.object,
+      original: { startDate: d.startDate, endDate: d.endDate, value: d.value },
+      amendments: [],
+      ataItems,
+      createdAt: this.runtime.now(),
+    };
+
+    if (this.repository.insertAtomically) {
+      const saved = await this.repository.insertAtomically(contract);
+      if (!saved.ok) return saved;
+      await this.audit.record({
+        actorId: actor.userId,
+        action: "contract.create",
+        entity: "contract",
+        entityId: saved.data.id,
+        councilId: d.councilId,
+        result: "success",
+        details: { number: d.number, ataId, ataItemCount: ataItems.length },
+      });
+      return saved;
+    }
 
     const committed: { itemId: string; quantity: number }[] = [];
     if (ataId && ataItems.length > 0 && this.atas) {
@@ -115,19 +152,22 @@ export class ContractService {
       }
     }
 
-    const saved = await this.repository.insert({
-      id: contractId,
-      councilId: d.councilId,
-      number: d.number,
-      supplierId: d.supplierId ?? null,
-      processId: processId.data,
-      ataId,
-      object: d.object,
-      original: { startDate: d.startDate, endDate: d.endDate, value: d.value },
-      amendments: [],
-      ataItems,
-      createdAt: this.runtime.now(),
-    });
+    let saved;
+    try {
+      saved = await this.repository.insert(contract);
+    } catch (error) {
+      if (this.atas) {
+        for (const done of committed) {
+          await this.atas.releaseInternal({
+            itemId: done.itemId,
+            councilId: d.councilId,
+            quantity: done.quantity,
+            reason: `rollback contrato ${contractId}`,
+          });
+        }
+      }
+      throw error;
+    }
     await this.audit.record({
       actorId: actor.userId,
       action: "contract.create",
@@ -150,6 +190,14 @@ export class ContractService {
     if (!allowed.ok) return allowed;
     const processId = await this.sameCouncilProcess(contract.councilId, parsed.data.processId);
     if (!processId.ok) return processId;
+    if (contract.ataId) {
+      if (!this.atas) return fail("UNAVAILABLE", "Não foi possível conferir a ata.");
+      const ata = await this.atas.get(actor, contract.ataId);
+      if (!ata.ok) return ata;
+      if (ata.data.ata.processId && ata.data.ata.processId !== processId.data) {
+        return fail("VALIDATION", "A ata e o contrato precisam pertencer ao mesmo processo.");
+      }
+    }
     const saved = await this.repository.save({ ...contract, processId: processId.data });
     await this.audit.record({
       actorId: actor.userId,

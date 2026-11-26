@@ -153,7 +153,7 @@ describe("ContractingTab", () => {
       />,
     );
 
-    expect(html).toContain("Anexar ata");
+    expect(html).toContain("Vincular ata existente");
     expect(html).toContain("ARP 099/2026");
     expect(html).toContain("Anexar contrato");
     expect(html).toContain("CT 099/2026");
@@ -162,7 +162,7 @@ describe("ContractingTab", () => {
     expect(html).toContain("2. Materiais e valores");
     expect(html).toContain("Valor unitário");
     expect(html).toContain("Papel A4");
-    expect(html).not.toContain("Número da ata");
+    expect(html).toContain("Número da ata");
     expect(html).toContain("Registrar contrato");
     expect(html).toContain("Puxada do Termo de Referência");
     expect(html).toContain("12/2027 — Material de expediente");

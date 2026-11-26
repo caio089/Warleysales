@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PurchaseRequestStatus } from "@/modules/purchases/domain/request-status";
-import type { AtomicDecision, PurchaseRequestRepository } from "@/modules/purchases/repository";
+import type { AtomicDecision, AtomicReceipt, PurchaseRequestRepository } from "@/modules/purchases/repository";
 import type { PurchaseRequest } from "@/modules/purchases/schemas";
 import { fail, ok, type Result } from "@/shared/lib/result";
 import { callRpc, rpcOutcomeToResult, type RpcOutcome, selectAll, toDate, toIso, toNumber, unwrap } from "../db";
@@ -89,6 +89,22 @@ export class SupabasePurchaseRequestRepository implements PurchaseRequestReposit
   /** Cancelamento com devolução do saldo comprometido em UMA transação (RPC `cancel_purchase_request`). */
   async cancelAtomically(decision: AtomicDecision): Promise<Result<PurchaseRequest>> {
     return this.runDecision("cancel_purchase_request", decision);
+  }
+
+  async receiveAtomically(receipt: AtomicReceipt): Promise<Result<PurchaseRequest>> {
+    const outcome = await callRpc<RpcOutcome>(this.db, "receive_purchase_request", {
+      p_request: receipt.requestId,
+      p_actor: receipt.actorId,
+      p_at: toIso(receipt.at),
+      p_receipt_key: receipt.receiptKey,
+      p_lines: receipt.lines.map((line) => ({ item_id: line.itemId, received: line.received })),
+      p_close_incomplete: receipt.closeIncomplete ?? false,
+      p_justification: receipt.incompleteJustification ?? null,
+    });
+    const result = rpcOutcomeToResult(outcome);
+    if (!result.ok) return result;
+    const saved = await this.findById(receipt.requestId);
+    return saved ? ok(saved) : fail("NOT_FOUND", "Solicitação não encontrada.");
   }
 
   private async runDecision(functionName: string, decision: AtomicDecision): Promise<Result<PurchaseRequest>> {

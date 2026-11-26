@@ -9,6 +9,16 @@ export interface AtomicDecision {
   note?: string;
 }
 
+export interface AtomicReceipt {
+  requestId: string;
+  actorId: string;
+  at: Date;
+  receiptKey: string;
+  lines: { itemId: string; received: number }[];
+  closeIncomplete?: boolean;
+  incompleteJustification?: string;
+}
+
 export interface LinkedRequestNotes {
   processId: string;
   notes: readonly (string | null | undefined)[];
@@ -29,4 +39,5 @@ export interface PurchaseRequestRepository {
   approveAtomically?(decision: AtomicDecision): Promise<Result<PurchaseRequest>>;
   /** Opcional. Cancela devolvendo o saldo comprometido (se aprovada) na mesma transação. */
   cancelAtomically?(decision: AtomicDecision): Promise<Result<PurchaseRequest>>;
+  receiveAtomically?(receipt: AtomicReceipt): Promise<Result<PurchaseRequest>>;
 }

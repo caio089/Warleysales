@@ -111,6 +111,82 @@ describe("ContractService", () => {
     expect(excess.ok).toBe(false);
   });
 
+  it("recusa item repetido da ata antes de comprometer saldo", async () => {
+    const { service, atas } = setup();
+    const manager = managerOf(COUNCIL_A);
+    const created = await atas.create(manager, {
+      councilId: COUNCIL_A, number: "ARP-100/2026", startDate: "2026-01-01",
+      items: [{ description: "Papel A4", registeredQuantity: 10, unitPrice: 1 }],
+    });
+    if (!created.ok) throw new Error(created.message);
+    await atas.activate(manager, { ataId: created.data.id });
+    const ataItemId = created.data.items[0]!.id;
+    const result = await service.create(manager, {
+      ...input, ataId: created.data.id,
+      ataItems: [{ ataItemId, quantity: 6 }, { ataItemId, quantity: 6 }],
+    });
+    expect(result.ok).toBe(false);
+    const view = await atas.get(manager, created.data.id);
+    expect(view.ok && view.data.items[0]!.balance.committed).toBe(0);
+  });
+
+  it("exige o mesmo processo quando a ata já está vinculada", async () => {
+    const runtime = makeRuntime("2026-07-02T15:00:00Z");
+    const audit = new AuditService(new InMemoryAuditRepository(runtime.now));
+    const processId = "11111111-1111-4111-8111-111111111111";
+    const otherId = "22222222-2222-4222-8222-222222222222";
+    const processes = {
+      async findById(id: string) {
+        return id === processId || id === otherId ? { id, councilId: COUNCIL_A } : null;
+      },
+    } as never;
+    const atas = new AtaService(new InMemoryAtaRepository(), audit, runtime, processes);
+    const service = new ContractService(new InMemoryContractRepository(), audit, runtime, processes, atas);
+    const manager = managerOf(COUNCIL_A);
+    const created = await atas.create(manager, {
+      councilId: COUNCIL_A, number: "ARP-102/2026", processId, startDate: "2026-01-01",
+      items: [{ description: "Papel A4", registeredQuantity: 10, unitPrice: 1 }],
+    });
+    if (!created.ok) throw new Error(created.message);
+    await atas.activate(manager, { ataId: created.data.id });
+    const linked = {
+      ...input, ataId: created.data.id,
+      ataItems: [{ ataItemId: created.data.items[0]!.id, quantity: 1 }],
+    };
+    expect((await service.create(manager, linked)).ok).toBe(false);
+    expect((await service.create(manager, { ...linked, processId: otherId })).ok).toBe(false);
+    const valid = await service.create(manager, { ...linked, processId });
+    expect(valid.ok).toBe(true);
+    if (!valid.ok) throw new Error(valid.message);
+    expect((await service.linkProcess(manager, { contractId: valid.data.id, processId: otherId })).ok).toBe(false);
+    expect((await service.linkProcess(manager, { contractId: valid.data.id, processId: null })).ok).toBe(false);
+    const unchanged = await service.get(manager, valid.data.id);
+    expect(unchanged.ok && unchanged.data.contract.processId).toBe(processId);
+  });
+
+  it("devolve o compromisso se a gravação do contrato falhar no repositório em memória", async () => {
+    const runtime = makeRuntime("2026-07-02T15:00:00Z");
+    const audit = new AuditService(new InMemoryAuditRepository(runtime.now));
+    const atas = new AtaService(new InMemoryAtaRepository(), audit, runtime);
+    const manager = managerOf(COUNCIL_A);
+    const created = await atas.create(manager, {
+      councilId: COUNCIL_A, number: "ARP-101/2026", startDate: "2026-01-01",
+      items: [{ description: "Papel A4", registeredQuantity: 10, unitPrice: 1 }],
+    });
+    if (!created.ok) throw new Error(created.message);
+    await atas.activate(manager, { ataId: created.data.id });
+    class FailingRepository extends InMemoryContractRepository {
+      async insert(): Promise<never> { throw new Error("falha simulada"); }
+    }
+    const service = new ContractService(new FailingRepository(), audit, runtime, undefined, atas);
+    await expect(service.create(manager, {
+      ...input, ataId: created.data.id,
+      ataItems: [{ ataItemId: created.data.items[0]!.id, quantity: 4 }],
+    })).rejects.toThrow("falha simulada");
+    const view = await atas.get(manager, created.data.id);
+    expect(view.ok && view.data.items[0]!.balance.committed).toBe(0);
+  });
+
   it("vincula processo do mesmo órgão e recusa o de outro", async () => {
     const same = "11111111-1111-4111-8111-111111111111";
     const other = "22222222-2222-4222-8222-222222222222";

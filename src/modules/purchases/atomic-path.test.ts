@@ -53,13 +53,13 @@ describe("PurchaseRequestService — caminho transacional (RPC)", () => {
     expect(ctx.commitSpy).not.toHaveBeenCalled();
   });
 
-  it("falha do banco (saldo insuficiente) é propagada sem auditar sucesso", async () => {
+  it("falha do banco é propagada sem auditar sucesso", async () => {
     const ctx = setup();
     const id = await requestInReview(ctx);
-    ctx.repository.approveAtomically = vi.fn(async () => fail("INSUFFICIENT_BALANCE", "Quantidade excede o saldo da ata (disponível: 1)."));
+    ctx.repository.approveAtomically = vi.fn(async () => fail("CONFLICT", "A aprovação não pôde ser concluída."));
 
     const result = await ctx.service.approve(specialDeleter(), { requestId: id });
-    expect(!result.ok && result.code).toBe("INSUFFICIENT_BALANCE");
+    expect(!result.ok && result.code).toBe("CONFLICT");
     expect((await ctx.repository.findById(id))!.status).toBe("em_analise");
   });
 

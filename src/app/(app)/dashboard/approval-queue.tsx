@@ -60,16 +60,7 @@ export function ApprovalQueue({
     return () => window.removeEventListener("hashchange", openFromHash);
   }, [defaultOpen]);
 
-  useEffect(() => {
-    if (items.length === 0) {
-      setSelectedId(null);
-      return;
-    }
-    if (selectedId && !items.some((item) => item.id === selectedId)) {
-      setSelectedId(null);
-      setDecliningId(null);
-    }
-  }, [items, selectedId]);
+  const activeSelectedId = selectedId && items.some((item) => item.id === selectedId) ? selectedId : null;
 
   if (items.length === 0 && !showWhenEmpty) return null;
 
@@ -121,8 +112,8 @@ export function ApprovalQueue({
               <ul className="space-y-2">
                 {visibleItems.map((item) => {
                   const status = presentationOf(REQUEST_STATUS, item.status);
-                  const isSelected = selectedId === item.id;
-                  const isDeclining = decliningId === item.id;
+                  const isSelected = activeSelectedId === item.id;
+                  const isDeclining = isSelected && decliningId === item.id;
                   return (
                     <li
                       key={item.id}

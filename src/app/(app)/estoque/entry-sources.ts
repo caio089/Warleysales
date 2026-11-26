@@ -59,7 +59,7 @@ export function buildStockEntrySources(input: {
     if (!process) continue;
 
     const processContracts = allContracts.filter(
-      (contract) => !contract.processId || contract.processId === request.processId,
+      (contract) => contract.processId === request.processId,
     );
     const gate = assertContractAllowsReceive({
       processId: request.processId,

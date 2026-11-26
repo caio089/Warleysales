@@ -7,6 +7,7 @@ import { receiveFormAction } from "@/modules/purchases/actions";
 import { registerMovementFormAction } from "@/modules/inventory/actions";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatNumber } from "@/shared/lib/format";
+import { parseQuantityInput } from "@/shared/lib/quantity-input";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { SelectField, TextField } from "@/shared/ui/forms/fields";
 import type { StockEntrySource } from "../entry-sources";
@@ -117,6 +118,7 @@ export function MovementForm({
 
       {mode === "entry" ? (
         <EntryFromProcessForm
+          key={selectedSource?.requestId ?? "no-source"}
           councils={councils}
           councilId={councilId}
           onCouncilChange={(value) => {
@@ -274,7 +276,14 @@ function EntryFromProcessForm({
   submitLabel: string;
 }) {
   const processOptions = processes.map((row) => ({ value: row.processId, label: row.label }));
-  const totalValue = source?.items.reduce((sum, item) => sum + (item.lineTotal ?? 0), 0) ?? 0;
+  const [receivedDrafts, setReceivedDrafts] = useState<Record<string, string>>({});
+  const receivedQuantity = (item: StockEntrySource["items"][number]) =>
+    parseQuantityInput(receivedDrafts[item.itemId] ?? String(item.pending));
+  const totalValue = source?.items.reduce((sum, item) => {
+    const quantity = receivedQuantity(item);
+    return sum + (item.unitPrice != null && Number.isFinite(quantity) ? quantity * item.unitPrice : 0);
+  }, 0) ?? 0;
+  const hasInvalidQuantity = source?.items.some((item) => !Number.isFinite(receivedQuantity(item))) ?? false;
   const hasPrices = source?.items.some((item) => item.unitPrice != null) ?? false;
 
   if (processes.length === 0) {
@@ -388,7 +397,8 @@ function EntryFromProcessForm({
                             type="text"
                             inputMode="decimal"
                             required
-                            defaultValue={String(item.pending)}
+                            value={receivedDrafts[item.itemId] ?? String(item.pending)}
+                            onChange={(event) => setReceivedDrafts((current) => ({ ...current, [item.itemId]: event.target.value }))}
                             className="h-9 w-24 rounded-md border border-input bg-background px-2 text-right text-sm tabular-nums"
                             aria-label={`Quantidade a receber de ${item.materialLabel}`}
                           />
@@ -397,7 +407,9 @@ function EntryFromProcessForm({
                           {item.unitPrice != null ? formatCurrency(item.unitPrice) : "—"}
                         </td>
                         <td className="px-3 py-3 text-right tabular-nums font-medium">
-                          {item.lineTotal != null ? formatCurrency(item.lineTotal) : "—"}
+                          {item.unitPrice != null && Number.isFinite(receivedQuantity(item))
+                            ? formatCurrency(receivedQuantity(item) * item.unitPrice)
+                            : "—"}
                         </td>
                       </tr>
                     ))}
@@ -406,10 +418,10 @@ function EntryFromProcessForm({
                     <tfoot>
                       <tr className="bg-muted/40">
                         <td colSpan={4} className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground">
-                          Total da entrada (qtd. pendente)
+                           Total desta entrada
                         </td>
                         <td className="px-3 py-2.5 text-right text-sm font-semibold tabular-nums">
-                          {formatCurrency(totalValue)}
+                           {hasInvalidQuantity ? "—" : formatCurrency(totalValue)}
                         </td>
                       </tr>
                     </tfoot>

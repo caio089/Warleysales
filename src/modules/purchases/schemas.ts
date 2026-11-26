@@ -6,7 +6,7 @@ export interface PurchaseRequestItem {
   id: string;
   materialId: string;
   quantity: number;
-  /** Item de ata opcional (P5): ao aprovar, compromete saldo da ata. */
+  /** Item de ata opcional: o contrato correspondente compromete o saldo da ata. */
   ataItemId: string | null;
   receivedTotal: number;
 }

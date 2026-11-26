@@ -23,7 +23,7 @@ export async function BriefingCard({ facts }: { facts: BriefingFacts }) {
           </span>
           <h2 id="briefing-heading" className="font-heading text-xl font-semibold text-primary">Resumo do dia</h2>
           <span className="rounded-full bg-highlight/15 px-2.5 py-1 text-xs font-semibold text-highlight-foreground">
-            {insight.source === "alternativo" ? "Resumo alternativo" : "IA"}
+            {insight.source === "alternativo" ? "Resumo alternativo" : "IA · indicadores"}
           </span>
         </div>
         <span className={cn(
@@ -37,7 +37,7 @@ export async function BriefingCard({ facts }: { facts: BriefingFacts }) {
 
       <p className="mt-3 text-xs text-muted-foreground">
         {facts.councilLabel ? `Órgão: ${facts.councilLabel}` : "Visão consolidada"}
-        {insight.source === "alternativo" ? " · IA indisponível nesta consulta" : null}
+        {insight.source === "alternativo" ? " · IA indisponível nesta consulta" : " · Análise dos indicadores exibidos no sistema"}
       </p>
       <p className="mt-1 max-w-3xl text-base font-semibold leading-relaxed text-foreground">{insight.headline}</p>
       {insight.bullets[0] ? <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">{insight.bullets[0]}</p> : null}

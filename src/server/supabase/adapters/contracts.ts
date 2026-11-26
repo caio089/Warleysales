@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { idSchema } from "@/shared/lib/service-support";
 import type { ContractRepository } from "@/modules/contracts/repository";
 import type { Contract } from "@/modules/contracts/schemas";
-import { callRpc, selectAll, toDate, toIso, toNumber, unwrap } from "../db";
+import { callRpc, rpcOutcomeToResult, selectAll, toDate, toIso, toNumber, unwrap, type RpcOutcome } from "../db";
 
 interface ContractRow {
   id: string;
@@ -95,6 +95,12 @@ const toPayload = (c: Contract) => ({
 
 export class SupabaseContractRepository implements ContractRepository {
   constructor(private readonly db: SupabaseClient) {}
+
+  async insertAtomically(contract: Contract) {
+    const outcome = await callRpc<RpcOutcome>(this.db, "create_contract_with_ata", { p: toPayload(contract) });
+    const result = rpcOutcomeToResult(outcome);
+    return result.ok ? { ok: true as const, data: contract } : result;
+  }
 
   async insert(contract: Contract) {
     await callRpc(this.db, "save_contract", { p: toPayload(contract) });

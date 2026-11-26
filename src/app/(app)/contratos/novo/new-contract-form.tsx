@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AtaValidityField } from "@/app/(app)/atas/nova/ata-validity-field";
+import { matchPdfItems } from "@/app/(app)/atas/nova/match-pdf-items";
 import { computeInitialEndDate } from "@/modules/atas/domain/validity";
 import type { ExtractedContract } from "@/modules/contracts/pdf-extraction";
 import { createContractFormAction } from "@/modules/contracts/actions";
@@ -61,7 +62,8 @@ export function NewContractForm({
   const [supplierId, setSupplierId] = useState("");
   const [reading, setReading] = useState(false);
   const [message, setMessage] = useState("");
-  const atas = lockedProcess?.atas ?? [];
+  const [pdfVersion, setPdfVersion] = useState(0);
+  const atas = useMemo(() => lockedProcess?.atas ?? [], [lockedProcess?.atas]);
   const vigenteAtas = atas.filter((ata) => ata.status === "Vigente");
   const [ataId, setAtaId] = useState(vigenteAtas[0]?.id ?? atas[0]?.id ?? "");
   /** Quantidades do contrato por item da ata — o valor total é calculado ao vivo. */
@@ -71,20 +73,26 @@ export function NewContractForm({
     () => atas.find((ata) => ata.id === ataId) ?? null,
     [ataId, atas],
   );
-  const ataLines = selectedAta?.items ?? [];
+  const ataLines = useMemo(() => selectedAta?.items ?? [], [selectedAta]);
+  const pdfMatches = useMemo(
+    () => extracted?.items?.length
+      ? matchPdfItems(ataLines.map((item) => [item.description, item.materialLabel]), extracted.items.map((item) => item.description))
+      : [],
+    [ataLines, extracted],
+  );
   const contractLines = useMemo(
     () =>
       ataLines.map((item, index) => {
         const raw = qtyDrafts[item.itemId];
         const fromState = raw !== undefined ? Number(String(raw).replace(",", ".")) : NaN;
-        const pdfQty = extracted?.items?.[index]?.quantity;
-        const fallback =
-          pdfQty != null && pdfQty > 0 ? Math.min(pdfQty, item.balance) : 0;
+        const pdfIndex = pdfMatches[index];
+        const pdfQty = pdfIndex == null ? null : extracted?.items?.[pdfIndex]?.quantity;
+        const fallback = pdfQty != null && pdfQty > 0 ? pdfQty : 0;
         const quantity = Number.isFinite(fromState) && fromState >= 0 ? fromState : fallback;
         const lineTotal = Math.round(quantity * item.unitPrice * 100) / 100;
-        return { ...item, quantity, lineTotal, draft: raw ?? (fallback > 0 ? String(fallback) : "") };
+        return { ...item, quantity, lineTotal, pdfQuantity: pdfQty, draft: raw ?? (fallback > 0 ? String(fallback) : "") };
       }),
-    [ataLines, extracted, qtyDrafts],
+    [ataLines, extracted, pdfMatches, qtyDrafts],
   );
   const computedContractValue = useMemo(
     () => Math.round(contractLines.reduce((sum, line) => sum + line.lineTotal, 0) * 100) / 100,
@@ -107,6 +115,8 @@ export function NewContractForm({
       if (!response.ok) throw new Error(payload.error ?? "Falha na leitura do PDF.");
       const fields = payload.fields as ExtractedContract;
       setExtracted(fields);
+      setPdfVersion((version) => version + 1);
+      setQtyDrafts({});
       const match = suppliers.find((supplier) => fields.supplierCnpj && supplier.cnpj === fields.supplierCnpj.replace(/\D/g, ""))
         ?? suppliers.find((supplier) => fields.supplierName && supplier.label.toLocaleLowerCase("pt-BR") === fields.supplierName.toLocaleLowerCase("pt-BR") && (!fields.supplierCnpj || supplier.cnpj === fields.supplierCnpj.replace(/\D/g, "")));
       setSupplierId(match?.value ?? "");
@@ -137,9 +147,9 @@ export function NewContractForm({
       <div className="space-y-4">
         <section className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-4" aria-label="Ler contrato em PDF">
           <div>
-            <h3 className="text-sm font-semibold text-foreground">Anexar contrato (PDF)</h3>
+            <h3 className="text-sm font-semibold text-foreground">Ler contrato em PDF para preencher</h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              A IA lê empresa, itens e quantidades. O valor do contrato é a soma das quantidades × preço da ata.
+              A IA lê empresa, itens e quantidades. Confira os campos; o PDF não é arquivado nesta etapa. O valor é a soma das quantidades × preço da ata.
             </p>
           </div>
           <input
@@ -155,7 +165,7 @@ export function NewContractForm({
         </section>
 
         <ActionForm
-          key={`ctr-${ataId}-${extracted?.number ?? "manual"}`}
+          key={`ctr-${ataId}-${pdfVersion}`}
           action={createContractFormAction}
           submitLabel="Registrar contrato e descontar da ata"
           hiddenFields={{
@@ -190,6 +200,9 @@ export function NewContractForm({
                       Informe quantas unidades entram neste contrato. O valor é calculado sozinho (qtd × unitário da ata).
                     </p>
                   </div>
+                  {extracted?.items?.length && pdfMatches.some((match) => match === null) ? (
+                    <p role="status" className="text-sm text-amber-700">Alguns itens do PDF não correspondem de forma única aos itens da ata. Confira e informe as quantidades manualmente.</p>
+                  ) : null}
                   <SelectField
                     name="ataId"
                     label="Ata de registro de preços"
@@ -221,6 +234,11 @@ export function NewContractForm({
                               <p className="text-xs text-muted-foreground">
                                 Saldo na ata: {formatNumber(item.balance)} · unitário {formatCurrency(item.unitPrice)}
                               </p>
+                              {item.pdfQuantity != null && item.pdfQuantity > item.balance ? (
+                                <p role="alert" className="mt-1 text-xs font-medium text-destructive">
+                                  PDF: {formatNumber(item.pdfQuantity)}; saldo disponível: {formatNumber(item.balance)}. A quantidade do PDF excede o saldo da ata.
+                                </p>
+                              ) : null}
                               <input type="hidden" name={`ataItems.${index}.ataItemId`} value={item.itemId} />
                               <input type="hidden" name={`ataItems.${index}.unitPrice`} value={String(item.unitPrice)} />
                             </div>
@@ -326,9 +344,9 @@ export function NewContractForm({
     <div className="space-y-6">
       <section className="space-y-3 rounded-lg border border-border p-4" aria-label="Ler contrato em PDF">
         <h2 className="font-medium">Preencher a partir de PDF</h2>
-        <p className="text-sm text-muted-foreground">PDF com texto selecionável, até 10 MB e 30 páginas. O texto é enviado ao provedor de IA para extração; o cadastro só acontece após sua conferência.</p>
+        <p className="text-sm text-muted-foreground">PDF com texto selecionável, até 10 MB e 30 páginas. O texto é enviado ao provedor de IA para extração; o cadastro só acontece após sua conferência. O PDF não é arquivado nesta etapa.</p>
         <input type="file" accept="application/pdf,.pdf" onChange={(event) => setPdfFile(event.target.files?.[0] ?? null)} className="block w-full text-sm" />
-        <Button type="button" variant="outline" disabled={!pdfFile || reading} onClick={readPdf}>{reading ? "Lendo PDF…" : "Ler PDF"}</Button>
+        <Button type="button" variant="outline" disabled={!pdfFile || reading} onClick={readPdf}>{reading ? "Lendo PDF…" : "Ler PDF para preencher"}</Button>
         {message ? <p role="status" className="text-sm text-muted-foreground">{message}</p> : null}
       </section>
       <ActionForm
