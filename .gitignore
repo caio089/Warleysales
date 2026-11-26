@@ -2,6 +2,11 @@
 
 # dependencies
 /node_modules
+/.graphify-venv/
+/graphify-out/*
+!/graphify-out/graph.json
+!/graphify-out/GRAPH_REPORT.md
+!/graphify-out/manifest.json
 /.pnp
 .pnp.*
 .yarn/*
