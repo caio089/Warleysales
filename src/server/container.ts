@@ -88,6 +88,7 @@ export function createServices(repos: Repositories, runtime: RuntimeDeps): Servi
     audit,
     runtime,
     repos.purchases,
+    repos.atas,
   );
   const alertSource = new RepositoryAlertSource(repos.atas, repos.contracts, repos.memberships);
 

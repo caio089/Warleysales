@@ -1,5 +1,7 @@
 import type { AuditRecorder } from "@/modules/audit/service";
+import type { AtaRepository } from "@/modules/atas/repository";
 import type { InventoryService } from "@/modules/inventory/service";
+import { sumPriceResearchLines } from "@/modules/processes/price-research";
 import type { ProcessService } from "@/modules/processes/service";
 import type { PurchaseRequestRepository } from "@/modules/purchases/repository";
 import { guard } from "@/shared/lib/authz/guard";
@@ -31,6 +33,7 @@ export class FormalizationService {
     private readonly audit: AuditRecorder,
     private readonly runtime: RuntimeDeps,
     private readonly purchases?: PurchaseRequestRepository,
+    private readonly atas?: AtaRepository,
   ) {}
 
   /**
@@ -356,7 +359,8 @@ export class FormalizationService {
       });
     }
 
-    const list = await this.repository.listByCouncils(scope, { status: "homologado" });
+    const formalizations = await this.repository.listByCouncils(scope);
+    const list = formalizations.filter((item) => item.status === "homologado");
 
     let totalEstimated = 0;
     let totalContracted = 0;
@@ -364,6 +368,45 @@ export class FormalizationService {
     for (const item of list) {
       totalEstimated += item.estimatedValue;
       totalContracted += item.contractedValue;
+    }
+
+    let count = list.length;
+    if (this.atas) {
+      const processesResult = await this.processes.list(actor);
+      if (!processesResult.ok) return processesResult;
+
+      const processScope = processesResult.data.filter(({ process }) =>
+        !councilId || process.councilId === councilId,
+      );
+      const processById = new Map(processScope.map(({ process }) => [process.id, process]));
+      const formalizedProcessIds = new Set(formalizations.map((item) => item.processId));
+      const contractedByProcess = new Map<string, number>();
+      const atas = await this.atas.listByCouncils(scope);
+
+      for (const ata of atas) {
+        if (ata.status !== "vigente" || !ata.processId || formalizedProcessIds.has(ata.processId)) continue;
+        if (!processById.has(ata.processId)) continue;
+        const ataTotal = ata.items.reduce(
+          (total, item) => total + item.registeredQuantity * item.unitPrice,
+          0,
+        );
+        contractedByProcess.set(
+          ata.processId,
+          (contractedByProcess.get(ata.processId) ?? 0) + ataTotal,
+        );
+      }
+
+      for (const [processId, contractedValue] of contractedByProcess) {
+        const process = processById.get(processId);
+        if (!process || contractedValue <= 0) continue;
+        const estimatedValue = process.priceResearchLines?.length
+          ? sumPriceResearchLines(process.priceResearchLines)
+          : Number(process.estimatedValue ?? 0);
+        if (estimatedValue <= 0) continue;
+        totalEstimated += estimatedValue;
+        totalContracted += contractedValue;
+        count += 1;
+      }
     }
 
     totalEstimated = Math.round(totalEstimated * 100) / 100;
@@ -377,7 +420,7 @@ export class FormalizationService {
       totalContracted,
       totalSavings,
       averageSavingsPercent,
-      count: list.length,
+      count,
     });
   }
 

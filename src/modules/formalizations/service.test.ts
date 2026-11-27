@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { InMemoryAuditRepository } from "@/modules/audit/repository.memory";
 import { AuditService } from "@/modules/audit/service";
+import { InMemoryAtaRepository } from "@/modules/atas/repository.memory";
 import { InMemoryDocumentRepository, InMemoryStorage } from "@/modules/documents/repository.memory";
 import { DocumentService } from "@/modules/documents/service";
 import { DOCUMENT_TYPE_CODES } from "@/modules/processes/domain/document-types";
@@ -30,6 +31,7 @@ function setup() {
   const inventory = new InventoryService(inventoryRepo, audit, runtime);
   const purchasesRepo = new InMemoryPurchaseRequestRepository();
   const formalizationRepo = new InMemoryFormalizationRepository();
+  const ataRepo = new InMemoryAtaRepository();
 
   const formalizations = new FormalizationService(
     formalizationRepo,
@@ -38,6 +40,7 @@ function setup() {
     audit,
     runtime,
     purchasesRepo,
+    ataRepo,
   );
 
   return {
@@ -53,6 +56,7 @@ function setup() {
     inventory,
     purchasesRepo,
     formalizationRepo,
+    ataRepo,
     formalizations,
   };
 }
@@ -272,6 +276,27 @@ describe("FormalizationService", () => {
       contractedValue: 7000, // Economia: 3000 (30%)
     });
     await ctx.formalizations.homologate(centralAdmin(), { processId: proc1.id });
+    await ctx.ataRepo.insert({
+      id: "66666666-6666-4666-8666-666666666666",
+      councilId: COUNCIL_A,
+      number: "ATA-FORMALIZADA/2026",
+      supplierId: SUPPLIER_ID,
+      processId: proc1.id,
+      startDate: "2026-11-27",
+      status: "vigente",
+      items: [
+        {
+          id: "77777777-7777-4777-8777-777777777777",
+          description: "Item já coberto pela formalização",
+          materialId: MATERIAL_ID,
+          registeredQuantity: 1,
+          unitPrice: 1000,
+          allocations: [],
+        },
+      ],
+      extensions: [],
+      createdAt: ctx.runtime.now(),
+    });
 
     // Segundo processo com outra economia
     const proc2 = await ctx.processes.create(managerOf(COUNCIL_A), {
@@ -316,6 +341,49 @@ describe("FormalizationService", () => {
     expect(listB.ok).toBe(true);
     if (!listB.ok) return;
     expect(listB.data.length).toBe(0);
+  });
+
+  it("calcula economia pela pesquisa de preços e ata vigente quando não há formalização", async () => {
+    const process = await createProcessWithProgress(ctx, false);
+    await ctx.processRepo.update(process.id, {
+      estimatedValue: 10000,
+      priceResearchLines: [
+        { materialId: MATERIAL_ID, name: "Cadeira", quantity: 10, lineTotal: 10000 },
+      ],
+    });
+    const inserted = await ctx.ataRepo.insert({
+      id: "44444444-4444-4444-8444-444444444444",
+      councilId: COUNCIL_A,
+      number: "ATA-004/2026",
+      supplierId: SUPPLIER_ID,
+      processId: process.id,
+      startDate: "2026-11-27",
+      status: "vigente",
+      items: [
+        {
+          id: "55555555-5555-4555-8555-555555555555",
+          description: "Cadeira",
+          materialId: MATERIAL_ID,
+          registeredQuantity: 10,
+          unitPrice: 700,
+          allocations: [],
+        },
+      ],
+      extensions: [],
+      createdAt: ctx.runtime.now(),
+    });
+    expect(inserted.ok).toBe(true);
+
+    const summary = await ctx.formalizations.getSavingsSummary(viewerOf(COUNCIL_A), COUNCIL_A);
+    expect(summary.ok).toBe(true);
+    if (!summary.ok) return;
+    expect(summary.data).toEqual({
+      totalEstimated: 10000,
+      totalContracted: 7000,
+      totalSavings: 3000,
+      averageSavingsPercent: 30,
+      count: 1,
+    });
   });
 
   it("ajusta o bloqueado para a quantidade contratada e libera essa quantidade", async () => {
