@@ -78,9 +78,12 @@ test('envio local sem backend apresenta indisponibilidade', async ({ page }) => 
   expect(loginResponse.status()).toBe(200);
   await expect(page.getByRole('alert').filter({ hasText: 'Autenticação não configurada neste ambiente.' }).first()).toBeVisible();
   await expect(email).toHaveValue('sintetico@example.invalid'); await expect(password).toHaveValue('senha-sintetica');
-  await page.getByRole('link', { name: 'Esqueci minha senha' }).focus();
+  const recoveryLink = page.getByRole('link', { name: 'Esqueci minha senha' });
+  await recoveryLink.focus();
+  await expect(recoveryLink).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/recuperar-senha/);
+  // The first navigation can compile this route on the isolated dev server.
+  await expect(page).toHaveURL(/recuperar-senha/, { timeout: 20_000 });
   const recoveryEmail = page.getByRole('textbox', { name: 'E-mail' });
   await recoveryEmail.fill('sintetico@example.invalid');
   const recoveryPost = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname === '/recuperar-senha');
@@ -97,6 +100,7 @@ test('short/mismatch password validation blocked without auth configuration', as
 });
 
 test('public routes show unconfigured state; legacy route redirects to dashboard', async ({ page }) => {
+  test.setTimeout(120_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   for (const route of routes) {
     const response = await page.goto(route, { waitUntil: 'load', timeout: 60000 }); expect(response?.status(), route).toBeLessThan(500);

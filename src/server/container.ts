@@ -100,7 +100,7 @@ export function createServices(repos: Repositories, runtime: RuntimeDeps): Servi
     formalizations,
     retention: new RetentionService(repos.retention, repos.processes, repos.documents, repos.storage, audit, runtime),
     inventory,
-    transfers: new TransferService(repos.transfers, inventory, audit, runtime),
+    transfers: new TransferService(repos.transfers),
     atas,
     contracts,
     purchases: new PurchaseRequestService(repos.purchases, atas, inventory, processes, audit, runtime, contracts),

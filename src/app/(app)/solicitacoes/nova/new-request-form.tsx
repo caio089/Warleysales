@@ -106,7 +106,7 @@ export function NewRequestForm({
         {message ? <p role="status" className="text-sm text-muted-foreground">{message}</p> : null}
       </section>
 
-      <div className="surface-card max-w-2xl p-6">
+      <div className="surface-card w-full max-w-5xl p-4 sm:p-6">
         <ActionForm
           key={formKey}
           action={createRequestFormAction}

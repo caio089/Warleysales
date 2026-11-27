@@ -14,19 +14,24 @@ export function NewMeetingForm({
   councils,
   defaultCouncilId,
   lockCouncil = false,
+  openDetails = false,
   onSuccess,
 }: {
   councils: Option[];
   defaultCouncilId?: string;
   /** Quando true, o órgão já está definido (painel do órgão) e não aparece no formulário. */
   lockCouncil?: boolean;
+  openDetails?: boolean;
   onSuccess?: () => void;
 }) {
   return (
     <ActionForm
       action={scheduleMeetingFormAction}
       submitLabel="Agendar reunião"
-      hiddenFields={lockCouncil && defaultCouncilId ? { councilId: defaultCouncilId } : undefined}
+      hiddenFields={{
+        ...(lockCouncil && defaultCouncilId ? { councilId: defaultCouncilId } : {}),
+        ...(openDetails ? { openDetails: "1" } : {}),
+      }}
       onSuccess={onSuccess}
     >
       {(e) => (

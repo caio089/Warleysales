@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, type ReactElement } from "react";
 import { CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 export interface MeetingDialogProps {
   councilId: string;
   councilLabel: string;
-  trigger?: ReactNode;
+  trigger?: ReactElement;
   triggerClassName?: string;
 }
 
@@ -26,15 +26,15 @@ export function MeetingDialog({ councilId, councilLabel, trigger, triggerClassNa
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger render={<span className={cn("inline-flex", triggerClassName)} />}>
-        {trigger ?? (
+      <span className={cn("inline-flex", triggerClassName)}>
+        <SheetTrigger render={trigger ?? (
           <Button variant="outline" size="sm" className="gap-2 font-medium">
             <CalendarDays className="size-4" aria-hidden />
             Agendar Reunião
           </Button>
-        )}
-      </SheetTrigger>
-      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto p-6">
+        )} />
+      </span>
+      <SheetContent side="right" className="w-full overflow-y-auto p-4 sm:max-w-md sm:p-6">
         <SheetHeader className="mb-4">
           <SheetTitle className="flex items-center gap-2 text-base font-semibold">
             <CalendarDays className="size-5 text-primary" aria-hidden />

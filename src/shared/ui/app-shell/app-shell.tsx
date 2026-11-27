@@ -167,12 +167,12 @@ export function AppShell({ navHrefs, topbarSlot, children }: AppShellProps) {
           </div>
           <div className="flex flex-1 items-center justify-end gap-2">{topbarSlot}</div>
         </header>
-        <main id="conteudo" className="relative flex-1 p-5 md:p-8">
+        <main id="conteudo" className="relative min-w-0 flex-1 px-4 py-5 sm:px-6 lg:px-8">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-[radial-gradient(ellipse_at_top,oklch(0.28_0.07_250_/_0.045),transparent_70%)]"
           />
-          <div className="relative mx-auto w-full max-w-6xl">
+          <div className="relative mx-auto w-full max-w-[100rem]">
             <PageReveal>{children}</PageReveal>
           </div>
         </main>

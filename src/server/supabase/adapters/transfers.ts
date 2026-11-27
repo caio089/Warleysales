@@ -1,9 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { TransferStatus } from "@/modules/transfers/domain/transfer";
-import type { AtomicTransferStep, TransferRepository } from "@/modules/transfers/repository";
+import type { TransferRepository } from "@/modules/transfers/repository";
 import type { Transfer } from "@/modules/transfers/schemas";
-import { fail, ok, type Result } from "@/shared/lib/result";
-import { callRpc, rpcOutcomeToResult, type RpcOutcome, selectAll, toDate, toIso, toNumber, unwrap } from "../db";
+import { selectAll, toDate, toNumber, unwrap } from "../db";
 
 interface TransferRow {
   id: string;
@@ -31,36 +30,8 @@ const toTransfer = (row: TransferRow): Transfer => ({
   })),
 });
 
-const toPayload = (t: Transfer) => ({
-  id: t.id, origin_council_id: t.originCouncilId, destination_council_id: t.destinationCouncilId, status: t.status, created_at: toIso(t.createdAt),
-  items: t.items.map((i) => ({ material_id: i.materialId, quantity: i.quantity, received_quantity: i.receivedQuantity })),
-  events: t.events.map((e) => ({ from_status: e.from, to_status: e.to, actor_id: e.actorId, at: toIso(e.at), note: e.note ?? null })),
-});
-
 export class SupabaseTransferRepository implements TransferRepository {
   constructor(private readonly db: SupabaseClient) {}
-
-  async insert(transfer: Transfer) {
-    await callRpc(this.db, "save_transfer", { p: toPayload(transfer) });
-    return transfer;
-  }
-
-  async save(transfer: Transfer) {
-    await callRpc(this.db, "save_transfer", { p: toPayload(transfer) });
-    return transfer;
-  }
-
-  /** Avanço com efeito de estoque de todos os materiais em UMA transação (RPC `advance_transfer`). */
-  async advanceAtomically(step: AtomicTransferStep): Promise<Result<Transfer>> {
-    const outcome = await callRpc<RpcOutcome>(this.db, "advance_transfer", {
-      p_transfer: step.transferId, p_to: step.to, p_actor: step.actorId, p_at: toIso(step.at), p_note: step.note ?? null,
-      p_received: step.received ?? null,
-    });
-    const result = rpcOutcomeToResult(outcome);
-    if (!result.ok) return result;
-    const saved = await this.findById(step.transferId);
-    return saved ? ok(saved) : fail("NOT_FOUND", "Transferência não encontrada.");
-  }
 
   async findById(id: string) {
     const row = unwrap("transfers.find", await this.db.from("stock_transfers").select(SELECT).eq("id", id).maybeSingle<TransferRow>());

@@ -6,7 +6,7 @@ import { fail, ok, type Result } from "@/shared/lib/result";
 import { idSchema, parseInput, type RuntimeDeps } from "@/shared/lib/service-support";
 import { changeMeetingStatus } from "./domain/meeting-status";
 import type { MeetingRepository } from "./repository";
-import { actionItemSchema, changeMeetingStatusSchema, minutesSchema, scheduleMeetingSchema, type Meeting } from "./schemas";
+import { actionItemSchema, changeMeetingStatusSchema, meetingDetailsSchema, minutesSchema, scheduleMeetingSchema, type Meeting } from "./schemas";
 
 export class MeetingService {
   constructor(
@@ -90,6 +90,22 @@ export class MeetingService {
     const scope = readableCouncilIds(actor);
     if (scope !== "all" && scope.length === 0) return ok([]);
     return ok(await this.repository.listByCouncils(scope));
+  }
+
+  async updateDetails(actor: Actor, input: unknown): Promise<Result<true>> {
+    const parsed = parseInput(meetingDetailsSchema, input);
+    if (!parsed.ok) return parsed;
+    const { meetingId, ...details } = parsed.data;
+    const meeting = await this.repository.findById(meetingId);
+    if (!meeting) return fail("NOT_FOUND", "Reunião não encontrada.");
+    const allowed = await guard(this.audit, actor, "meeting.manage", meeting.councilId, "meeting", meetingId);
+    if (!allowed.ok) return allowed;
+    if (!await this.repository.updateDetails(meetingId, details)) {
+      return fail("VALIDATION", "Confira os participantes, o responsável e os anexos do órgão.");
+    }
+    await this.audit.record({ actorId: actor.userId, action: "meeting.details", entity: "meeting", entityId: meetingId,
+      councilId: meeting.councilId, result: "success", details: {} });
+    return ok(true);
   }
 
   async get(actor: Actor, id: string): Promise<Result<Meeting>> {

@@ -15,7 +15,7 @@ function StateShell({ icon: Icon, title, description, action, role, iconClassNam
   return (
     <div
       role={role}
-      className="relative flex flex-col items-center justify-center gap-4 overflow-hidden rounded-2xl border border-dashed border-border/90 bg-card/80 px-8 py-16 text-center"
+      className="relative flex flex-col items-center justify-center gap-4 overflow-hidden rounded-2xl border border-dashed border-border/90 bg-card/80 px-4 py-10 sm:px-8 sm:py-12 text-center"
     >
       <div
         aria-hidden
@@ -46,11 +46,11 @@ export function ErrorState({ title = "Não foi possível carregar os dados", des
 export function LoadingState({ title = "Carregando…" }: { title?: string }) {
   return (
     <div role="status" aria-label={title} className="space-y-4">
-      <p className="sr-only">{title}</p>
+      <p className="text-sm font-medium text-muted-foreground">{title}</p>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {["a", "b", "c", "d"].map((key) => (
           <div key={key} className="surface-card h-28 overflow-hidden">
-            <div className="h-full animate-pulse bg-gradient-to-r from-muted/40 via-muted/80 to-muted/40" />
+            <div className="h-full motion-safe:animate-pulse bg-gradient-to-r from-muted/40 via-muted/80 to-muted/40" />
           </div>
         ))}
       </div>

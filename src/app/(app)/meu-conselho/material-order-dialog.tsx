@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, type ReactElement } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog } from "@base-ui/react/dialog";
 import {
@@ -26,7 +26,7 @@ export interface AvailableStockItem {
 export interface MaterialOrderDialogProps {
   councilId: string;
   availableStock: AvailableStockItem[];
-  trigger?: ReactNode;
+  trigger?: ReactElement;
   onOrderCreated?: (order: MaterialOrder) => void;
 }
 
@@ -353,18 +353,16 @@ export function MaterialOrderDialog({
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Trigger render={<span className="inline-flex" />}>
-        {trigger ?? (
+      <Dialog.Trigger render={trigger ?? (
           <Button className="gap-2 bg-primary font-medium text-primary-foreground shadow-xs hover:bg-primary/90">
             <PackagePlus className="size-4" aria-hidden />
             <span>Novo Pedido de Material</span>
           </Button>
-        )}
-      </Dialog.Trigger>
+        )} />
 
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-primary/25 backdrop-blur-[2px] transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0" />
-        <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 flex max-h-[90vh] w-[min(44rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col rounded-2xl border border-border/80 bg-popover p-6 text-popover-foreground shadow-[0_24px_60px_-24px_oklch(0.23_0.05_250_/_0.45)] outline-none">
+        <Dialog.Popup className="fixed top-1/2 left-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-[min(44rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-y-auto rounded-2xl border border-border/80 bg-popover p-4 text-popover-foreground shadow-[0_24px_60px_-24px_oklch(0.23_0.05_250_/_0.45)] outline-none sm:p-6">
           {/* Header */}
           <div className="flex items-start justify-between gap-4 border-b border-border/70 pb-4">
             <div className="flex items-center gap-3">

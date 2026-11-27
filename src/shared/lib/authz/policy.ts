@@ -14,8 +14,6 @@ export type PermissionAction =
   | "document.unlink"
   | "request.create"
   | "request.decide"
-  | "transfer.request"
-  | "transfer.decide"
   | "stock.move"
   | "stock.adjust"
   | "material.manage"
@@ -61,8 +59,6 @@ const ROLES_BY_ACTION: Record<Exclude<PermissionAction, "data.delete_manual">, R
   "request.create": MANAGER_OPERATOR,
   /** Exclusivo do Warley (`isSpecialDeleter`) — o órgão cria/envia; Maria Luiza e demais não decidem. */
   "request.decide": null,
-  "transfer.request": MANAGER_OPERATOR,
-  "transfer.decide": MANAGER,
   "stock.move": MANAGER_OPERATOR,
   "stock.adjust": MANAGER,
   "material.manage": MANAGER,

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { MeetingStatus } from "@/modules/meetings/domain/meeting-status";
 import type { MeetingRepository } from "@/modules/meetings/repository";
-import type { Meeting } from "@/modules/meetings/schemas";
+import type { Meeting, MeetingDetails } from "@/modules/meetings/schemas";
 import { callRpc, selectAll, toDate, toDateOrNull, toIso, toIsoOrNull, unwrap } from "../db";
 
 interface MeetingRow {
@@ -16,6 +16,11 @@ interface MeetingRow {
   audio_path: string | null;
   transcript_text: string | null;
   created_by: string;
+  responsible_id: string | null;
+  agenda: string | null;
+  decisions: string | null;
+  participant_ids: string[];
+  attachment_ids: string[];
   meeting_attendance: { participant_id: string; recorded_by: string; recorded_at: string }[];
   meeting_action_items: { id: string; seq: number; description: string; responsible_id: string | null; due_date: string | null; done: boolean; meeting_task_completions: { completed_by: string; completed_at: string; due_date: string | null } | null }[];
 }
@@ -38,6 +43,11 @@ const toMeeting = (row: MeetingRow): Meeting => ({
     id: i.id, description: i.description, responsibleId: i.responsible_id, dueDate: i.due_date, done: i.done,
   })),
   createdBy: row.created_by,
+  responsibleId: row.responsible_id,
+  agenda: row.agenda,
+  decisions: row.decisions,
+  participantIds: row.participant_ids ?? [],
+  attachmentIds: row.attachment_ids ?? [],
   attendance: row.meeting_attendance.map((a) => ({ participantId: a.participant_id, recordedBy: a.recorded_by, at: toDate(a.recorded_at) })),
 });
 
@@ -70,6 +80,17 @@ export class SupabaseMeetingRepository implements MeetingRepository {
   async findById(id: string) {
     const row = unwrap("meetings.find", await this.db.from("meetings").select(SELECT).eq("id", id).maybeSingle<MeetingRow>());
     return row ? toMeeting(row) : null;
+  }
+
+  async updateDetails(id: string, details: MeetingDetails) {
+    const { data, error } = await this.db.from("meetings").update({
+      title: details.title, responsible_id: details.responsibleId,
+      agenda: details.agenda || null, decisions: details.decisions || null,
+      participant_ids: details.participantIds, attachment_ids: details.attachmentIds,
+    }).eq("id", id).select("id").maybeSingle();
+    if (error?.code === "23514") return false;
+    if (error) throw error;
+    return Boolean(data);
   }
 
   async listByCouncils(councilIds: readonly string[] | "all") {

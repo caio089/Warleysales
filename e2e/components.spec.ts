@@ -12,14 +12,15 @@ test('ProcessView tabs support keyboard, URL, refresh and history on desktop and
     await page.setViewportSize(viewport);
     await openFixture(page, 'process');
     const tabs = page.getByRole('tab');
-    await expect(tabs).toHaveCount(3);
+    await expect(tabs).toHaveCount(5);
+    const historyTab = page.getByRole('tab', { name: 'Histórico' });
     const runId = process.env.E2E_RUN_ID ?? new Date().toISOString().replace(/[:.]/g, '-');
     await mkdir(`artifacts/evidence/${runId}`, { recursive: true });
     await tabs.nth(0).focus();
     await page.keyboard.press('End');
-    await expect(tabs.nth(2)).toBeFocused();
-    await expect(tabs.nth(2)).toHaveAttribute('aria-selected', 'true');
-    await expect(page).toHaveURL(/aba=governanca/);
+    await expect(historyTab).toBeFocused();
+    await expect(historyTab).toHaveAttribute('aria-selected', 'true');
+    await expect(page).toHaveURL(/aba=historico/);
     await page.keyboard.press('ArrowRight');
     await expect(tabs.nth(0)).toBeFocused();
     await page.keyboard.press('Home');
@@ -162,13 +163,14 @@ test('ProcessesTable sort cycles asc desc none and modified click stays on list'
 test('ProcessView popstate restores tab for absent and invalid aba values', async ({ page }) => {
   await openFixture(page, 'process');
   const tabs = page.getByRole('tab');
+  const defaultTab = page.getByRole('tab', { name: /^Documentação/ });
   await tabs.nth(2).click();
   await page.evaluate(() => history.pushState(null, '', '/process?aba=bad'));
   await page.evaluate(() => window.dispatchEvent(new PopStateEvent('popstate')));
-  await expect(tabs.nth(0)).toHaveAttribute('aria-selected', 'true');
+  await expect(defaultTab).toHaveAttribute('aria-selected', 'true');
   await page.evaluate(() => history.pushState(null, '', '/process'));
   await page.evaluate(() => window.dispatchEvent(new PopStateEvent('popstate')));
-  await expect(tabs.nth(0)).toHaveAttribute('aria-selected', 'true');
+  await expect(defaultTab).toHaveAttribute('aria-selected', 'true');
 });
 
 test('Sidebar hides collapsed-group links from focus; mobile menu and Sheet close', async ({ page }) => {
@@ -178,7 +180,7 @@ test('Sidebar hides collapsed-group links from focus; mobile menu and Sheet clos
   await expect(stockGroup).toHaveAttribute('aria-expanded', 'false');
   await stockGroup.focus();
   await page.keyboard.press('Tab');
-  await expect(page.getByRole('button', { name: 'Sistema' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Outras opções' })).toBeFocused();
   await stockGroup.click();
   await expect(stockGroup).toHaveAttribute('aria-expanded', 'true');
   await expect(page.getByRole('link', { name: 'Entregas' })).toBeVisible();
@@ -186,7 +188,7 @@ test('Sidebar hides collapsed-group links from focus; mobile menu and Sheet clos
   await page.reload();
   await page.getByRole('button', { name: 'Abrir menu de navegação' }).click();
   await expect(page.getByRole('heading', { name: 'Navegação' })).toBeVisible();
-  await page.getByRole('button', { name: 'Sistema' }).last().focus();
+  await page.getByRole('button', { name: 'Outras opções' }).last().focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('link', { name: 'Alertas' })).toBeVisible();
   await page.keyboard.press('Escape');

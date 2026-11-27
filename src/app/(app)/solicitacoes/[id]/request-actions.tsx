@@ -39,6 +39,9 @@ export function RequestActions({
 }: Props) {
   const [panel, setPanel] = useState<Panel>(null);
   const [receiptContractId, setReceiptContractId] = useState("");
+  const onlyReceiptContract = receiptContracts.length === 1 ? receiptContracts[0] : undefined;
+  const receiptContract = onlyReceiptContract ?? receiptContracts.find((contract) => contract.value === receiptContractId);
+  const receiptLines = new Map(receiptContract?.items.map((line) => [line.id, line]));
   const [decline, setDecline] = useState<DeclinePath | null>(null);
   const next = nextStates(REQUEST_TRANSITIONS, status);
   const pendingDecision = canDecide && (status === "enviada" || status === "em_analise");
@@ -171,18 +174,30 @@ export function RequestActions({
       ) : null}
 
       {receiving && panel === null ? (
-        <div className="surface-card max-w-md p-6">
-          <h3 className="mb-1 font-heading text-lg font-medium tracking-tight text-primary">O que chegou?</h3>
-          <p className="mb-4 text-sm text-muted-foreground">O número já vem preenchido com tudo. Diminua só se chegou menos.</p>
-          <ActionForm action={receiveFormAction} submitLabel="Lançar no estoque" pendingLabel="Lançando…" hiddenFields={{ requestId }} idempotencyField="receiptKey">
+        <div className="surface-card w-full max-w-3xl p-4 sm:p-6">
+          <h3 className="mb-1 font-heading text-lg font-semibold tracking-tight text-primary">Registrar recebimento</h3>
+          <p className="mb-4 text-sm text-muted-foreground">Confira as quantidades e ajuste os itens entregues parcialmente.</p>
+          <ActionForm action={receiveFormAction} submitLabel="Lançar no estoque" pendingLabel="Lançando…" hiddenFields={{ requestId, ...(onlyReceiptContract ? { contractId: onlyReceiptContract.value } : {}) }} idempotencyField="receiptKey" onSuccess={() => setReceiptContractId("")}>
             {(errors) => <>
-              <SelectField name="contractId" label="Contrato deste recebimento" required onChange={setReceiptContractId} options={receiptContracts} errors={errors.contractId} />
-              {pendingItems.filter((item) => receiptContracts.find((contract) => contract.value === receiptContractId)?.items.some((line) => line.id === item.id)).map((item) => (
-                <div key={item.id}>
-                  <input type="hidden" name="itemId" value={item.id} />
-                  <TextField key={`${receiptContractId}:${item.id}`} name="received" label={item.label} type="number" step="0.001" min="0" defaultValue={String(receiptContracts.find((contract) => contract.value === receiptContractId)?.items.find((line) => line.id === item.id)?.pending ?? 0)} />
+              {onlyReceiptContract ? (
+                <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
+                  <p className="text-muted-foreground">Contrato deste recebimento</p>
+                  <p className="font-medium">{onlyReceiptContract.label}</p>
+                  {errors.contractId ? <p role="alert" className="text-destructive">{errors.contractId.join(" ")}</p> : null}
                 </div>
-              ))}
+              ) : <SelectField name="contractId" label="Contrato deste recebimento" required onChange={setReceiptContractId} options={receiptContracts} errors={errors.contractId} />}
+              {receiptContract ? <div className="grid gap-3 sm:grid-cols-2">
+                {pendingItems.map((item) => {
+                  const line = receiptLines.get(item.id);
+                  if (!line) return null;
+                  return (
+                    <div key={`${receiptContract.value}:${item.id}`}>
+                      <input type="hidden" name="itemId" value={item.id} />
+                      <TextField name="received" label={item.label} type="number" step="0.001" min="0" defaultValue={String(line.pending)} />
+                    </div>
+                  );
+                })}
+              </div> : null}
             </>}
           </ActionForm>
         </div>

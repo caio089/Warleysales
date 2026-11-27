@@ -64,7 +64,7 @@ describe("NAV_ITEMS — integridade de grupos", () => {
     const processosLabels = NAV_ITEMS.filter((item) => item.group === "processos").map((item) => item.label);
     expect(processosLabels).toEqual(["Solicitações", "Processos", "Atas", "Contratos"]);
     const estoqueLabels = NAV_ITEMS.filter((item) => item.group === "estoque").map((item) => item.label);
-    expect(estoqueLabels).toEqual(["Consultar estoque", "Entregas", "Transferências"]);
+    expect(estoqueLabels).toEqual(["Consultar estoque", "Entregas"]);
     const agendaLabels = NAV_ITEMS.filter((item) => item.group === "agenda").map((item) => item.label);
     expect(agendaLabels).toEqual(["Calendário", "Reuniões"]);
     const outrasLabels = NAV_ITEMS.filter((item) => item.group === "outras").map((item) => item.label);
@@ -80,7 +80,7 @@ describe("NAV_ITEMS — baseline", () => {
       ["/atas", ["council_manager", "council_operator", "viewer"], false], ["/contratos", ["council_manager", "council_operator", "viewer"], false],
       ["/calendario", ["council_manager", "council_operator", "viewer"], false], ["/fornecedores", ["council_manager", "council_operator", "viewer"], false],
       ["/reunioes", ["council_manager", "council_operator", "viewer"], false], ["/estoque", ["council_manager", "council_operator", "viewer"], false],
-      ["/entregas", ["council_manager", "council_operator", "viewer"], false], ["/transferencias", ["council_manager", "council_operator", "viewer"], false],
+      ["/entregas", ["council_manager", "council_operator", "viewer"], false],
       ["/alertas", ["council_manager", "council_operator", "viewer"], false], ["/relatorios", ["council_manager", "viewer"], false],
       ["/administracao/auditoria", ["council_manager"], false], ["/administracao", [], true],
     ]);

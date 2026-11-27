@@ -53,11 +53,11 @@ export function ConfirmDialog({
       <AlertDialog.Trigger render={trigger} />
       <AlertDialog.Portal>
         <AlertDialog.Backdrop className="fixed inset-0 z-50 bg-primary/25 backdrop-blur-[2px]" />
-        <AlertDialog.Popup className="fixed top-1/2 left-1/2 z-50 w-[min(28rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border/80 bg-popover p-6 text-popover-foreground shadow-[0_24px_60px_-24px_oklch(0.23_0.05_250_/_0.45)] outline-none">
+        <AlertDialog.Popup className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[min(28rem,calc(100vw-2rem))] overflow-y-auto -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border/80 bg-popover p-4 sm:p-6 text-popover-foreground shadow-[0_24px_60px_-24px_oklch(0.23_0.05_250_/_0.45)] outline-none">
           <AlertDialog.Title className="font-heading text-lg font-medium tracking-tight text-primary">{title}</AlertDialog.Title>
           <AlertDialog.Description className="mt-2 text-sm text-muted-foreground">{description}</AlertDialog.Description>
           {error ? <p role="alert" className="mt-4 text-sm text-destructive">Falha inesperada. Tente novamente.</p> : null}
-          <div className="mt-6 flex justify-end gap-2">
+          <div className="mt-6 flex flex-wrap justify-end gap-2">
             <AlertDialog.Close render={<Button variant="outline" disabled={pending} />}>{cancelLabel}</AlertDialog.Close>
             <Button variant={destructive ? "destructive" : "default"} onClick={handleConfirm} disabled={pending}>
               {pending ? "Processando…" : confirmLabel}

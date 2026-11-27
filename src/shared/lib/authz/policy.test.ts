@@ -21,8 +21,6 @@ const roleMatrix: readonly [PermissionAction, boolean, boolean, boolean, boolean
   ["request.create", true, true, false, true],
   // request.decide: só Warley (isSpecialDeleter); admin central comum (Maria Luiza) = false
   ["request.decide", false, false, false, false],
-  ["transfer.request", true, true, false, true],
-  ["transfer.decide", true, false, false, true],
   ["stock.move", true, true, false, true],
   ["stock.adjust", true, false, false, true],
   ["material.manage", true, false, false, true],

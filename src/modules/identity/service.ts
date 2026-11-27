@@ -109,6 +109,13 @@ export class MembershipService {
     return (await this.memberships.listProfiles()).filter((profile) => profile.active && ids.has(profile.id));
   }
 
+  /** Nomes dos participantes, inclusive membros inativos em registros históricos. */
+  async meetingDirectory(actor: Actor, councilId: string): Promise<ProfileSummary[]> {
+    if (!can(actor, "council.read", councilId)) return [];
+    const ids = new Set((await this.memberships.listByCouncil(councilId)).map((member) => member.userId));
+    return (await this.memberships.listProfiles()).filter((profile) => ids.has(profile.id));
+  }
+
   /** Nomes de colaboradores limitados aos órgãos para os quais há permissão de relatório. */
   async meetingParticipants(actor: Actor, councilId: string): Promise<ProfileSummary[]> {
     if (!can(actor, "meeting.manage", councilId)) return [];

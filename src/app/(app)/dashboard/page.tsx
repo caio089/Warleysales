@@ -41,8 +41,11 @@ export const metadata: Metadata = { title: "Início" };
 
 const quickActions = [
   { href: "/solicitacoes/nova", icon: FilePlus, title: "Novo pedido", description: "Peça materiais ou serviços em poucos passos." },
+  { href: "/solicitacoes", icon: ClipboardList, title: "Consultar solicitações", description: "Abra pedidos existentes para acompanhar as próximas ações." },
+  { href: "/solicitacoes/processos/novo", icon: FilePlus, title: "Novo processo", description: "Cadastre o processo na área centralizada." },
   { href: "/processos", icon: ClipboardList, title: "Ver processos", description: "Acompanhe o que já está em andamento." },
   { href: "/estoque", icon: Package, title: "Ver estoque", description: "Confira o que tem disponível hoje." },
+  { href: "/reunioes", icon: CalendarDays, title: "Reuniões e tarefas", description: "Consulte reuniões registradas e suas tarefas." },
   { href: "/calendario", icon: CalendarDays, title: "Ver agenda", description: "Reuniões e prazos que estão por vir." },
 ] as const;
 
@@ -158,6 +161,7 @@ async function DashboardContent({
       /** Fila de aprovação de solicitações: só Warley (`isSpecialDeleter`). */
       canApproveRequests: ctx.actor.isSpecialDeleter,
       canCreateRequest: canInAnyCouncil(ctx.actor, "request.create"),
+      canCreateProcess: canInAnyCouncil(ctx.actor, "process.create"),
       workspace: actionCouncilId
         ? {
             councilId: actionCouncilId,
@@ -196,10 +200,15 @@ async function DashboardContent({
         canApproveRequests,
         canCreateRequest,
         workspace,
+        canCreateProcess,
       }) => {
         const councilLabel = workspace?.councilLabel ?? null;
         const visibleActions = quickActions.filter(
-          ({ href }) => href !== "/solicitacoes/nova" || (workspace?.canCreateRequest ?? canCreateRequest),
+          ({ href }) => {
+            if (href === "/solicitacoes/nova") return workspace?.canCreateRequest ?? canCreateRequest;
+            if (href === "/solicitacoes/processos/novo") return canCreateProcess;
+            return true;
+          },
         );
 
         // Filtro de escopo por empresa

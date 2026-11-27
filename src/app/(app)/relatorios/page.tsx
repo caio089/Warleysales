@@ -203,17 +203,12 @@ async function AuditContent({ rawParams }: { rawParams: Record<string, string | 
   );
 }
 
-export default async function ReportsPage(props: ReportsPageProps) {
+async function ReportTabs(props: ReportsPageProps) {
   const rawParams = props.searchParams ? await props.searchParams : {};
   const tab = one(rawParams.tab) === "auditoria" ? "auditoria" : one(rawParams.tab) === "central" ? "central" : "indicadores";
   const officialOnly = one(rawParams.mode) === "official";
 
   return (
-    <>
-      <PageHeader
-        title="Relatórios"
-        description="Indicadores operacionais e trilha completa de auditoria com conformidade normativa."
-      />
       <div className="space-y-6">
         <div role="tablist" aria-label="Abas de relatórios" className="flex flex-wrap gap-2 border-b border-border pb-4">
           <Link href="/relatorios?tab=central" role="tab" aria-selected={tab === "central"} className={cn("inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium", tab === "central" ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground")}>Central de Relatórios</Link>
@@ -255,6 +250,16 @@ export default async function ReportsPage(props: ReportsPageProps) {
           )}
         </Suspense>
       </div>
+  );
+}
+
+export default function ReportsPage(props: ReportsPageProps) {
+  return (
+    <>
+      <PageHeader title="Relatórios" description="Indicadores operacionais e trilha completa de auditoria com conformidade normativa." />
+      <Suspense fallback={<LoadingState title="Carregando relatórios…" />}>
+        <ReportTabs searchParams={props.searchParams} />
+      </Suspense>
     </>
   );
 }

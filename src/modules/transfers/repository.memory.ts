@@ -9,5 +9,4 @@ export class InMemoryTransferRepository implements TransferRepository {
   async listByCouncils(ids: readonly string[] | "all") {
     return this.table.all((t) => ids === "all" || ids.includes(t.originCouncilId) || ids.includes(t.destinationCouncilId));
   }
-  async save(t: Transfer) { this.table.insert(t); return t; }
 }

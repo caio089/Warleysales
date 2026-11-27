@@ -2671,4 +2671,100 @@ create trigger contract_receipt_line_integrity
 before insert or update on public.contract_receipt_lines
 for each row execute function private.check_contract_receipt_line();
 
+-- ===== 20261126020400_retire_transfer_operations.sql =====
+-- Keep transfer history and its read policies. Retire only operational access.
+lock table public.stock_transfers in share row exclusive mode;
+
+do $$
+begin
+  if exists (
+    select 1 from public.stock_transfers
+    where status in ('aprovada', 'separada', 'em_transito')
+  ) then
+    raise exception 'Conclua ou regularize as transferências com material reservado ou em trânsito antes de desativar o módulo.';
+  end if;
+end
+$$;
+
+revoke execute on function public.save_transfer(jsonb),
+  public.advance_transfer(uuid, text, uuid, timestamptz, text, jsonb)
+  from public, anon, authenticated, service_role;
+
+revoke insert, update, delete, truncate on
+  public.stock_transfers, public.stock_transfer_items, public.stock_transfer_events
+  from public, anon, authenticated, service_role;
+
+-- ===== 20261126020500_calendar_appointments.sql =====
+create table public.calendar_appointments (
+  id uuid primary key default gen_random_uuid(),
+  council_id uuid not null references public.councils(id),
+  created_by uuid not null default auth.uid() references public.profiles(id),
+  title text not null check (length(btrim(title)) between 3 and 200),
+  description text not null default '' check (length(description) <= 2000),
+  starts_at timestamptz not null,
+  ends_at timestamptz not null,
+  check (ends_at > starts_at)
+);
+create index calendar_appointments_scope_date_idx on public.calendar_appointments (council_id, starts_at);
+alter table public.calendar_appointments enable row level security;
+revoke all on public.calendar_appointments from public, anon, authenticated;
+grant select on public.calendar_appointments to authenticated;
+grant insert (council_id, title, description, starts_at, ends_at),
+  update (title, description, starts_at, ends_at) on public.calendar_appointments to authenticated;
+create policy calendar_appointment_read on public.calendar_appointments for select to authenticated
+  using (private.has_council_access(council_id));
+create policy calendar_appointment_create on public.calendar_appointments for insert to authenticated
+  with check (created_by = auth.uid() and private.has_council_role(council_id, array['council_manager','council_operator']::public.council_role[]));
+create policy calendar_appointment_edit on public.calendar_appointments for update to authenticated
+  using (private.has_council_role(council_id, array['council_manager','council_operator']::public.council_role[]))
+  with check (private.has_council_role(council_id, array['council_manager','council_operator']::public.council_role[]));
+
+-- ===== 20261126020600_meeting_details.sql =====
+alter table public.meetings
+  add column responsible_id uuid references public.profiles(id),
+  add column agenda text check (length(agenda) <= 8000),
+  add column decisions text check (length(decisions) <= 12000),
+  add column participant_ids uuid[] not null default '{}' check (cardinality(participant_ids) <= 100),
+  add column attachment_ids uuid[] not null default '{}' check (cardinality(attachment_ids) <= 100);
+
+-- Related people are independent of confirmed attendance. Validate only new links
+-- so previously recorded links survive later changes to membership or retention.
+create function private.validate_meeting_details() returns trigger
+language plpgsql set search_path = '' as $$
+declare
+  old_people uuid[] := '{}';
+  old_attachments uuid[] := '{}';
+begin
+  if tg_op = 'UPDATE' and new.council_id = old.council_id then
+    old_people := array_append(old.participant_ids, old.responsible_id);
+    old_attachments := old.attachment_ids;
+  end if;
+  if exists (
+    select 1 from unnest(array_append(new.participant_ids, new.responsible_id)) as person(id)
+    where person.id is not null and not exists (select 1 from unnest(old_people) p(id) where p.id = person.id)
+      and not exists (
+        select 1 from public.council_memberships m join public.profiles p on p.id = m.user_id
+        where m.council_id = new.council_id and m.user_id = person.id and p.active
+      )
+  ) then
+    raise check_violation using message = 'Pessoa sem vínculo ativo com o órgão da reunião.';
+  end if;
+  if exists (
+    select 1 from unnest(new.attachment_ids) as linked(id)
+    where not exists (select 1 from unnest(old_attachments) a(id) where a.id = linked.id)
+      and not exists (
+        select 1 from public.attachments a
+        where a.id = linked.id and a.council_id = new.council_id
+          and a.upload_status = 'confirmed' and a.retention_state <> 'disposed'
+      )
+  ) then
+    raise check_violation using message = 'Anexo indisponível ou de outro órgão.';
+  end if;
+  return new;
+end $$;
+
+create trigger validate_meeting_details
+before insert or update of council_id, responsible_id, participant_ids, attachment_ids on public.meetings
+for each row execute function private.validate_meeting_details();
+
 commit;

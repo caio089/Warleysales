@@ -19,7 +19,7 @@ export function FormField({ label, errors, hint, required, aside, children }: Fo
   const messageId = `${id}-msg`;
   const hasError = Boolean(errors?.length);
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex min-w-0 flex-col gap-1.5">
       <div className="flex items-baseline justify-between gap-3">
         <label htmlFor={id} className="text-sm font-medium text-primary">
           {label}
@@ -28,9 +28,9 @@ export function FormField({ label, errors, hint, required, aside, children }: Fo
         {aside}
       </div>
       {children({ id, "aria-describedby": hasError || hint ? messageId : undefined, "aria-invalid": hasError || undefined })}
-      <div id={messageId} className={cn("text-xs", hasError ? "text-destructive" : "text-muted-foreground")} role={hasError ? "alert" : undefined}>
+      {hasError || hint ? <div id={messageId} className={cn("text-xs", hasError ? "text-destructive" : "text-muted-foreground")} role={hasError ? "alert" : undefined}>
         {hasError ? errors!.join(" ") : hint}
-      </div>
+      </div> : null}
     </div>
   );
 }

@@ -101,9 +101,10 @@ export function DataTable<T>({
         </div>
         {hasActiveQuery ? <Button type="button" variant="ghost" size="sm" onClick={clearQuery}><X className="size-3.5" aria-hidden /> Limpar filtros</Button> : null}
       </div>
-      <div className="surface-card flex flex-wrap items-end gap-3 p-3 sm:p-4">
-        <div className="relative w-full sm:w-72">
-          <label htmlFor={searchId} className="sr-only">Buscar em {caption}</label>
+      <div className="surface-card grid items-end gap-3 p-3 sm:grid-cols-2 sm:p-4 xl:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
+        <div className="min-w-0">
+          <label htmlFor={searchId} className="mb-1.5 block text-sm font-medium">Buscar em {caption}</label>
+          <div className="relative">
           <Search className="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground" aria-hidden />
           <Input
             id={searchId}
@@ -114,12 +115,13 @@ export function DataTable<T>({
             onChange={(e) => updateTableState({ ...tableState, search: e.target.value, page: 1 })}
             autoComplete="off"
           />
+          </div>
         </div>
         {filters.map((filter) => (
-          <label key={filter.id} className="flex flex-col gap-1.5">
-            <span className="text-[0.7rem] font-semibold tracking-[0.12em] text-muted-foreground uppercase">{filter.label}</span>
+          <label key={filter.id} className="flex min-w-0 flex-col gap-1.5">
+            <span className="text-sm font-medium">{filter.label}</span>
             <select
-              className="h-10 min-w-40 rounded-lg border border-input bg-card px-3 text-sm font-medium text-foreground focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
+              className="h-10 w-full min-w-0 rounded-lg border border-input bg-card px-3 text-sm font-medium text-foreground focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-primary/20 focus-visible:outline-none"
               value={activeFilters[filter.id] ?? ""}
               onChange={(e) => updateTableState({ ...tableState, filters: { ...activeFilters, [filter.id]: e.target.value }, page: 1 })}
             >
@@ -138,7 +140,7 @@ export function DataTable<T>({
         />
       ) : (
         <div className="surface-card overflow-hidden">
-          <div className="overflow-x-auto">
+          <div role="region" aria-label={caption} tabIndex={0} className="overflow-x-auto focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
             <table className="w-full text-sm">
               <caption className="sr-only">{caption}</caption>
               <thead className="bg-secondary/90 text-left">

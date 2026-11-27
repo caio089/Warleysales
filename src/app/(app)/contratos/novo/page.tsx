@@ -31,7 +31,7 @@ async function Content({ processId }: { processId?: string }) {
   return (
     <Screen result={result}>
       {(data) => (
-        <div className="surface-card max-w-lg p-6">
+        <div className="surface-card w-full max-w-3xl p-4 sm:p-6">
           <NewContractForm
             councils={data.lookups.councils.map((c) => ({ value: c.id, label: c.label }))}
             processes={data.processes}
@@ -44,7 +44,18 @@ async function Content({ processId }: { processId?: string }) {
   );
 }
 
-export default async function NewContractPage({ searchParams }: { searchParams: Promise<{ processId?: string }> }) {
+async function ContractFormContent({ searchParams }: { searchParams: Promise<{ processId?: string }> }) {
   const { processId } = await searchParams;
-  return (<><PageHeader eyebrow="Acompanhamento · Contratos" backHref="/contratos" backLabel="Todos os contratos" title="Novo contrato" description="Preencha os dados e vincule o processo para reunir contrato e ata na mesma contratação." /><Suspense fallback={<LoadingState />}><Content processId={processId} /></Suspense></>);
+  return <Content processId={processId} />;
+}
+
+export default function NewContractPage({ searchParams }: { searchParams: Promise<{ processId?: string }> }) {
+  return (
+    <>
+      <PageHeader eyebrow="Acompanhamento · Contratos" backHref="/contratos" backLabel="Todos os contratos" title="Novo contrato" description="Preencha os dados e vincule o processo para reunir contrato e ata na mesma contratação." />
+      <Suspense fallback={<LoadingState title="Carregando formulário do contrato…" />}>
+        <ContractFormContent searchParams={searchParams} />
+      </Suspense>
+    </>
+  );
 }

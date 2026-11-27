@@ -6,7 +6,7 @@ import { ReturnLink } from "@/shared/ui/contextual-link";
 const kinds = ["solicitacoes", "processos", "atas", "contratos", "transferencias"] as const;
 type Kind = typeof kinds[number];
 const titles: Record<Kind, string> = { solicitacoes: "Solicitações", processos: "Processos", atas: "Atas", contratos: "Contratos", transferencias: "Transferências" };
-const rows: SimpleRow[] = Array.from({ length: 12 }, (_, i) => ({ id: String(i + 1), number: i === 0 ? "123/2026" : `${String(i + 1).padStart(3, "0")}/2026`, title: i === 0 ? "Aquisição / equipamento teste" : `Registro sintético ${i + 1}`, status: i % 2 ? "em_andamento" : "pendente", href: `/${i === 0 ? "123-2026" : `registro-${i + 1}`}` }));
+const rows: SimpleRow[] = Array.from({ length: 25 }, (_, i) => ({ id: String(i + 1), number: i === 0 ? "123/2026" : `${String(i + 1).padStart(3, "0")}/2026`, title: i === 0 ? "Aquisição / equipamento teste" : `Registro sintético ${i + 1}`, status: i % 2 ? "em_andamento" : "pendente", href: `/${i === 0 ? "123-2026" : `registro-${i + 1}`}` }));
 const processRows: ProcessTableRow[] = rows.map((r, i) => ({ id: r.id, number: String(r.number), title: String(r.title), council: i % 2 ? "Conselho Azul" : "Conselho Verde", status: String(r.status), completion: "pendente", progress: i * 7, href: `/processos${String(r.href)}` }));
 const columns: SimpleColumn[] = [{ key: "number", header: "Número", kind: "link", hrefKey: "href", sortable: true }, { key: "title", header: "Objeto", kind: "link", hrefKey: "href", sortable: true }, { key: "status", header: "Situação", kind: "text", sortable: true }];
 

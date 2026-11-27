@@ -4,7 +4,7 @@ const destinations = [
   ['/dashboard', 'Início', null],
   ['/solicitacoes', 'Solicitações', 'Processos e solicitações'], ['/processos', 'Processos', 'Processos e solicitações'],
   ['/atas', 'Atas', 'Processos e solicitações'], ['/contratos', 'Contratos', 'Processos e solicitações'],
-  ['/estoque', 'Consultar estoque', 'Estoque'], ['/entregas', 'Entregas', 'Estoque'], ['/transferencias', 'Transferências', 'Estoque'],
+  ['/estoque', 'Consultar estoque', 'Estoque'], ['/entregas', 'Entregas', 'Estoque'],
   ['/calendario', 'Calendário', 'Agenda'], ['/reunioes', 'Reuniões', 'Agenda'],
   ['/conselhos', 'Órgãos e empresas', 'Outras opções'], ['/fornecedores', 'Fornecedores', 'Outras opções'],
   ['/alertas', 'Alertas', 'Outras opções'], ['/relatorios', 'Relatórios', 'Outras opções'],
@@ -16,7 +16,7 @@ test('sidebar disclosures, link inventory, responsive controls, and dashboard re
   await page.goto('/dashboard');
   await expect(page.getByText('Fonte de dados não configurada').first()).toBeVisible();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Bom dia|Boa tarde|Boa noite/);
-  await expect(page.getByText('Veja o resumo da operação de hoje e acesse suas principais tarefas.')).toBeVisible();
+  await expect(page.getByText(/Um olhar rápido no dia/)).toBeVisible();
 
   const nav = page.getByRole('navigation', { name: 'Navegação principal' }).first();
   const expectedLinks = destinations.map(([path, name]) => ({ name, href: path }));

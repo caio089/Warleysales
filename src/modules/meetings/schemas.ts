@@ -29,6 +29,11 @@ export interface Meeting {
   transcript: string | null;
   actionItems: ActionItem[];
   createdBy: string;
+  responsibleId?: string | null;
+  agenda?: string | null;
+  decisions?: string | null;
+  participantIds?: string[];
+  attachmentIds?: string[];
   attendance?: { participantId: string; recordedBy: string; at: Date }[];
 }
 
@@ -44,6 +49,16 @@ export const changeMeetingStatusSchema = z.object({
   newScheduledAt: z.coerce.date().optional(),
 });
 export const minutesSchema = z.object({ meetingId: idSchema, text: z.string().trim().min(5, "Registre o conteúdo da ata.").max(20000) });
+export const meetingDetailsSchema = z.object({
+  meetingId: idSchema,
+  title: z.string().trim().min(3).max(200),
+  responsibleId: idSchema.nullable(),
+  agenda: z.string().trim().max(8000),
+  decisions: z.string().trim().max(12000),
+  participantIds: z.array(idSchema).max(100).transform((ids) => [...new Set(ids)]),
+  attachmentIds: z.array(idSchema).max(100).transform((ids) => [...new Set(ids)]),
+});
+export type MeetingDetails = Omit<z.output<typeof meetingDetailsSchema>, "meetingId">;
 export const actionItemSchema = z.object({
   meetingId: idSchema,
   description: z.string().trim().min(3).max(500),

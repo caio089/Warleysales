@@ -1,6 +1,6 @@
 import { MemoryTable } from "@/shared/lib/memory-table";
 import type { MeetingRepository } from "./repository";
-import type { Meeting } from "./schemas";
+import type { Meeting, MeetingDetails } from "./schemas";
 
 export class InMemoryMeetingRepository implements MeetingRepository {
   private table = new MemoryTable<Meeting>();
@@ -22,4 +22,10 @@ export class InMemoryMeetingRepository implements MeetingRepository {
     return true;
   }
   async save(m: Meeting) { this.table.insert(m); return m; }
+  async updateDetails(id: string, details: MeetingDetails) {
+    const meeting = this.table.get(id);
+    if (!meeting) return false;
+    this.table.insert({ ...meeting, ...details });
+    return true;
+  }
 }

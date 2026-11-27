@@ -1,263 +1,161 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { connection } from "next/server";
 import { Suspense } from "react";
-import { Building2 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { localTime, type AgendaEvent } from "@/modules/calendar/agenda";
 import { buildCalendarReport } from "@/modules/calendar/calendar-report";
-import {
-  MONTH_TITLE,
-  PLAN_YEAR,
-  calendarMarks,
-  countsByMonth,
-  marksInMonth,
-  parseCalendarMonth,
-  resolveCalendarCouncil,
-  type CalendarMark,
-} from "@/modules/calendar/plan-calendar";
-import { loadLookups } from "@/server/lookups";
+import { calendarMarks, PLAN_YEAR } from "@/modules/calendar/plan-calendar";
 import { loadScreen } from "@/server/screen";
-import { ok } from "@/shared/lib/result";
-import { toFortalezaDate } from "@/shared/lib/time";
+import { createSessionClient } from "@/server/supabase/session-client";
+import { can } from "@/shared/lib/authz/policy";
+import { fail, ok } from "@/shared/lib/result";
+import { isValidDateOnly, toFortalezaDate } from "@/shared/lib/time";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
+import { AgendaBoard } from "./agenda-board";
 import { CalendarOrgFilter } from "./calendar-org-filter";
-import { MonthDialog } from "./month-dialog";
 import { CalendarReportPanel } from "./calendar-report-panel";
 
 export const metadata: Metadata = { title: "Calendário" };
 
-
-const MONTH_SHORT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-
-function monthKey(year: number, month: number): string {
-  return `${year}-${String(month + 1).padStart(2, "0")}`;
+type Query = { mes?: string; ano?: string; orgao?: string; dia?: string };
+interface AppointmentRow {
+  id: string;
+  council_id: string;
+  created_by: string;
+  title: string;
+  description: string;
+  starts_at: string;
+  ends_at: string;
 }
 
-function calendarHref(year: number, month: number, councilId: string | null): string {
-  const params = new URLSearchParams({ mes: monthKey(year, month) });
-  if (councilId) params.set("orgao", councilId);
-  return `/calendario?${params.toString()}`;
-}
-
-function yearHref(year: number, councilId: string | null): string {
-  const params = new URLSearchParams({ ano: String(year) });
-  if (councilId) params.set("orgao", councilId);
-  return `/calendario?${params.toString()}`;
-}
-
-function shiftMonth(year: number, month: number, delta: number): { year: number; month: number } {
-  const date = new Date(Date.UTC(year, month + delta, 1));
-  return { year: date.getUTCFullYear(), month: date.getUTCMonth() };
-}
-
-function parseYear(raw: string | undefined): number | null {
-  if (!raw || !/^\d{4}$/.test(raw)) return null;
-  return Number(raw);
-}
-
-function sortMarks(marks: readonly CalendarMark[]): CalendarMark[] {
-  return [...marks].sort((left, right) => {
-    const leftDay = left.day ?? "99";
-    const rightDay = right.day ?? "99";
-    if (leftDay !== rightDay) return leftDay.localeCompare(rightDay);
-    if (left.kind !== right.kind) return left.kind === "concluir" ? -1 : 1;
-    return left.title.localeCompare(right.title, "pt-BR");
-  });
-}
-
-async function Content({ searchParams }: { searchParams: Promise<{ mes?: string; ano?: string; orgao?: string }> }) {
+async function Content({ searchParams }: { searchParams: Promise<Query> }) {
   const raw = await searchParams;
-  await connection();
-  const todayParts = toFortalezaDate(new Date());
-  const [todayYear, todayMonth] = todayParts.split("-").map(Number);
-  const monthView = raw.mes ? parseCalendarMonth(raw.mes, { year: PLAN_YEAR, month: 0 }) : null;
-  const year = monthView?.year ?? parseYear(raw.ano) ?? PLAN_YEAR;
-
-  const result = await loadScreen(async (ctx) => {
-    const [requests, lookups, meetings, contracts, atas, processes] = await Promise.all([
-      ctx.services.purchases.list(ctx.actor),
-      loadLookups(ctx),
-      ctx.services.meetings.list(ctx.actor),
-      ctx.services.contracts.list(ctx.actor),
-      ctx.services.atas.list(ctx.actor),
-      ctx.services.processes.list(ctx.actor),
+  const result = await loadScreen(async ({ actor, services }) => {
+    const db = await createSessionClient();
+    const appointments: AppointmentRow[] = [];
+    for (let from = 0; ; from += 500) {
+      const response = await db.from("calendar_appointments").select("id,council_id,created_by,title,description,starts_at,ends_at")
+        .order("id").range(from, from + 499).returns<AppointmentRow[]>();
+      if (response.error) return fail("INTERNAL", "Não foi possível consultar os compromissos do calendário.");
+      appointments.push(...response.data);
+      if (response.data.length < 500) break;
+    }
+    const [requests, councils, meetings, contracts, atas, processes] = await Promise.all([
+      services.purchases.list(actor), services.councils.list(actor), services.meetings.list(actor),
+      services.contracts.list(actor), services.atas.list(actor), services.processes.list(actor),
     ]);
     if (!requests.ok) return requests;
-    if (!lookups.ok) return lookups;
+    if (!councils.ok) return councils;
     if (!meetings.ok) return meetings;
     if (!contracts.ok) return contracts;
     if (!atas.ok) return atas;
     if (!processes.ok) return processes;
 
-    const allowedIds = lookups.data.councils.map((council) => council.id);
-    const councilId = resolveCalendarCouncil(allowedIds, raw.orgao);
-    const visible = councilId ? requests.data.filter((request) => request.councilId === councilId) : requests.data;
-    const marks = calendarMarks(visible.map((request) => ({
-      id: request.id,
-      councilId: request.councilId,
-      title: request.title,
-      estimatedValue: request.estimatedValue,
-      notes: request.events.map((event) => event.note),
+    const options = councils.data.map((c) => ({ value: c.id, label: c.acronym }));
+    const writable = options.filter((c) => can(actor, "meeting.manage", c.value));
+    const people = (await Promise.all(options.map(async (c) => (
+      await services.memberships.processAssignees(actor, c.value)
+    ).map((p) => ({ councilId: c.value, value: p.id, label: p.fullName || p.id }))))).flat();
+    const processesById = new Map(processes.data.map(({ process }) => [process.id, process]));
+    const requestsById = new Map(requests.data.map((request) => [request.id, request]));
+    const marks = calendarMarks(requests.data.map((request) => ({
+      id: request.id, councilId: request.councilId, title: request.title,
+      estimatedValue: request.estimatedValue, notes: request.events.map((event) => event.note),
     })));
-    const processById = new Map(processes.data.map(({ process }) => [process.id, process]));
-    const requestById = new Map(visible.map((request) => [request.id, request]));
+    const events: AgendaEvent[] = [];
+    const monthPlans: { id: string; month: string; councilId: string; title: string; href: string; personId?: string }[] = [];
     for (const mark of marks) {
-      const processId = requestById.get(mark.requestId)?.processId;
-      const process = processId ? processById.get(processId) : undefined;
-      if (process) {
-        mark.processNumber = process.number;
-        mark.href = `/processos/${process.id}`;
+      const request = requestsById.get(mark.requestId);
+      const process = request?.processId ? processesById.get(request.processId) : undefined;
+      mark.href = process ? `/solicitacoes/processos/${process.id}` : `/solicitacoes/${mark.requestId}`;
+      if (process) mark.processNumber = process.number;
+      if (mark.day) events.push({ id: `plan:${mark.id}`, type: "processo", councilId: mark.councilId,
+        title: mark.title, day: mark.day, href: mark.href, description: mark.detail, personId: process?.responsibleId ?? undefined });
+      else monthPlans.push({ id: mark.id, month: `${mark.year}-${String(mark.month + 1).padStart(2, "0")}`,
+        councilId: mark.councilId, title: mark.title, href: mark.href, personId: process?.responsibleId ?? undefined });
+    }
+    const addSource = (event: AgendaEvent, origin: string, includeInReport = true) => {
+      if (!isValidDateOnly(event.day)) return;
+      events.push(event);
+      if (includeInReport) {
+        const [year, month] = event.day.split("-").map(Number);
+        marks.push({ id: event.id, requestId: event.id, councilId: event.councilId, title: event.title,
+          day: event.day, year, month: month - 1, kind: event.type === "reuniao" ? "concluir" : "vencimento",
+          detail: event.day, priority: "Não informado", origin, href: event.href });
+      }
+    };
+    for (const meeting of meetings.data) {
+      const href = `/reunioes?reuniao=${meeting.id}`;
+      if (meeting.status !== "cancelada") addSource({
+        id: `meeting:${meeting.id}`, type: "reuniao", councilId: meeting.councilId, title: meeting.title,
+        day: toFortalezaDate(meeting.scheduledAt), time: localTime(meeting.scheduledAt), href,
+        personId: meeting.responsibleId ?? undefined,
+        personIds: [meeting.createdBy, ...(meeting.participantIds ?? []), ...(meeting.attendance ?? []).map((row) => row.participantId)],
+        description: meeting.agenda ?? undefined,
+      }, "Reunião");
+      for (const task of meeting.actionItems) {
+        if (task.dueDate) addSource({
+          id: `task:${task.id}`, type: "tarefa", councilId: meeting.councilId, title: task.description,
+          day: task.dueDate, href, personId: task.responsibleId ?? undefined,
+          description: task.done ? "Tarefa concluída." : "Tarefa pendente.",
+        }, "Prazo de tarefa", false);
       }
     }
-    function addEvent(id: string, owner: string, title: string, date: string, href: string, origin: string, kind: CalendarMark["kind"]) {
-      if (councilId && owner !== councilId) return;
-      const [eventYear, eventMonth] = date.split("-").map(Number);
-      if (!eventYear || !eventMonth) return;
-      marks.push({ id, requestId: id, councilId: owner, title, day: date, year: eventYear,
-        month: eventMonth - 1, kind, detail: date, priority: "Não informado", origin, href });
-    }
-    for (const meeting of meetings.data) {
-      if (meeting.status !== "cancelada") addEvent(`meeting:${meeting.id}`, meeting.councilId, meeting.title,
-        toFortalezaDate(meeting.scheduledAt), `/reunioes?reuniao=${meeting.id}`, "Reunião", "concluir");
-    }
-    for (const entry of contracts.data) {
-      addEvent(`contract:${entry.contract.id}`, entry.contract.councilId,
-        `Contrato ${entry.contract.number} — ${entry.contract.object}`, entry.terms.endDate,
-        `/contratos/${entry.contract.id}`, "Vencimento de contrato", "vencimento");
-    }
-    for (const entry of atas.data) {
-      addEvent(`ata:${entry.ata.id}`, entry.ata.councilId, `Ata ${entry.ata.number}`, entry.endDate,
-        `/atas/${entry.ata.id}`, "Vencimento de ata", "vencimento");
+    for (const { contract, terms } of contracts.data) addSource({
+      id: `contract:${contract.id}`, type: "contrato", councilId: contract.councilId,
+      title: `Contrato ${contract.number}`, description: contract.object, day: terms.endDate, href: `/contratos/${contract.id}`,
+    }, "Vencimento de contrato");
+    for (const { ata, endDate } of atas.data) addSource({
+      id: `ata:${ata.id}`, type: "ata", councilId: ata.councilId,
+      title: `Ata ${ata.number}`, day: endDate, href: `/atas/${ata.id}`,
+    }, "Vencimento de ata");
+    for (const appointment of appointments) {
+      const start = new Date(appointment.starts_at), end = new Date(appointment.ends_at);
+      events.push({
+        id: appointment.id, type: "compromisso", councilId: appointment.council_id,
+        title: appointment.title, description: appointment.description, day: toFortalezaDate(start),
+        personId: appointment.created_by, time: localTime(start), until: localTime(end),
+        startsAt: appointment.starts_at, endsAt: appointment.ends_at,
+        editable: can(actor, "meeting.manage", appointment.council_id),
+      });
     }
 
-    return ok({
-      lookups: lookups.data,
-      councilId,
-      locked: allowedIds.length <= 1,
-      isCentralAdmin: ctx.actor.isCentralAdmin,
-      marks,
+    const today = toFortalezaDate(new Date());
+    const dayLink = typeof raw.dia === "string" && isValidDateOnly(raw.dia) ? raw.dia : null;
+    const initialDate = dayLink ?? (typeof raw.mes === "string" && isValidDateOnly(`${raw.mes}-01`) ? `${raw.mes}-01`
+      : typeof raw.ano === "string" && isValidDateOnly(`${raw.ano}-01-01`) ? `${raw.ano}-01-01` : today);
+    const initialCouncil = options.some((c) => c.value === raw.orgao) ? raw.orgao! : "";
+    const reportYear = raw.ano || raw.mes ? Number(initialDate.slice(0, 4)) : PLAN_YEAR;
+    return ok({ today, initialDate, initialCouncil, events, councils: options, writable, people, monthPlans, initialView: dayLink ? "dia" as const : "mes" as const,
+      reportYears: [...new Set([today.slice(0, 4), String(PLAN_YEAR), ...marks.map((m) => String(m.year))])].sort(),
+      report: buildCalendarReport(marks.filter((m) => !initialCouncil || initialCouncil === m.councilId), reportYear),
+      councilLabels: Object.fromEntries(options.map((c) => [c.value, c.label])),
     });
   });
-
-  const preserved = monthView ? `mes=${monthKey(monthView.year, monthView.month)}` : `ano=${year}`;
-
-  return (
-    <Screen result={result}>
-      {({ lookups, councilId, locked, isCentralAdmin, marks }) => {
-        const councilName = councilId ? lookups.councilLabel[councilId] : null;
-        const counts = countsByMonth(marks, year);
-        const report = buildCalendarReport(marks, year);
-        const years = [...new Set([2026, PLAN_YEAR, ...marks.map((mark) => mark.year)])].sort((left, right) => left - right);
-        const monthMarks = monthView ? sortMarks(marksInMonth(marks, monthView.year, monthView.month)) : [];
-        const previous = monthView ? shiftMonth(year, monthView.month, -1) : null;
-        const next = monthView ? shiftMonth(year, monthView.month, 1) : null;
-
-        return (
-          <>
-            <PageHeader
-              eyebrow="Acompanhamento · Plano"
-              title={councilName ? `Calendário · ${councilName}` : "Calendário"}
-              description={locked
-                ? "Demandas, reuniões e vencimentos do seu órgão."
-                : "Demandas, reuniões e vencimentos dos órgãos que você acompanha."}
-              actions={
-                <Link href="#relatorio" className={`${buttonVariants({ variant: "outline", size: "sm" })} print:hidden`}>
-                  Ver relatório
-                </Link>
-              }
-            />
-
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-2.5 shadow-sm">
-              <div className="flex flex-wrap items-center gap-1">
-                {years.map((option) => (
-                  <Link
-                    key={option}
-                    href={yearHref(option, councilId)}
-                    className={cn(buttonVariants({ variant: option === year && !monthView ? "default" : "outline", size: "sm" }))}
-                    aria-current={option === year && !monthView ? "page" : undefined}
-                  >
-                    {option}
-                  </Link>
-                ))}
-                <Link href={calendarHref(todayYear ?? year, (todayMonth ?? 1) - 1, councilId)} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                  Hoje
-                </Link>
-              </div>
-
-              {locked ? (
-                <p className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700">
-                  <Building2 className="size-4 text-slate-400" aria-hidden />
-                  {councilName ?? "Nenhum órgão no seu acesso"}
-                </p>
-              ) : (
-                <CalendarOrgFilter
-                  councils={lookups.councils}
-                  councilId={councilId}
-                  preserved={preserved}
-                  allLabel={isCentralAdmin ? "Todos os órgãos" : "Todos os meus órgãos"}
-                />
-              )}
-            </div>
-
-            <nav aria-label="Meses do ano" className="mb-4 grid grid-cols-4 gap-1.5 sm:grid-cols-6 lg:grid-cols-12">
-              {MONTH_SHORT.map((label, month) => {
-                const count = counts[month] ?? 0;
-                const active = monthView?.month === month && monthView.year === year;
-                return (
-                  <Link
-                    key={label}
-                    href={calendarHref(year, month, councilId)}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(
-                      "rounded-xl px-2 py-4 text-center text-sm font-semibold transition hover:ring-2 hover:ring-sky-600 focus-visible:ring-2 focus-visible:ring-sky-600",
-                      active ? "bg-[#0F2942] text-white" : count > 0 ? "bg-white text-slate-800 ring-1 ring-slate-200" : "bg-slate-100 text-slate-600",
-                    )}
-                  >
-                    {label}
-                    <span className="mt-0.5 block text-[10px] font-medium">{count}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-
-            {monthView && previous && next ? (
-              <MonthDialog
-                title={`${MONTH_TITLE[monthView.month]} de ${year}`}
-                year={year}
-                month={monthView.month}
-                today={todayParts}
-                marks={monthMarks}
-                councilLabels={lookups.councilLabel}
-                previousHref={calendarHref(previous.year, previous.month, councilId)}
-                nextHref={calendarHref(next.year, next.month, councilId)}
-                todayHref={calendarHref(todayYear, todayMonth - 1, councilId)}
-                closeHref={yearHref(year, councilId)}
-              >
-                {locked ? <p className="text-sm">{councilName}</p> : (
-                  <CalendarOrgFilter councils={lookups.councils} councilId={councilId} preserved={preserved}
-                    allLabel={isCentralAdmin ? "Todos os órgãos" : "Todos os meus órgãos"} />
-                )}
-              </MonthDialog>
-            ) : null}
-            <CalendarReportPanel
-              report={report}
-              councilLabel={lookups.councilLabel}
-              scopeLabel={councilName ?? (isCentralAdmin ? "Todos os órgãos" : "Meus órgãos")}
-            />
-          </>
-        );
-      }}
-    </Screen>
-  );
+  return <Screen result={result}>{({ report, reportYears, councilLabels, ...agenda }) => <>
+    <PageHeader eyebrow="Agenda" title="Calendário" description="Acompanhe compromissos e prazos em horário de Fortaleza."
+      actions={<Link href="#relatorio" className={buttonVariants({ variant: "outline" })}>Ver relatório do plano</Link>} />
+    <AgendaBoard {...agenda} />
+    <div className="flex flex-wrap items-center gap-3 print:hidden">
+      <nav aria-label="Ano do relatório do plano" className="flex flex-wrap gap-2">
+        {reportYears.map((year) => {
+          const params = new URLSearchParams({ ano: year });
+          if (agenda.initialCouncil) params.set("orgao", agenda.initialCouncil);
+          return <Link key={year} href={`/calendario?${params}#relatorio`}
+            aria-current={Number(year) === report.year ? "page" : undefined}
+            className={buttonVariants({ variant: Number(year) === report.year ? "default" : "outline", size: "sm" })}>{year}</Link>;
+        })}
+      </nav>
+      {agenda.councils.length > 1 && <CalendarOrgFilter
+        councils={agenda.councils.map(({ value, label }) => ({ id: value, label }))}
+        councilId={agenda.initialCouncil || null} preserved={`ano=${report.year}`} allLabel="Todos os órgãos do relatório" />}
+    </div>
+    <CalendarReportPanel report={report} councilLabel={councilLabels} scopeLabel={councilLabels[agenda.initialCouncil] ?? "Órgãos acessíveis"} />
+  </>}</Screen>;
 }
 
-export default function CalendarioPage({ searchParams }: { searchParams: Promise<{ mes?: string; ano?: string; orgao?: string }> }) {
-  return (
-    <Suspense fallback={<LoadingState />}>
-      <Content searchParams={searchParams} />
-    </Suspense>
-  );
+export default function CalendarioPage({ searchParams }: { searchParams: Promise<Query> }) {
+  return <Suspense fallback={<LoadingState title="Carregando calendário…" />}><Content searchParams={searchParams} /></Suspense>;
 }

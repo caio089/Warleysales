@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
 import { ArrowLeftRight, CheckCircle2, Clock3, Package } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
-import { canInAnyCouncil } from "@/shared/lib/authz/policy";
 import { ok } from "@/shared/lib/result";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { KpiCard } from "@/shared/ui/kpi-card";
@@ -21,13 +18,13 @@ async function Content() {
     const [transfers, lookups] = await Promise.all([ctx.services.transfers.list(ctx.actor), loadLookups(ctx)]);
     if (!transfers.ok) return transfers;
     if (!lookups.ok) return lookups;
-    return ok({ transfers: transfers.data, lookups: lookups.data, canCreate: canInAnyCouncil(ctx.actor, "transfer.request") });
+    return ok({ transfers: transfers.data, lookups: lookups.data });
   });
   return (
     <Screen result={result}>
-      {({ transfers, lookups, canCreate }) => (
+      {({ transfers, lookups }) => (
         <>
-        <PageHeader eyebrow="Estoque · Distribuição" title="Transferências" description="Acompanhe as solicitações entre órgãos. Material em trânsito não fica disponível na origem nem no destino." actions={canCreate ? <Link href="/transferencias/nova" className={buttonVariants()}>Nova transferência</Link> : undefined} />
+        <PageHeader eyebrow="Estoque · Distribuição" title="Transferências" description="Consulte o histórico de transferências entre órgãos." />
         <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumo das transferências">
           <KpiCard icon={<ArrowLeftRight className="size-4" aria-hidden />} label="Total" value={transfers.length} />
           <KpiCard icon={<Clock3 className="size-4" aria-hidden />} label="Em andamento" value={transfers.filter((t) => !["recebida", "cancelada", "recusada"].includes(t.status)).length} accent={transfers.some((t) => !["recebida", "cancelada", "recusada"].includes(t.status))} />
@@ -50,8 +47,7 @@ async function Content() {
           ]}
           filterKeys={[{ key: "status", label: "Status", dictionary: "transfer" }]}
           emptyTitle="Nenhuma transferência no banco"
-          emptyDescription="Solicite a transferência pelo conselho de destino. A origem aprova, separa e despacha."
-          emptyAction={canCreate ? <Link href="/transferencias/nova" className={buttonVariants()}>Nova transferência</Link> : undefined}
+          emptyDescription="As transferências registradas anteriormente aparecem aqui."
         />
         </>
       )}

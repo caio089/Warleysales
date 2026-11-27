@@ -80,6 +80,7 @@ export function ActionForm({
   // Envio manual: evita o reset automático do React 19, que apagaria o que o usuário digitou em caso de erro.
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending) return;
     const data = new FormData(event.currentTarget);
     startTransition(() => formAction(data));
   }
@@ -87,16 +88,16 @@ export function ActionForm({
   const fieldErrors = state.status === "error" ? (state.fieldErrors ?? {}) : {};
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className={formClassName ?? "space-y-4"} noValidate>
+    <form ref={formRef} onSubmit={handleSubmit} className={formClassName ?? "space-y-4"} aria-busy={pending} noValidate>
       {Object.entries(hiddenFields ?? {}).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}
       {idempotencyField ? (
         <input type="hidden" name={idempotencyField} defaultValue="" ref={(el) => { if (el && !el.value) el.value = crypto.randomUUID(); }} />
       ) : null}
       {children(fieldErrors)}
-      {state.status === "error" ? <p role="alert" className="text-sm text-destructive">{state.message}</p> : null}
+      {state.status === "error" ? <p role="alert" className="rounded-lg border border-destructive/25 bg-destructive/5 px-3 py-2 text-sm text-destructive">{state.message}</p> : null}
       {state.status === "success" ? (
         <p role="status" className="rounded-lg border border-success-foreground/20 bg-success px-3 py-2 text-sm text-success-foreground">
-          {state.message} Os dados já estão no banco.
+          {state.message}
         </p>
       ) : null}
       <Button type="submit" variant={submitVariant} className={submitClassName ?? "min-w-28"} disabled={pending}>

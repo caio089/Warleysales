@@ -26,9 +26,9 @@ export default defineConfig({
   use: { baseURL: 'http://127.0.0.1:4317', browserName: 'chromium', channel: 'msedge', trace: 'retain-on-failure', screenshot: 'off', serviceWorkers: 'block' },
   projects: [{ name: 'msedge', use: { ...devices['Desktop Chrome'] } }],
   webServer: [
-    { command: 'npm run dev -- --hostname 127.0.0.1 --port 4317', url: 'http://127.0.0.1:4317', reuseExistingServer: false, env: isolatedEnv },
+    { command: 'node node_modules/next/dist/bin/next dev --hostname=127.0.0.1 --port=4317', url: 'http://127.0.0.1:4317', timeout: 120000, reuseExistingServer: false, env: isolatedEnv },
     {
-      command: 'node e2e/callback-server.mjs', port: 4319, reuseExistingServer: false,
+      command: 'node e2e/callback-server.mjs', port: 4319, timeout: 120000, reuseExistingServer: false,
       env: {
         ...isolatedEnv, PORT: '4319', NEXT_PUBLIC_SUPABASE_URL: 'http://localhost:4320',
         NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'synthetic-callback-publishable-key',
