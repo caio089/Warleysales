@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { CircleCheck, FileClock, FolderKanban } from "lucide-react";
+import { Archive, CircleCheck, FileClock, FolderKanban } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { planExpiryFromNotes } from "@/app/(app)/solicitacoes/request-facets";
 import { ApprovalQueue, type PendingApprovalItem } from "@/app/(app)/dashboard/approval-queue";
@@ -49,9 +49,11 @@ async function Content({ openApprovals }: { openApprovals: boolean }) {
     const deadlines = new Map(linkedNotes.data.map(({ processId, notes }) =>
       [processId, planExpiryFromNotes(notes)?.day ?? null] as const,
     ));
+    const activeProcesses = processes.data.filter(({ process }) => process.status !== "arquivado");
+    const archivedCount = processes.data.length - activeProcesses.length;
     let complete = 0;
     let pending = 0;
-    for (const { displayPercent } of processes.data) {
+    for (const { displayPercent } of activeProcesses) {
       if (displayPercent === 100) complete++;
       if (displayPercent < 100) pending++;
     }
@@ -79,7 +81,8 @@ async function Content({ openApprovals }: { openApprovals: boolean }) {
       : [];
 
     return ok({
-      processes: processes.data,
+      processes: activeProcesses,
+      archivedCount,
       complete,
       pending,
       deadlines,
@@ -96,7 +99,7 @@ async function Content({ openApprovals }: { openApprovals: boolean }) {
 
   return (
     <Screen result={result}>
-      {({ processes, complete, pending, councilLabel, canCreate, deadlines, today, canApproveRequests, approvalQueue, requestStatusByProcess, processIdsWithAta, processIdsWithContract }) => {
+      {({ processes, archivedCount, complete, pending, councilLabel, canCreate, deadlines, today, canApproveRequests, approvalQueue, requestStatusByProcess, processIdsWithAta, processIdsWithContract }) => {
         const withAta = new Set(processIdsWithAta);
         const withContract = new Set(processIdsWithContract);
         return (
@@ -104,13 +107,18 @@ async function Content({ openApprovals }: { openApprovals: boolean }) {
           <PageHeader
             eyebrow="Documentação"
             title="Processos"
-            description="Abra o processo, anexe os 7 documentos e acompanhe o progresso. Completar a pasta não encerra o processo sozinho."
+            description="Acompanhe as licitações em andamento, documentos e contratos. Os processos arquivados ficam em uma área própria."
             actions={
-              canCreate ? (
+              <>
+                <Link href="/processos/arquivados" className={buttonVariants({ variant: "outline" })}>
+                  <Archive className="mr-2 size-4" aria-hidden /> Arquivados
+                </Link>
+                {canCreate ? (
                 <Link href="/solicitacoes/processos/novo" className={buttonVariants()}>
                   Novo processo
                 </Link>
-              ) : undefined
+                ) : null}
+              </>
             }
           />
           <Suspense fallback={<ModuleInsightFallback />}>
@@ -123,10 +131,11 @@ async function Content({ openApprovals }: { openApprovals: boolean }) {
                 : []),
             ]} />
           </Suspense>
-          <div className="mb-6 grid gap-3 sm:grid-cols-3" aria-label="Resumo dos processos">
+          <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Resumo dos processos">
             <KpiCard icon={<FolderKanban className="size-4" aria-hidden />} label="Processos" value={processes.length} />
             <KpiCard icon={<CircleCheck className="size-4" aria-hidden />} label="Documentação completa" value={complete} />
             <KpiCard icon={<FileClock className="size-4" aria-hidden />} label="Documentação pendente" value={pending} accent={pending > 0} />
+            <KpiCard icon={<Archive className="size-4" aria-hidden />} label="Arquivados" value={archivedCount} href="/processos/arquivados" />
           </div>
 
           {canApproveRequests ? (

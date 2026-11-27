@@ -19,21 +19,7 @@ describe("suggestAtaNumber", () => {
 });
 
 describe("NewAtaForm (no processo)", () => {
-  it("preenche a edição com os dados da ata atual e exige justificativa", () => {
-    const html = renderToStaticMarkup(<NewAtaForm councils={[]} materials={[]} processes={[]} lockedProcess={{
-      councilId: "c1", councilLabel: "Órgão", processId: "proc", processLabel: "Processo", processNumber: "01/2026",
-      suppliers: [], materials: [{ materialId: "m1", name: "Papel", quantity: 5 }],
-      validityStartDate: "2026-11-01", existingAtaNumbers: ["ARP-01"], requireReplacementJustification: true,
-      replacement: { number: "ARP-01", supplierName: "Fornecedor atual", lineTotals: [125.5] },
-    }} />);
-    expect(html).toContain("Justificativa da troca de ata");
-    expect(html).toContain('value="ARP-01 (2)"');
-    expect(html).toContain('value="Fornecedor atual"');
-    expect(html).toContain('value="125,50"');
-    expect(html).toContain('name="items.0.registeredQuantity"');
-    expect(html).toContain('name="items.0.description"');
-  });
-  it("mostra número editável, empresa, materiais, vigência e valor", () => {
+  it("pergunta sobre múltiplos vencedores antes de abrir o cadastro da ata", () => {
     const html = renderToStaticMarkup(
       <NewAtaForm
         councils={[]}
@@ -56,15 +42,8 @@ describe("NewAtaForm (no processo)", () => {
       />,
     );
 
-    expect(html).toContain("Número da ata");
-    expect(html).toContain('value="ARP 042/2026 (2)"');
-    expect(html).toContain("1. Empresa vencedora");
-    expect(html).toContain("Nome da empresa");
-    expect(html).toContain('name="supplierName"');
-    expect(html).toContain("2. Materiais e valores");
-    expect(html).toContain("Resina Fotopolimerizável");
-    expect(html).toContain("Valor unitário");
-    expect(html).toContain("Total da ata");
-    expect(html).toContain("Início da vigência");
+    expect(html).toContain("Houve mais de uma empresa vencedora nesta licitação?");
+    expect(html).not.toContain("Número da ata");
+    expect(html).not.toContain('name="supplierName"');
   });
 });

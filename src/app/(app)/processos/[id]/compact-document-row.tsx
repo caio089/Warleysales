@@ -173,7 +173,7 @@ export function CompactDocumentRow({
               Nenhum arquivo anexado para esta etapa legal.
             </p>
           ) : null}
-          {exception ? <p className="text-xs text-muted-foreground">Justificativa: {exception.justification}</p> : null}
+          {exception && exception.justification !== "Não se aplica" ? <p className="text-xs text-muted-foreground">Justificativa: {exception.justification}</p> : null}
 
           {/* Listagem de arquivos anexados quando files.length === 1 */}
           {files.length === 1 ? (
@@ -300,25 +300,16 @@ export function CompactDocumentRow({
             </Button>
           ) : null}
           {canUpload ? (
-            <details className="group relative">
-              <summary className="inline-flex h-8 cursor-pointer items-center rounded-md border border-input px-3 text-xs font-medium hover:bg-accent">
-                {exception ? "Reativar exigência" : "Não se aplica"}
-              </summary>
-              <div className="absolute right-0 z-20 mt-2 w-72 max-w-[85vw] rounded-lg border bg-background p-3 shadow-lg">
-                <p className="mb-2 text-xs text-muted-foreground">
-                  {exception ? "Informe por que esta etapa volta a ser exigida." : "Esta etapa contará como resolvida. Informe por que o documento não se aplica."}
-                </p>
-                <ActionForm
-                  action={documentExceptionAction}
-                  submitLabel={exception ? "Reativar exigência" : "Confirmar dispensa"}
-                  hiddenFields={{ processId, typeCode, ...(exception ? { remove: "true" } : {}) }}
-                >
-                  {() => <label className="block text-xs font-medium">Justificativa
-                    <textarea name="justification" required minLength={10} maxLength={1000} className="mt-1 block min-h-20 w-full rounded-md border bg-background p-2 text-sm" />
-                  </label>}
-                </ActionForm>
-              </div>
-            </details>
+            <ActionForm
+              action={documentExceptionAction}
+              submitLabel={exception ? "Reativar exigência" : "Não se aplica"}
+              pendingLabel={exception ? "Reativando…" : "Registrando…"}
+              submitVariant="outline"
+              submitClassName="h-8 px-3 text-xs font-medium"
+              hiddenFields={{ processId, typeCode, ...(exception ? { remove: "true" } : {}) }}
+            >
+              {() => null}
+            </ActionForm>
           ) : null}
         </div>
       ) : null}

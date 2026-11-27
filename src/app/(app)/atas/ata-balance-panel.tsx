@@ -3,8 +3,8 @@ import { formatCurrency, formatNumber } from "@/shared/lib/format";
 
 export interface AtaBalanceRow {
   itemId: string;
-  description: string;
   materialId?: string | null;
+  description: string;
   materialLabel: string;
   registered: number;
   committed: number;
@@ -16,8 +16,8 @@ export function buildAtaBalanceRows(view: AtaView, materialLabels: Record<string
   const prices = new Map(view.ata.items.map((item) => [item.id, item.unitPrice]));
   return view.items.map((row) => ({
     itemId: row.itemId,
-    description: row.description,
     materialId: row.materialId,
+    description: row.description,
     materialLabel: row.materialId ? materialLabels[row.materialId] ?? "—" : "—",
     registered: row.balance.registered,
     committed: row.balance.committed,

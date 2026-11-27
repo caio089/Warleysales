@@ -20,6 +20,8 @@ type SupplierOption = Option & { cnpj: string | null };
 export type ContractAtaOption = {
   id: string;
   number: string;
+  supplierId?: string | null;
+  supplierName?: string | null;
   status: string;
   items: Array<{
     itemId: string;
@@ -61,7 +63,7 @@ export function NewContractForm({
   const [councilId, setCouncilId] = useState(lockedProcess?.councilId ?? initial?.councilId ?? "");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [extracted, setExtracted] = useState<ExtractedContract | null>(null);
-  const [supplierId, setSupplierId] = useState("");
+  const [supplierId, setSupplierId] = useState(lockedProcess?.atas?.find((ata) => ata.status === "Vigente")?.supplierId ?? "");
   const [reading, setReading] = useState(false);
   const [message, setMessage] = useState("");
   const [pdfVersion, setPdfVersion] = useState(0);
@@ -121,7 +123,7 @@ export function NewContractForm({
       setQtyDrafts({});
       const match = suppliers.find((supplier) => fields.supplierCnpj && supplier.cnpj === fields.supplierCnpj.replace(/\D/g, ""))
         ?? suppliers.find((supplier) => fields.supplierName && supplier.label.toLocaleLowerCase("pt-BR") === fields.supplierName.toLocaleLowerCase("pt-BR") && (!fields.supplierCnpj || supplier.cnpj === fields.supplierCnpj.replace(/\D/g, "")));
-      setSupplierId(match?.value ?? "");
+      setSupplierId(selectedAta?.supplierId ?? match?.value ?? "");
       const itemCount = (fields.items?.length ?? 0);
       setMessage(
         `PDF lido (${payload.pages} página(s)${itemCount ? ` · ${itemCount} item(ns)` : ""}). Confira cada campo antes de cadastrar.${
@@ -211,12 +213,13 @@ export function NewContractForm({
                     required
                     options={atas.map((ata) => ({
                       value: ata.id,
-                      label: `${ata.number} · ${ata.status}`,
+                      label: `${ata.number}${ata.supplierName ? ` · ${ata.supplierName}` : ""} · ${ata.status}`,
                     }))}
                     defaultValue={ataId}
                     onChange={(next) => {
                       setAtaId(next);
                       setQtyDrafts({});
+                      setSupplierId(atas.find((ata) => ata.id === next)?.supplierId ?? "");
                     }}
                     errors={e.ataId}
                   />
@@ -290,17 +293,17 @@ export function NewContractForm({
                 </p>
               )}
 
-              <SelectField
+                <SelectField
                 key={`supplier-${supplierId || extracted?.supplierName || ""}`}
                 name="supplierId"
                 label="Empresa vencedora"
                 required={suppliers.length > 0}
-                options={suppliers.map((supplier) => ({
+                  options={(selectedAta?.supplierId ? suppliers.filter((supplier) => supplier.value === selectedAta.supplierId) : suppliers).map((supplier) => ({
                   value: supplier.value,
                   label: supplier.cnpj ? `${supplier.label} · ${supplier.cnpj}` : supplier.label,
                 }))}
                 defaultValue={supplierId}
-                onChange={setSupplierId}
+                  onChange={setSupplierId}
                 placeholder="Selecione a empresa"
                 errors={e.supplierId}
               />

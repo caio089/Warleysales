@@ -106,6 +106,14 @@ describe("PurchaseRequestService", () => {
     expect(r.ok && r.data.status).toBe("aprovada");
     expect(await stockOf()).toBe(0);
   });
+  it("guarda a descrição opcional do Warley no histórico da aprovação", async () => {
+    const requestId = await submitted([{ quantity: 1 }]);
+    const note = "Compra autorizada para atendimento da unidade.";
+    const approved = await ctx.service.approve(approver(), { requestId, note });
+    expect(approved).toMatchObject({ ok: true, data: { events: expect.arrayContaining([
+      expect.objectContaining({ to: "aprovada", note }),
+    ]) } });
+  });
   it("recebimento parcial e total geram entradas e pendências corretas", async () => {
     const id = await submitted([{ quantity: 10 }]);
     await ctx.service.approve(approver(), { requestId: id });

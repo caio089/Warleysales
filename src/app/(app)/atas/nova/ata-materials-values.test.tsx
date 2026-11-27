@@ -1,9 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { formatCurrency } from "@/shared/lib/format";
 import { AtaMaterialsValues } from "./ata-materials-values";
 
 describe("AtaMaterialsValues", () => {
-  it("mostra quantidade, valor total e unitário calculado", () => {
+  it("mostra quantidade, valor unitário e total da ata calculado", () => {
     const html = renderToStaticMarkup(
       <AtaMaterialsValues
         lines={[
@@ -21,8 +22,9 @@ describe("AtaMaterialsValues", () => {
     expect(html).toContain("Qtd 10");
     expect(html).toContain("Avião");
     expect(html).toContain("Qtd 3");
-    expect(html).toContain("Valor total do item");
     expect(html).toContain("Valor unitário");
-    expect(html).toContain("Total da ata");
+    expect(html).toContain("Subtotal");
+    expect(html).toContain("Valor total da ata");
+    expect(html).toContain(formatCurrency(13000));
   });
 });

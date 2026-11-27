@@ -123,7 +123,7 @@ describe("ContractingTab", () => {
     expect(html).toContain("Primeiro anexe ou crie a ata. Depois anexe ou crie o contrato.");
   });
 
-  it("permite cadastrar a ata e reserva o contrato para a ficha da ata", () => {
+  it("permite vincular ata e contrato livres ou criar um novo já neste processo", () => {
     const html = renderToStaticMarkup(
       <ContractingTab
         processId="proc-1"
@@ -153,15 +153,10 @@ describe("ContractingTab", () => {
     expect(html).toContain("ARP 099/2026");
     expect(html).not.toContain("Anexar contrato");
     expect(html).not.toContain("CT 099/2026");
-    expect(html).toContain("1. Empresa vencedora");
-    expect(html).toContain("Nome da empresa");
-    expect(html).toContain("2. Materiais e valores");
-    expect(html).toContain("Valor unitário");
-    expect(html).toContain("Papel A4");
-    expect(html).toContain("Número da ata");
+    expect(html).toContain("Houve mais de uma empresa vencedora nesta licitação?");
+    expect(html).not.toContain("Número da ata");
     expect(html).not.toContain("Registrar contrato");
-    expect(html).toContain("Puxada do Termo de Referência");
-    expect(html).toContain("12/2027 — Material de expediente");
+
   });
 
   it("oculta os campos de cadastro de ata quando já existe uma vinculada", () => {
@@ -172,9 +167,9 @@ describe("ContractingTab", () => {
         draft={{ councilLabel: "CRQ18", processLabel: "Processo", processNumber: "012/2026",
           materials: [], requestMaterials: [], suppliers: [] }} />,
     );
-    expect(html).toContain("Editar ata");
-    expect(html).toContain("Atas anteriores");
-    expect(html).not.toContain("ARP antiga");
+    expect(html).toContain("Criar outra ata");
+    expect(html).toContain("ARP antiga");
+    expect(html).toContain("Ata cancelada após o cadastro");
     expect(html).not.toContain("Número da ata");
     expect(html).not.toContain("Ler ata em PDF para preencher");
   });
@@ -208,7 +203,7 @@ describe("ContractingTab", () => {
     expect(html).not.toContain("Valor da ata");
   });
 
-  it("renderiza o saldo e o link da ata sem listar o contrato no processo", () => {
+  it("renderiza cards elegantes com links, vigência e valores para atas e contratos vinculados", () => {
     const html = renderToStaticMarkup(
       <ContractingTab
         processId="proc-1"

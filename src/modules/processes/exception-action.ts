@@ -12,23 +12,25 @@ import type { ActionState } from "@/shared/ui/forms/action-state";
 export async function documentExceptionAction(_previous: ActionState, form: FormData): Promise<ActionState> {
   const processId = String(form.get("processId") ?? "");
   const typeCode = String(form.get("typeCode") ?? "");
-  const justification = String(form.get("justification") ?? "").trim();
+  const removing = form.get("remove") === "true";
+  const reason = removing ? "Exigência reativada" : "Não se aplica";
   const result = await runAction(async ({ actor, services }) => {
-    if (!DOCUMENT_TYPE_CODES.includes(typeCode as DocumentTypeCode) || justification.length < 10 || justification.length > 1000) {
-      return fail("VALIDATION", "Selecione a etapa e informe uma justificativa de 10 a 1000 caracteres.");
+    if (!DOCUMENT_TYPE_CODES.includes(typeCode as DocumentTypeCode)) {
+      return fail("VALIDATION", "Selecione uma etapa documental válida.");
     }
     const process = await services.processes.get(actor, processId);
     if (!process.ok) return process;
     if (!can(actor, "document.attach", process.data.process.councilId)) return fail("FORBIDDEN", "Sem permissão para alterar esta etapa.");
     const { error } = await getServiceClient().rpc("set_document_exception", {
-      p_process: processId, p_type: typeCode, p_actor: actor.userId, p_reason: justification,
-      p_remove: form.get("remove") === "true",
+      p_process: processId, p_type: typeCode, p_actor: actor.userId, p_reason: reason,
+      p_remove: removing,
     });
     if (error) return fail("VALIDATION", error.message);
     return ok(true);
   }, "Etapa documental atualizada.");
   if (result.status === "success") {
     revalidatePath(`/processos/${processId}`);
+    revalidatePath(`/solicitacoes/processos/${processId}`);
     revalidatePath("/processos");
     revalidatePath("/dashboard");
   }

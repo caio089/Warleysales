@@ -192,7 +192,7 @@ describe("ProcessView", () => {
     expect(html).toContain('id="panel-contratacao"');
     expect(html).toContain("Instrumentos Contratuais Vinculados");
     expect(html).toContain("ATA 01/2026");
-    expect(html).toContain("CTR 05/2026");
+    expect(html).not.toContain("CTR 05/2026");
 
     // Conteúdo de documentação não renderizado
     expect(html).not.toContain("Documentos Obrigatórios (Lei 14.133 / PNCP)");

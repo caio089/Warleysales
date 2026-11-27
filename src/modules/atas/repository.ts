@@ -4,7 +4,7 @@ import type { PriceRegistrationAta } from "./schemas";
 
 export interface AtaRepository {
   /** CONFLICT quando já existe ata com o mesmo número no órgão. */
-  insert(ata: PriceRegistrationAta, replacementJustification?: string): Promise<Result<PriceRegistrationAta>>;
+  insert(ata: PriceRegistrationAta, replacementJustification?: string, additionalWinner?: boolean): Promise<Result<PriceRegistrationAta>>;
   findById(id: string): Promise<PriceRegistrationAta | null>;
   findByItemId(itemId: string): Promise<PriceRegistrationAta | null>;
   listByCouncils(councilIds: readonly string[] | "all", process?: { id: string; councilId: string }): Promise<PriceRegistrationAta[]>;

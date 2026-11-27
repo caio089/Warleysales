@@ -8,8 +8,14 @@ export interface PriceResearchLine {
   materialId: string;
   name: string;
   quantity: number;
-  /** Valor total de referência do item (já considerando a quantidade). */
+  /** Valor unitário informado na pesquisa; linhas antigas podem conter apenas lineTotal. */
+  unitPrice?: number;
+  /** Valor total de referência do item: valor unitário × quantidade. */
   lineTotal: number;
+}
+
+export function priceResearchLineTotal(unitPrice: number, quantity: number): number {
+  return Math.round((unitPrice * quantity + Number.EPSILON) * 100) / 100;
 }
 
 export function sumPriceResearchLines(lines: readonly { lineTotal: number }[]): number {

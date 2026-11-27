@@ -58,6 +58,7 @@ export async function changeProcessStatusFormAction(_previous: ActionState, form
   );
   if (result.status === "success") {
     revalidatePath("/processos");
+    revalidatePath("/processos/arquivados");
     revalidatePath(`/processos/${formData.get("processId")}`);
     revalidatePath("/administracao/retencao");
   }

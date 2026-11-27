@@ -34,6 +34,8 @@ describe("buildStockEntrySources", () => {
     const ata = {
       ata: {
         id: "ata-1",
+        processId: "proc-1",
+        createdAt: new Date("2026-01-02"),
         number: "ARP 01/2026",
         items: [{ id: "ata-item-1", unitPrice: 12.5, registeredQuantity: 10, description: "A4", materialId: "m1", allocations: [] }],
       },
@@ -133,7 +135,7 @@ describe("buildStockEntrySources", () => {
     const sources = (contracted: number) => buildStockEntrySources({
       requests: [request, earlierReceipt, otherProcess],
       processes: [{ process: { id: "proc-1", contractingMode: "registro_precos" } } as ProcessView],
-      atas: [],
+      atas: [{ ata: { id: "ata-1", number: "ARP 01/2026", processId: "proc-1", createdAt: new Date("2026-01-02"), items: [{ id: "ata-item-1", materialId: "m1", unitPrice: 1, registeredQuantity: 1 }] } } as AtaView],
       materialLabel: {},
       contracts: [{
         id: "contract-1",
@@ -173,5 +175,27 @@ describe("buildStockEntrySources", () => {
       items: [{ ataQuantity: 5, contractQuantity: 5, unitPrice: 80, pending: 5, lineTotal: 400 }],
     }]);
     expect(buildStockEntrySources({ ...input, contracts: contracts.slice(0, 1) })).toEqual([]);
+  });
+  it("mostra um contrato por vencedor com apenas seus itens", () => {
+    const request = { id: "req", councilId: "c1", status: "aprovada", processId: "proc",
+      items: [
+        { id: "r1", materialId: "m1", ataItemId: null, quantity: 10, receivedTotal: 0 },
+        { id: "r2", materialId: "m2", ataItemId: null, quantity: 5, receivedTotal: 0 },
+      ] } as PurchaseRequest;
+    const atas = [
+      { ata: { id: "a1", number: "ARP-A", processId: "proc", createdAt: new Date("2026-11-01"), items: [{ id: "i1", materialId: "m1", unitPrice: 10, registeredQuantity: 10 }] } },
+      { ata: { id: "a2", number: "ARP-B", processId: "proc", createdAt: new Date("2026-11-02"), items: [{ id: "i2", materialId: "m2", unitPrice: 20, registeredQuantity: 5 }] } },
+    ] as AtaView[];
+    const sources = buildStockEntrySources({ requests: [request], atas,
+      processes: [{ process: { id: "proc", number: "1", title: "Compra", contractingMode: "registro_precos" } } as ProcessView],
+      materialLabel: { m1: "Papel", m2: "Caneta" },
+      contracts: [
+        { id: "c1", number: "1", processId: "proc", ataId: "a1", ataItems: [{ ataItemId: "i1", quantity: 10 }] },
+        { id: "c2", number: "2", processId: "proc", ataId: "a2", ataItems: [{ ataItemId: "i2", quantity: 5 }] },
+      ] });
+    expect(sources).toHaveLength(2);
+    expect(sources.map((source) => [source.contractId, source.items.map((item) => item.materialId)])).toEqual([
+      ["c1", ["m1"]], ["c2", ["m2"]],
+    ]);
   });
 });

@@ -55,7 +55,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
           councilId, councilLabel: lookups.data.councilLabel[councilId] ?? "Órgão",
           processId: process.id, processLabel: `${process.number} — ${process.title}`, processNumber: process.number,
           defaultValue: process.estimatedValue, validityStartDate: process.validityStartDate ?? view.data.ata.startDate,
-          atas: [{ id, number: view.data.ata.number, status: "Vigente", items: buildAtaBalanceRows(view.data, lookups.data.materialLabel) }],
+          atas: [{ id, supplierId, number: view.data.ata.number, status: "Vigente", items: buildAtaBalanceRows(view.data, lookups.data.materialLabel) }],
         } : undefined;
 
     return ok({

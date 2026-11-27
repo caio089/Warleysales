@@ -53,7 +53,17 @@ export class AtaService {
 
     const councilAtas = await this.repository.listByCouncils([d.councilId]);
     const priorAtas = processId.data ? councilAtas.filter((ata) => ata.processId === processId.data && ata.status !== "cancelada") : [];
-    if (priorAtas.length > 0 && !d.replacementJustification) {
+    const replacedAtas = priorAtas.filter((ata) => ata.supplierId === (d.supplierId ?? null) ||
+      ata.items.some((item) => item.materialId && d.items.some((next) => next.materialId === item.materialId)));
+    if (priorAtas.length > 0 && d.additionalWinner) {
+      if (!d.supplierId || priorAtas.some((ata) => ata.supplierId === d.supplierId)) {
+        return fail("VALIDATION", "Escolha uma empresa vencedora diferente para a nova ata.");
+      }
+      const usedMaterials = new Set(priorAtas.flatMap((ata) => ata.items.map((item) => item.materialId).filter(Boolean)));
+      if (d.items.some((item) => !item.materialId || usedMaterials.has(item.materialId))) {
+        return fail("VALIDATION", "Cada item da nova empresa deve ser diferente dos itens já atribuídos a outra ata.");
+      }
+    } else if (priorAtas.length > 0 && !d.replacementJustification) {
       return fail("VALIDATION", "Informe a justificativa para cadastrar outra ata neste processo.", {
         replacementJustification: ["A justificativa é obrigatória."],
       });
@@ -78,11 +88,12 @@ export class AtaService {
       items: d.items.map((i) => ({ id: this.runtime.newId(), description: i.description, materialId: i.materialId ?? null, registeredQuantity: i.registeredQuantity, unitPrice: i.unitPrice, allocations: [] })),
       extensions: [],
       createdAt: this.runtime.now(),
-    }, d.replacementJustification);
+    }, d.replacementJustification, d.additionalWinner);
     if (!saved.ok) return saved;
     await this.audit.record({ actorId: actor.userId, action: "ata.create", entity: "price_registration_ata", entityId: saved.data.id, councilId: d.councilId, result: "success", details: {
       number: d.number, status: saved.data.status,
-      ...(d.replacementJustification && { replacementJustification: d.replacementJustification, priorAtaIds: priorAtas.map((ata) => ata.id) }),
+      ...(d.replacementJustification && { replacementJustification: d.replacementJustification, priorAtaIds: replacedAtas.map((ata) => ata.id) }),
+      ...(d.additionalWinner && { additionalWinner: true }),
     } });
     return saved;
   }

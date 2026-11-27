@@ -21,7 +21,7 @@ interface ProcessActionsProps {
 export function ProcessActions({ processId, status, canChangeStatus, canRegisterClosing, closingReportRegistered, documentalComplete }: ProcessActionsProps) {
   const [closingJustification, setClosingJustification] = useState("");
   const next = PROCESS_TRANSITIONS[status] ?? [];
-  const statusOptions = next.map((value) => ({ value, label: PROCESS_STATUS[value]?.label ?? value }));
+  const statusOptions = next.filter((value) => value !== "arquivado").map((value) => ({ value, label: PROCESS_STATUS[value]?.label ?? value }));
 
   if (!canChangeStatus && !canRegisterClosing) {
     return (

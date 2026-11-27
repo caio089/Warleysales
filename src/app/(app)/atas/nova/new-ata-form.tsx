@@ -20,13 +20,11 @@ export function suggestAtaNumber(preferred: string, existingNumbers: string[]): 
   const used = new Set(existingNumbers.map((number) => number.trim().toLocaleLowerCase("pt-BR")));
   const base = preferred.trim().slice(0, 40) || "ARP";
   if (!used.has(base.toLocaleLowerCase("pt-BR"))) return base;
-  let index = 2;
-  while (true) {
-    const suffix = ` (${index})`;
-    const candidate = base.slice(0, 40 - suffix.length) + suffix;
+  for (let index = 2; index < 100; index += 1) {
+    const candidate = `${base} (${index})`.slice(0, 40);
     if (!used.has(candidate.toLocaleLowerCase("pt-BR"))) return candidate;
-    index += 1;
   }
+  return `${base.slice(0, 32)}-${Date.now().toString(36)}`.slice(0, 40);
 }
 
 export function NewAtaForm({
@@ -54,7 +52,8 @@ export function NewAtaForm({
     /** Números já usados no órgão/processo — evita colidir com a unique (council, number). */
     existingAtaNumbers?: string[];
     requireReplacementJustification?: boolean;
-    replacement?: { number: string; supplierName?: string | null; lineTotals: number[] };
+    hasPriorAtas?: boolean;
+    assignedMaterialIds?: string[];
   };
 }) {
   const initial = processes.find((process) => process.value === defaultProcessId);
@@ -66,6 +65,9 @@ export function NewAtaForm({
   const [message, setMessage] = useState("");
   const [supplierId, setSupplierId] = useState("");
   const [pdfVersion, setPdfVersion] = useState(0);
+  const [multipleWinners, setMultipleWinners] = useState<boolean | null>(null);
+  const [additionalWinner, setAdditionalWinner] = useState<boolean | null>(null);
+  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
 
   async function readPdf() {
     if (!pdfFile) return;
@@ -133,21 +135,55 @@ export function NewAtaForm({
   }, [extracted, lockedProcess]);
 
   if (lockedProcess) {
-    const lines = lockedLines;
+    const lines = multipleWinners
+      ? lockedLines.filter((line) => selectedMaterials.includes(line.materialId) &&
+        (!additionalWinner || !lockedProcess.assignedMaterialIds?.includes(line.materialId)))
+      : lockedLines;
     const matches = extracted?.items?.length
-      ? matchPdfItems((lockedProcess.materials ?? []).map((line) => [line.name]), extracted.items.map((item) => item.description))
+      ? matchPdfItems(lines.map((line) => [line.name]), extracted.items.map((item) => item.description))
       : [];
     const defaultLineTotals = extracted?.items?.length
       ? lines.map((_, index) => matches[index] == null ? null : extracted.items[matches[index]!]!.lineTotal)
-      : lockedProcess.replacement?.lineTotals;
+      : undefined;
     const suggestedNumber = suggestAtaNumber(
-      extracted?.number?.trim() || lockedProcess.replacement?.number || `ARP ${lockedProcess.processNumber || "sem-número"}`,
+      extracted?.number?.trim() || `ARP ${lockedProcess.processNumber || "sem-número"}`,
       lockedProcess.existingAtaNumbers ?? [],
     );
     const startDate = extracted?.startDate ?? lockedProcess.validityStartDate ?? undefined;
 
     return (
       <div className="space-y-4">
+        <fieldset className="space-y-2 rounded-xl border border-border p-4">
+          <legend className="text-sm font-semibold">Houve mais de uma empresa vencedora nesta licitação?</legend>
+          <div className="flex gap-4 text-sm">
+            <label><input type="radio" name="multipleWinnersChoice" checked={multipleWinners === true} onChange={() => setMultipleWinners(true)} /> Sim</label>
+            <label><input type="radio" name="multipleWinnersChoice" checked={multipleWinners === false} onChange={() => { setMultipleWinners(false); setAdditionalWinner(false); }} /> Não</label>
+          </div>
+        </fieldset>
+        {lockedProcess.hasPriorAtas && multipleWinners !== null ? (
+          <fieldset className="space-y-2 rounded-xl border border-border p-4">
+            <legend className="text-sm font-semibold">Esta ata é de outro vencedor ou substitui uma ata anterior?</legend>
+            <div className="flex flex-wrap gap-4 text-sm">
+              {multipleWinners ? <label><input type="radio" name="newAtaReason" checked={additionalWinner === true} onChange={() => setAdditionalWinner(true)} /> Outro vencedor</label> : null}
+              <label><input type="radio" name="newAtaReason" checked={additionalWinner === false} onChange={() => setAdditionalWinner(false)} /> Substituição</label>
+            </div>
+          </fieldset>
+        ) : null}
+        {multipleWinners ? (
+          <fieldset className="space-y-2 rounded-xl border border-border p-4">
+            <legend className="text-sm font-semibold">Quais itens esta empresa venceu?</legend>
+            {lockedLines.filter((line) => !additionalWinner || !lockedProcess.assignedMaterialIds?.includes(line.materialId)).map((line) => (
+              <label key={line.materialId} className="block text-sm">
+                <input type="checkbox" checked={selectedMaterials.includes(line.materialId)} onChange={(event) => setSelectedMaterials((current) =>
+                  event.target.checked ? [...current, line.materialId] : current.filter((id) => id !== line.materialId))} /> {line.name}
+              </label>
+            ))}
+          </fieldset>
+        ) : null}
+        {multipleWinners === null || (lockedProcess.hasPriorAtas && additionalWinner === null) || lines.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Responda às perguntas e selecione os itens desta empresa para continuar.</p>
+        ) : (
+        <>
         <section className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-4" aria-label="Ler ata em PDF para preencher">
           <div>
             <h3 className="text-sm font-semibold text-foreground">Ler ata em PDF para preencher</h3>
@@ -174,27 +210,26 @@ export function NewAtaForm({
         <ActionForm
           key={`ata-form-${suggestedNumber}-${pdfVersion}`}
           action={createAtaFormAction}
-          submitLabel={lockedProcess.requireReplacementJustification ? "Salvar edição e substituir ata" : "Registrar ata"}
+          submitLabel={lockedProcess.requireReplacementJustification ? "Registrar nova ata" : "Registrar ata"}
           hiddenFields={{
             councilId: lockedProcess.councilId,
             processId: lockedProcess.processId,
             processNumber: lockedProcess.processNumber,
             itemCount: String(lines.length),
             returnTo: `/processos/${lockedProcess.processId}`,
+            ...(additionalWinner ? { additionalWinner: "true" } : {}),
             ...Object.fromEntries(
               lines.flatMap((line, index) => [
+                [`items.${index}.description`, line.name],
                 [`items.${index}.materialId`, line.materialId],
-                ...(lockedProcess.replacement ? [] : [
-                  [`items.${index}.description`, line.name],
-                  [`items.${index}.registeredQuantity`, String(line.quantity)],
-                ]),
+                [`items.${index}.registeredQuantity`, String(line.quantity)],
               ]),
             ),
           }}
         >
           {(e) => (
             <div className="space-y-4">
-              {lockedProcess.requireReplacementJustification && (
+              {lockedProcess.hasPriorAtas && !additionalWinner && (
                 <TextAreaField name="replacementJustification" label="Justificativa da troca de ata" required
                   hint="Informe o motivo da criação de outra ata neste processo." errors={e.replacementJustification} />
               )}
@@ -217,9 +252,9 @@ export function NewAtaForm({
                 <TextField
                   name="supplierName"
                   label="Nome da empresa"
-                  required
+                  required={!supplierId}
                   placeholder="Ex.: Fornecedor Alfa Ltda"
-                  defaultValue={extracted?.supplierName ?? lockedProcess.replacement?.supplierName ?? ""}
+                  defaultValue={extracted?.supplierName ?? ""}
                   errors={e.supplierName ?? e.supplierId}
                 />
                 {lockedProcess.suppliers.length > 0 ? (
@@ -241,13 +276,12 @@ export function NewAtaForm({
               </div>
 
               <AtaMaterialsValues
-                key={`values-${extracted?.totalValue ?? "base"}-${defaultLineTotals?.join("-") ?? "none"}`}
+                key={`values-${lines.map((line) => line.materialId).join("-")}-${extracted?.totalValue ?? "base"}-${defaultLineTotals?.join("-") ?? "none"}`}
                 lines={lines}
                 councilLabel={lockedProcess.councilLabel}
                 processLabel={lockedProcess.processLabel}
-                defaultTotal={matches.some((match) => match === null) ? lockedProcess.defaultValue : (extracted?.totalValue ?? lockedProcess.defaultValue)}
+                defaultTotal={multipleWinners ? null : matches.some((match) => match === null) ? lockedProcess.defaultValue : (extracted?.totalValue ?? lockedProcess.defaultValue)}
                 defaultLineTotals={defaultLineTotals}
-                editableItems={Boolean(lockedProcess.replacement)}
                 errors={e}
               />
               {extracted?.items?.length && matches.some((match) => match === null) ? (
@@ -260,7 +294,6 @@ export function NewAtaForm({
                 hint={
                   extracted?.startDate
                     ? "Puxada do PDF da ata. Ajuste só se necessário."
-                    : lockedProcess.replacement ? "Data de início da ata anterior."
                     : lockedProcess.validityStartDate
                       ? "Puxada do Termo de Referência. Ajuste só se necessário."
                       : "Se ainda não preencheu no TR, informe aqui."
@@ -269,6 +302,8 @@ export function NewAtaForm({
             </div>
           )}
         </ActionForm>
+        </>
+        )}
       </div>
     );
   }

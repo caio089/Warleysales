@@ -139,7 +139,7 @@ export async function ProcessContent({
         .map((item) => ({
           id: item.ata.id,
           number: item.ata.number,
-          startDate: item.ata.startDate,
+          supplierId: item.ata.supplierId,
           supplierName: suppliers.data.find((supplier) => supplier.id === item.ata.supplierId)?.name ?? null,
           endDate: item.endDate,
           status: item.ata.status === "cancelada" ? "Cancelada" : item.ata.status === "rascunho" ? "Rascunho" : item.validity === "vigente" ? "Vigente" : "Vencida",

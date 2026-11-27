@@ -62,15 +62,17 @@ export function RequestActions({
 
       {deciding && panel === null ? (
         <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-end gap-3">
             <ActionForm
               action={requestStepFormAction}
               submitLabel="Sim, aprovar"
               pendingLabel="Aprovando…"
               submitClassName="h-11 px-6"
+              formClassName="w-full max-w-xl space-y-3"
               hiddenFields={{ requestId, step: "approve" }}
             >
-              {() => null}
+              {(errors) => <TextAreaField name="note" label="Descrição da aprovação (opcional)"
+                hint="Até 500 caracteres. Aparece no histórico da solicitação." errors={errors.note} />}
             </ActionForm>
             <Button type="button" variant="outline" className="h-11" onClick={() => setPanel("decline")}>
               Não

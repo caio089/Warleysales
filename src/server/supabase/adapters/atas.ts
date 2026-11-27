@@ -81,12 +81,12 @@ const toCommitment = (r: CommitmentRow): CommitmentEvent => ({
 export class SupabaseAtaRepository implements AtaRepository {
   constructor(private readonly db: SupabaseClient) {}
 
-  async insert(ata: PriceRegistrationAta, replacementJustification?: string) {
+  async insert(ata: PriceRegistrationAta, replacementJustification?: string, additionalWinner = false) {
     const response = (ata.processId
-      ? await this.db.rpc("register_process_ata", { p: toPayload(ata), p_justification: replacementJustification ?? null })
+      ? await this.db.rpc("register_process_ata_for_winner", { p: toPayload(ata), p_justification: replacementJustification ?? null, p_additional_winner: additionalWinner })
       : await this.db.rpc("save_ata", { p: toPayload(ata) })) as DbResponse<null>;
     if (ata.processId && (response.error?.code === "PGRST202" || response.error?.code === "42883")) {
-      return fail("UNAVAILABLE", "O banco ainda precisa da migração de cadastro e substituição de atas. Nenhuma ata foi alterada.");
+      return fail("UNAVAILABLE", "O banco ainda precisa das migrações SQL 20261127000003 e 20261127000005 para registrar atas. Nenhuma ata foi alterada.");
     }
     if (response.error?.code === "P0001" && response.error.message === "ata_replacement_justification_required") {
       return fail("VALIDATION", "Informe a justificativa para cadastrar outra ata neste processo.", {
