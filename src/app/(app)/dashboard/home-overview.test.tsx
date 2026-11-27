@@ -51,8 +51,8 @@ describe("HomeOverview", () => {
         atas={{ total: 0, expired: 0 }}
         deliveries={{ delivered: 0, pending: 2 }}
         processProgress={null}
-        savingsTotal={0}
-        savingsProcesses={0}
+        savingsTotal={4500}
+        savingsProcesses={1}
         overdueProcesses={2}
       />,
     );
@@ -60,6 +60,9 @@ describe("HomeOverview", () => {
     expect(html).toContain("Estoque em atenção");
     expect(html).toContain("Aguardando");
     expect(html).toContain("Saúde do estoque");
+    expect(html).toContain("Economia");
+    expect(html).toContain("4.500,00");
+    expect(html).toContain("Em 1 processo");
     expect(html).not.toContain("Para formalizar");
   });
 });

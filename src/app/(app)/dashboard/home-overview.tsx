@@ -10,7 +10,6 @@ import {
   PiggyBank,
   Timer,
   Truck,
-  Wallet,
 } from "lucide-react";
 import { formatCurrency } from "@/shared/lib/format";
 import { BarStatList } from "@/shared/ui/charts/bar-stat-list";
@@ -273,11 +272,14 @@ export function HomeOverview({
           tone: overdueProcesses > 0 ? ("warn" as const) : ("ok" as const),
         },
         {
-          icon: Wallet,
-          value: requests.inProgress,
-          label: "Em andamento",
-          hint: "Já aprovados ou em atendimento",
-          href: "/solicitacoes",
+          icon: PiggyBank,
+          value: formatCurrency(savingsTotal),
+          label: "Economia",
+          hint:
+            savingsProcesses > 0
+              ? `Em ${savingsProcesses} processo${savingsProcesses === 1 ? "" : "s"}`
+              : "Ainda sem economia registrada",
+          tone: "money" as const,
         },
         {
           icon: FileText,
@@ -377,7 +379,7 @@ export function HomeOverview({
             <p className="text-[0.7rem] text-muted-foreground">
               {deliveries.delivered} recebidas · {deliveries.pending} pendentes
             </p>
-            {isWarley && savingsTotal > 0 ? (
+            {savingsTotal > 0 ? (
               <p className="rounded-lg bg-emerald-50 px-2.5 py-1.5 text-[0.7rem] font-medium text-emerald-800">
                 Economia: {formatCurrency(savingsTotal)}
               </p>
