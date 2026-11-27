@@ -142,6 +142,14 @@ describe("CompactDocumentRow", () => {
       expect(html).toContain("+ Anexar arquivo");
     });
 
+    it("registra Não se aplica em um clique, sem modal nem justificativa", () => {
+      const html = renderToStaticMarkup(<CompactDocumentRow {...PENDING_ROW_PROPS} />);
+      expect(html).toContain("Não se aplica</button>");
+      expect(html).toContain('name="typeCode" value="ETP"');
+      expect(html).not.toContain("<details");
+      expect(html).not.toContain("<textarea");
+    });
+
     it("não renderiza o botão + Anexar arquivo quando canUpload=false", () => {
       const html = renderToStaticMarkup(
         <CompactDocumentRow {...PENDING_ROW_PROPS} canUpload={false} />,

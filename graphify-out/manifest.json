@@ -702,15 +702,15 @@
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/compact-document-row.test.tsx": {
-    "mtime": 1795790414.3574514,
-    "seen": 1795790538.290122,
-    "ast_hash": "75b3e193c66682f6f770b078b1374577",
+    "mtime": 1795791011.666222,
+    "seen": 1795791029.295739,
+    "ast_hash": "95cc2cea477c7e14bdedfbe0d1869afe",
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/compact-document-row.tsx": {
-    "mtime": 1795790414.3577137,
-    "seen": 1795790538.290123,
-    "ast_hash": "55b018765dcf8f98375bad717055d5db",
+    "mtime": 1795790998.7735739,
+    "seen": 1795791029.2957408,
+    "ast_hash": "d2b363fbdea4a798ac8570135c75b450",
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/document-card.tsx": {
@@ -1866,9 +1866,9 @@
     "semantic_hash": ""
   },
   "src/modules/processes/exception-action.ts": {
-    "mtime": 1795790414.402117,
-    "seen": 1795790538.290329,
-    "ast_hash": "ccdef747e3d9c85fe5c26034378314ef",
+    "mtime": 1795790998.7473683,
+    "seen": 1795791029.295969,
+    "ast_hash": "befd9376c9d6073b8ecbb851606d5fd8",
     "semantic_hash": ""
   },
   "src/modules/processes/price-research-action.ts": {

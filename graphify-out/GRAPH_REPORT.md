@@ -1,7 +1,7 @@
 # Graph Report - warleysales-atas-push  (2026-11-27)
 
 ## Corpus Check
-- 618 files · ~290,678 words
+- 618 files · ~290,631 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 7 file(s) not represented in the graph (top: (none) 3, .css 2, .example 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `9af2aeeb`
+- Built from commit: `827bd3d6`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -181,8 +181,8 @@
   docs/superpowers/plans/2026-11-10-onda1-estoque-formalizacao-economia.md → src/modules/inventory/service.ts
 - `Task 6: Segmentação de Estoque (Bloqueado, Pronto para Uso, Utilizado, % Liberado)` --references--> `InventoryService`  [INFERRED]
   docs/superpowers/plans/2026-11-10-onda1-estoque-formalizacao-economia.md → src/modules/inventory/service.ts
-- `Task 2: Redesign Executivo do Briefing de IA (`BriefingCard`)` --references--> `BriefingFacts`  [INFERRED]
-  docs/superpowers/plans/2026-11-11-redesign-visao-geral-e-meu-painel.md → src/modules/insights/briefing.ts
+- `Task 5: Trilha de Auditoria Multidimensional (Filtros Avançados no Serviço e Adapters)` --references--> `AuditFilter`  [INFERRED]
+  docs/superpowers/plans/2026-11-10-onda2-pedidos-justificativas-auditoria.md → src/modules/audit/schemas.ts
 
 ## Import Cycles
 - None detected.
@@ -718,16 +718,16 @@ Nodes (10): credentialsSchema, emailSchema, homeForCurrentUser(), newPasswordSch
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `ok()` connect `ok` to `runAction`, `lucide-react`, `relatorios/page.tsx`, `SupabasePurchaseRequestRepository`, `inventory/service.ts`, `notifications/service.ts`, `purchases/service.ts`, `fail`, `vitest`, `documentation-tab.tsx`, `purchases/service.test.ts`, `contracts/service.ts`, `MaterialOrder`, `solicitacoes/[id]/page.tsx`, `toFortalezaDate`, `policy.ts`, `container.ts`, `lucide-react`, `groq.ts`, `AuditEntry`, `transfers/schemas.ts`, `inventory.ts`, `processes.ts`, `log`, `media-actions.ts`, `formalizations/actions.ts`, `identity/service.ts`, `db.ts`, `suppliers/service.ts`, `ActionForm`, `Button`, `atas/service.ts`, `Button`?**
-  _High betweenness centrality (0.101) - this node is a cross-community bridge._
+  _High betweenness centrality (0.111) - this node is a cross-community bridge._
 - **What connects `PATH` to the rest of the system?**
   _1 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `runAction` be split into smaller, more focused modules?**
   _Cohesion score 0.06495589414595028 - nodes in this community are weakly interconnected._
 - **Why does `vitest` connect `vitest` to `lucide-react`, `relatorios/page.tsx`, `process-attachment-sheet.tsx`, `home-overview.tsx`, `inventory/service.ts`, `ProcessFormalization`, `notifications/service.ts`, `purchases/service.ts`, `InMemoryAuditRepository`, `documentation-tab.tsx`, `package.json`, `purchases/service.test.ts`, `calendario/page.tsx`, `contracts/service.ts`, `MaterialOrder`, `solicitacoes/[id]/page.tsx`, `ok`, `toFortalezaDate`, `container.ts`, `data-table-logic.ts`, `request-template.ts`, `orders/actions.ts`, `process-view.tsx`, `groq.ts`, `movement-form.tsx`, `extract-request/route.ts`, `new-contract-form.tsx`, `simple-table.tsx`, `processes.test.ts`, `media-actions.ts`, `createSessionClient`, `formalizations/actions.ts`, `navigation.ts`, `process-history.ts`, `product-field.tsx`, `briefing.ts`, `callback-server.mjs`, `briefing-card.tsx`, `whatsapp.ts`, `atas/extract-pdf/route.ts`, `time.ts`, `Button`, `cnpj.ts`, `atas/service.ts`, `retry-button.tsx`, `meeting-ai/route.ts`, `Button`?**
-  _High betweenness centrality (0.057) - this node is a cross-community bridge._
+  _High betweenness centrality (0.080) - this node is a cross-community bridge._
 - **Should `ProcessRepository` be split into smaller, more focused modules?**
   _Cohesion score 0.1286549707602339 - nodes in this community are weakly interconnected._
-- **Why does `fail()` connect `fail` to `runAction`, `relatorios/page.tsx`, `SupabasePurchaseRequestRepository`, `inventory/service.ts`, `notifications/service.ts`, `purchases/service.ts`, `vitest`, `documentation-tab.tsx`, `purchases/service.test.ts`, `contracts/service.ts`, `MaterialOrder`, `ok`, `toFortalezaDate`, `policy.ts`, `container.ts`, `lucide-react`, `groq.ts`, `AuditEntry`, `transfers/schemas.ts`, `inventory.ts`, `processes.ts`, `simple-table.tsx`, `log`, `media-actions.ts`, `formalizations/actions.ts`, `identity/service.ts`, `identity/actions.ts`, `db.ts`, `suppliers/service.ts`, `ActionForm`, `atas/service.ts`, `Button`?**
-  _High betweenness centrality (0.051) - this node is a cross-community bridge._
+- **Why does `next` connect `lucide-react` to `meu-conselho/page.tsx`, `runAction`, `lucide-react`, `(app)/processos/[id]/page.tsx`, `process-attachment-sheet.tsx`, `home-overview.tsx`, `(app)/processos/novo/page.tsx`, `relatorios/page.tsx`, `documentation-tab.tsx`, `package.json`, `getSession`, `solicitacoes/[id]/page.tsx`, `policy.ts`, `orders/actions.ts`, `process-view.tsx`, `groq.ts`, `movement-form.tsx`, `new-contract-form.tsx`, `auth-stage.tsx`, `simple-table.tsx`, `atas/actions.ts`, `log`, `media-actions.ts`, `createSessionClient`, `formalizations/actions.ts`, `navigation.ts`, `toast-store.ts`, `identity/actions.ts`, `callback-server.mjs`, `callback-app/app/layout.tsx`, `ActionForm`, `time.ts`, `Button`, `retry-button.tsx`, `next.config.ts`, `council-picker.tsx`, `usuarios/novo/page.tsx`, `Button`, `atas/nova/page.tsx`?**
+  _High betweenness centrality (0.048) - this node is a cross-community bridge._
 - **Should `lucide-react` be split into smaller, more focused modules?**
   _Cohesion score 0.08862745098039215 - nodes in this community are weakly interconnected._
