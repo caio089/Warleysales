@@ -183,19 +183,21 @@ export function ApprovalQueue({
                               </button>
                             </div>
                           ) : (
-                            <div className="flex flex-wrap items-center gap-3">
+                            <div className="flex flex-wrap items-end gap-3">
                               <ActionForm
                                 action={requestStepFormAction}
                                 submitLabel="Aprovar"
                                 pendingLabel="Aprovando…"
                                 submitClassName="h-11 px-6"
+                                formClassName="w-full max-w-xl space-y-3"
                                 hiddenFields={{ requestId: item.id, step: "approve" }}
                                 onSuccess={() => {
                                   setSelectedId(null);
                                   setDecliningId(null);
                                 }}
                               >
-                                {() => null}
+                                {(errors) => <TextAreaField name="note" label="Descrição da aprovação (opcional)"
+                                  hint="Até 500 caracteres. Aparece no histórico da solicitação." errors={errors.note} />}
                               </ActionForm>
                               <Button
                                 type="button"

@@ -1,7 +1,7 @@
 # Graph Report - warleysales-atas-push  (2026-11-27)
 
 ## Corpus Check
-- 618 files · ~290,438 words
+- 618 files · ~290,530 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 7 file(s) not represented in the graph (top: (none) 3, .css 2, .example 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `471d960f`
+- Built from commit: `cb5a4128`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -724,16 +724,16 @@ Nodes (12): credentialsSchema, emailSchema, homeForCurrentUser(), newPasswordSch
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `ok()` connect `ok` to `runAction`, `container.ts`, `lucide-react`, `identity.ts`, `SupabasePurchaseRequestRepository`, `stock.ts`, `purchases/service.ts`, `Actor`, `InMemoryAuditRepository`, `vitest`, `documentation-tab.tsx`, `purchases/service.test.ts`, `service-support.ts`, `orders/service.ts`, `diffInDays`, `can`, `solicitacoes/[id]/page.tsx`, `toFortalezaDate`, `next`, `processes/service.ts`, `lucide-react`, `validity.ts`, `inventory/service.ts`, `atas.ts`, `groq.ts`, `policy.ts`, `db.ts`, `inventory/repository.memory.ts`, `processes.ts`, `notifications/service.ts`, `log`, `meeting-media-panel.tsx`, `identity/service.ts`, `order.ts`, `processos/page.tsx`, `identity/actions.ts`, `ActionForm`, `transfer.ts`, `time.ts`, `balance.ts`, `Button`, `repositories.ts`, `atas/service.ts`, `getServiceClient`, `Button`?**
-  _High betweenness centrality (0.102) - this node is a cross-community bridge._
+  _High betweenness centrality (0.104) - this node is a cross-community bridge._
 - **What connects `PATH` to the rest of the system?**
   _1 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `runAction` be split into smaller, more focused modules?**
   _Cohesion score 0.06354642313546423 - nodes in this community are weakly interconnected._
 - **Why does `vitest` connect `vitest` to `lucide-react`, `pdf.ts`, `process-attachment-sheet.tsx`, `home-overview.test.tsx`, `MeetingRepository`, `stock.ts`, `ProcessFormalization`, `purchases/service.ts`, `InMemoryAuditRepository`, `documentation-tab.tsx`, `package.json`, `purchases/service.test.ts`, `service-support.ts`, `calendario/page.tsx`, `orders/service.ts`, `getSession`, `diffInDays`, `solicitacoes/[id]/page.tsx`, `can`, `toFortalezaDate`, `next`, `processes/service.ts`, `validity.ts`, `MaterialOrder`, `process-view.tsx`, `groq.ts`, `movement-form.tsx`, `policy.ts`, `new-contract-form.tsx`, `simple-table.tsx`, `notifications/service.ts`, `email-delivery.ts`, `log`, `createSessionClient`, `navigation.ts`, `process-history.ts`, `callback-server.mjs`, `ok`, `import-pca-crcpi-2027.mjs`, `transfer.ts`, `whatsapp.ts`, `zod`, `time.ts`, `Button`, `cnpj.ts`, `notification-destination.ts`, `direct-upload.test.ts`, `getServiceClient`, `Button`?**
-  _High betweenness centrality (0.060) - this node is a cross-community bridge._
+  _High betweenness centrality (0.066) - this node is a cross-community bridge._
 - **Should `container.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.07826694619147449 - nodes in this community are weakly interconnected._
-- **Why does `next` connect `next` to `runAction`, `lucide-react`, `process-attachment-sheet.tsx`, `documentation-tab.tsx`, `package.json`, `getSession`, `solicitacoes/[id]/page.tsx`, `lucide-react`, `MaterialOrder`, `process-view.tsx`, `groq.ts`, `policy.ts`, `movement-form.tsx`, `new-contract-form.tsx`, `auth-stage.tsx`, `simple-table.tsx`, `log`, `meeting-media-panel.tsx`, `createSessionClient`, `navigation.ts`, `processos/page.tsx`, `toast-store.ts`, `identity/actions.ts`, `callback-server.mjs`, `callback-app/app/layout.tsx`, `ActionForm`, `zod`, `time.ts`, `Button`, `council-picker.tsx`, `getServiceClient`, `Button`?**
-  _High betweenness centrality (0.049) - this node is a cross-community bridge._
+- **Why does `fail()` connect `ok` to `runAction`, `container.ts`, `identity.ts`, `SupabasePurchaseRequestRepository`, `stock.ts`, `purchases/service.ts`, `Actor`, `InMemoryAuditRepository`, `vitest`, `documentation-tab.tsx`, `purchases/service.test.ts`, `service-support.ts`, `orders/service.ts`, `diffInDays`, `can`, `solicitacoes/[id]/page.tsx`, `toFortalezaDate`, `next`, `processes/service.ts`, `lucide-react`, `validity.ts`, `inventory/service.ts`, `atas.ts`, `groq.ts`, `policy.ts`, `db.ts`, `inventory/repository.memory.ts`, `processes.ts`, `notifications/service.ts`, `log`, `meeting-media-panel.tsx`, `identity/service.ts`, `order.ts`, `identity/actions.ts`, `ActionForm`, `transfer.ts`, `time.ts`, `balance.ts`, `Button`, `repositories.ts`, `atas/service.ts`, `getServiceClient`, `Button`?**
+  _High betweenness centrality (0.051) - this node is a cross-community bridge._
 - **Should `lucide-react` be split into smaller, more focused modules?**
   _Cohesion score 0.07514124293785311 - nodes in this community are weakly interconnected._
