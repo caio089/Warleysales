@@ -8,12 +8,13 @@ import { can } from "@/shared/lib/authz/policy";
 import { parseCurrencyInput } from "@/shared/lib/money-input";
 import { fail, ok } from "@/shared/lib/result";
 import type { ActionState } from "@/shared/ui/forms/action-state";
-import { sumPriceResearchLines } from "./price-research";
+import { priceResearchLineTotal, sumPriceResearchLines } from "./price-research";
 
 const lineSchema = z.object({
   materialId: z.string(),
   name: z.string().trim().min(1),
   quantity: z.number().positive(),
+  unitPrice: z.number().min(0),
   lineTotal: z.number().min(0),
 });
 
@@ -27,26 +28,31 @@ export async function saveProcessPriceResearch(_previous: ActionState, form: For
 
   const lines = [];
   for (let index = 0; index < itemCount; index += 1) {
-    const rawTotal = parseCurrencyInput(String(form.get(`lines.${index}.lineTotal`) ?? ""));
-    if (rawTotal == null || rawTotal === "" || !/^\d{1,13}(?:\.\d{1,2})?$/.test(rawTotal)) {
+    const rawUnitPrice = parseCurrencyInput(String(form.get(`lines.${index}.unitPrice`) ?? ""));
+    if (rawUnitPrice == null || rawUnitPrice === "" || !/^\d{1,13}(?:\.\d{1,2})?$/.test(rawUnitPrice)) {
       return {
         status: "error",
         message: "Informe o valor de referência de cada item.",
-        fieldErrors: { [`lines.${index}.lineTotal`]: ["Informe um valor válido."] },
+        fieldErrors: { [`lines.${index}.unitPrice`]: ["Informe um valor unitário válido."] },
       };
     }
     const quantity = Number(String(form.get(`lines.${index}.quantity`) ?? "").replace(",", "."));
+    const unitPrice = Number(rawUnitPrice);
     lines.push({
       materialId: String(form.get(`lines.${index}.materialId`) ?? ""),
       name: String(form.get(`lines.${index}.name`) ?? "").trim(),
       quantity,
-      lineTotal: Number(rawTotal),
+      unitPrice,
+      lineTotal: priceResearchLineTotal(unitPrice, quantity),
     });
   }
 
   const parsed = z.array(lineSchema).min(1).safeParse(lines);
   if (!parsed.success) {
     return { status: "error", message: "Confira quantidade e valor de cada item." };
+  }
+  if (parsed.data.some((line) => !Number.isFinite(line.lineTotal) || line.lineTotal > 9999999999999.99)) {
+    return { status: "error", message: "O total estimado excede o valor permitido." };
   }
 
   const total = sumPriceResearchLines(parsed.data);

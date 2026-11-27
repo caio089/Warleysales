@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { saveProcessPriceResearch } from "@/modules/processes/price-research-action";
 import {
   sumPriceResearchLines,
+  priceResearchLineTotal,
   type PriceResearchItemInput,
   type PriceResearchLine,
 } from "@/modules/processes/price-research";
@@ -11,7 +12,7 @@ import { formatCurrency } from "@/shared/lib/format";
 import { parseCurrencyInput } from "@/shared/lib/money-input";
 import { FormField } from "@/shared/ui/form-field";
 import { ActionForm } from "@/shared/ui/forms/action-form";
-import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/shared/ui/forms/currency-input";
 
 function buildInitialDrafts(
   items: PriceResearchItemInput[],
@@ -20,13 +21,13 @@ function buildInitialDrafts(
 ): string[] {
   return items.map((item) => {
     const saved = savedLines?.find((line) => line.materialId === item.materialId);
-    if (saved != null) return saved.lineTotal.toFixed(2).replace(".", ",");
-    if (items.length === 1 && estimatedValue != null) return estimatedValue.toFixed(2).replace(".", ",");
+    if (saved != null) return (saved.unitPrice ?? saved.lineTotal / item.quantity).toFixed(2);
+    if (items.length === 1 && estimatedValue != null) return (estimatedValue / item.quantity).toFixed(2);
     return "";
   });
 }
 
-/** Pesquisa de preços: valor de referência por item e soma automática do total. */
+/** Pesquisa de preços: valor unitário por item e total calculado pela quantidade. */
 export function PriceResearchForm({
   processId,
   items,
@@ -40,15 +41,14 @@ export function PriceResearchForm({
 }) {
   const [drafts, setDrafts] = useState(() => buildInitialDrafts(items, savedLines, estimatedValue));
 
-  const grandTotal = useMemo(() => {
-    const lines = drafts.map((draft) => {
+  const lineTotals = useMemo(() =>
+    drafts.map((draft, index) => {
       const parsed = parseCurrencyInput(draft);
       if (parsed == null || parsed === "") return 0;
       const value = Number(parsed);
-      return Number.isFinite(value) ? value : 0;
-    });
-    return sumPriceResearchLines(lines.map((lineTotal) => ({ lineTotal })));
-  }, [drafts]);
+      return Number.isFinite(value) ? priceResearchLineTotal(value, items[index]?.quantity ?? 0) : 0;
+    }), [drafts, items]);
+  const grandTotal = sumPriceResearchLines(lineTotals.map((lineTotal) => ({ lineTotal })));
 
   return (
     <ActionForm
@@ -72,7 +72,7 @@ export function PriceResearchForm({
       {(errors) => (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Informe o valor total de referência de cada item (já com a quantidade). O sistema soma o total estimado.
+            Informe o valor unitário de referência. O total de cada item é calculado pela quantidade.
           </p>
           <ul className="space-y-3">
             {items.map((item, index) => (
@@ -87,21 +87,18 @@ export function PriceResearchForm({
                   </p>
                 </div>
                 <FormField
-                  label="Valor de referência do item (R$)"
+                  label="Valor unitário de referência (R$)"
                   required
-                  errors={errors[`lines.${index}.lineTotal`]}
+                  errors={errors[`lines.${index}.unitPrice`]}
                 >
                   {(props) => (
-                    <Input
+                    <CurrencyInput
                       {...props}
-                      name={`lines.${index}.lineTotal`}
-                      type="text"
-                      inputMode="decimal"
+                      name={`lines.${index}.unitPrice`}
                       placeholder="0,00"
                       required
                       value={drafts[index] ?? ""}
-                      onChange={(event) => {
-                        const next = event.currentTarget.value;
+                      onValueChange={(next) => {
                         setDrafts((current) => {
                           const copy = [...current];
                           copy[index] = next;
@@ -111,6 +108,7 @@ export function PriceResearchForm({
                     />
                   )}
                 </FormField>
+                <p className="mt-2 text-xs text-muted-foreground">Total estimado do item: <strong className="tabular-nums text-foreground">{formatCurrency(lineTotals[index] ?? 0)}</strong></p>
               </li>
             ))}
           </ul>
@@ -157,7 +155,7 @@ export function PriceResearchSummary({
           <li key={`${line.materialId}-${line.name}`} className="flex justify-between gap-3">
             <span className="min-w-0 truncate text-foreground">
               {line.name}{" "}
-              <span className="text-muted-foreground">· qtd {line.quantity}</span>
+              <span className="text-muted-foreground">· {line.quantity} × {formatCurrency(line.unitPrice ?? line.lineTotal / line.quantity)}</span>
             </span>
             <span className="shrink-0 tabular-nums font-medium">{formatCurrency(line.lineTotal)}</span>
           </li>
