@@ -17,13 +17,13 @@ import { can } from "@/shared/lib/authz/policy";
 import { formatCurrency, formatNumber } from "@/shared/lib/format";
 import { formatDateOnly } from "@/shared/lib/time";
 import { LoadingState } from "@/shared/ui/feedback-states";
-import { AtaStepButton, LinkProcessForm } from "@/shared/ui/forms/link-process-form";
+import { AtaStepButton } from "@/shared/ui/forms/link-process-form";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { StatusBadge } from "@/shared/ui/status-badge";
-import { linkAtaProcessFormAction } from "@/modules/atas/actions";
 import { AtaBalancePanel, buildAtaBalanceRows } from "../ata-balance-panel";
 import { ATA_MAX_EXTENSIONS } from "@/modules/atas/domain/validity";
+import { suggestContractNumber } from "@/modules/contracts/domain/suggest-number";
 export const metadata: Metadata = { title: "Ata" };
 
 async function Content({ params }: { params: Promise<{ id: string }> }) {
@@ -53,6 +53,9 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
           councilId, councilLabel: lookups.data.councilLabel[councilId] ?? "Órgão",
           processId: process.id, processLabel: `${process.number} — ${process.title}`, processNumber: process.number,
           defaultValue: process.estimatedValue, validityStartDate: process.validityStartDate ?? view.data.ata.startDate,
+          suggestedNumber: suggestContractNumber(process.number, contracts.data
+            .filter(({ contract }) => contract.councilId === councilId)
+            .map(({ contract }) => contract.number)),
           atas: [{ id, supplierId, supplierName, number: view.data.ata.number, status: "Vigente", items: buildAtaBalanceRows(view.data, lookups.data.materialLabel) }],
         } : undefined;
 
@@ -63,11 +66,6 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
       contractDraft,
       contractSuppliers: supplierRows.filter((row) => row.active || row.id === supplierId).map((row) => ({ value: row.id, label: row.name, cnpj: row.cnpj })),
       canManage: can(actor, "ata.manage", councilId),
-      processes: processes.data
-        .filter((item) => item.process.councilId === councilId)
-        .map((item) => ({ value: item.process.id, label: `${item.process.number} — ${item.process.title}` })),
-      processHref: processId ? `/solicitacoes/processos/${processId}` : null,
-      processLabel: processes.data.find((item) => item.process.id === processId)?.process.number ?? null,
       relatedContracts: contracts.data
         .filter(({ contract }) => contract.ataId === id)
         .sort((a, b) => Number(b.status === "vigente") - Number(a.status === "vigente"))
@@ -77,7 +75,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
 
   return (
     <Screen result={result}>
-      {({ view, lookups, supplierName, canManage, processes, processHref, processLabel, relatedContracts, contractDraft, contractSuppliers }) => {
+      {({ view, lookups, supplierName, canManage, relatedContracts, contractDraft, contractSuppliers }) => {
         const totalRegistered = view.items.reduce((sum, item) => sum + item.balance.registered, 0);
         const totalBalance = view.items.reduce((sum, item) => sum + item.balance.balance, 0);
         const totalValue = view.ata.items.reduce(
@@ -184,33 +182,6 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
                 </div>
               </section>
             ) : null}
-
-            <section aria-label="Processo vinculado" className="surface-card mb-8 space-y-4 p-6">
-              <div>
-                <h2 className="font-heading text-lg font-medium tracking-tight text-primary">Processo vinculado</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {processHref && processLabel ? (
-                    <>
-                      Processo{" "}
-                      <Link href={processHref} className="font-medium text-primary underline-offset-4 hover:underline">
-                        {processLabel}
-                      </Link>
-                    </>
-                  ) : (
-                    "Nenhum processo vinculado."
-                  )}
-                </p>
-              </div>
-              {canManage && !isCancelled ? (
-                <LinkProcessForm
-                  action={linkAtaProcessFormAction}
-                  entityIdName="ataId"
-                  entityId={view.ata.id}
-                  processes={processes}
-                  current={view.ata.processId ?? null}
-                />
-              ) : null}
-            </section>
 
             <section aria-labelledby="contratos-da-ata" className="surface-card mb-8 space-y-5 p-5 sm:p-6">
               <div>

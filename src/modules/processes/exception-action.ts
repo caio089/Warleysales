@@ -13,8 +13,13 @@ export async function documentExceptionAction(_previous: ActionState, form: Form
   const processId = String(form.get("processId") ?? "");
   const typeCode = String(form.get("typeCode") ?? "");
   const removing = form.get("remove") === "true";
-  const reason = removing ? "Exigência reativada" : "Não se aplica";
+  const reason = removing ? "Exigência reativada" : String(form.get("justification") ?? "").trim();
   const result = await runAction(async ({ actor, services }) => {
+    if (!removing && (reason.length < 10 || reason.length > 1000)) {
+      return fail("VALIDATION", "Informe uma justificativa de 10 a 1000 caracteres.", {
+        justification: ["A justificativa deve ter entre 10 e 1000 caracteres."],
+      });
+    }
     if (!DOCUMENT_TYPE_CODES.includes(typeCode as DocumentTypeCode)) {
       return fail("VALIDATION", "Selecione uma etapa documental válida.");
     }

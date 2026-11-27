@@ -51,6 +51,7 @@ export function NewContractForm({
     processId: string;
     processLabel: string;
     processNumber: string;
+    suggestedNumber?: string;
     object?: string;
     defaultValue?: number | null;
     validityStartDate?: string | null;
@@ -141,7 +142,7 @@ export function NewContractForm({
     const materials = lockedProcess.requestMaterials ?? [];
     const start = lockedProcess.validityStartDate ?? undefined;
     const end = start ? computeInitialEndDate(start) : undefined;
-    const suggestedNumber = `CTR ${lockedProcess.processNumber}`.slice(0, 40);
+    const suggestedNumber = lockedProcess.suggestedNumber ?? `CTR ${lockedProcess.processNumber}`.slice(0, 40);
     const object =
       lockedProcess.object
       ?? (materials.length === 1 ? materials[0]!.name : lockedProcess.processLabel);

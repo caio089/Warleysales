@@ -53,6 +53,7 @@ export function CompactDocumentRow({
 }: CompactDocumentRowProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const exceptionDialogRef = useRef<HTMLDialogElement>(null);
   const [uploading, setUploading] = useState(false);
 
   async function handleDownload(attachmentId: string) {
@@ -299,17 +300,53 @@ export function CompactDocumentRow({
               {uploading ? "Enviando..." : hasFiles ? "Anexar outro" : "+ Anexar arquivo"}
             </Button>
           ) : null}
-          {canUpload ? (
+          {canUpload && exception ? (
             <ActionForm
               action={documentExceptionAction}
-              submitLabel={exception ? "Reativar exigência" : "Não se aplica"}
-              pendingLabel={exception ? "Reativando…" : "Registrando…"}
+              submitLabel="Reativar exigência"
+              pendingLabel="Reativando…"
               submitVariant="outline"
               submitClassName="h-8 px-3 text-xs font-medium"
-              hiddenFields={{ processId, typeCode, ...(exception ? { remove: "true" } : {}) }}
+              hiddenFields={{ processId, typeCode, remove: "true" }}
             >
               {() => null}
             </ActionForm>
+          ) : null}
+          {canUpload && !exception ? (
+            <>
+              <Button type="button" variant="outline" size="sm" className="h-8 px-3 text-xs font-medium"
+                onClick={() => exceptionDialogRef.current?.showModal()}>
+                Não se aplica
+              </Button>
+              <dialog ref={exceptionDialogRef} aria-labelledby={`exception-title-${typeCode}`}
+                onClick={(event) => { if (event.target === event.currentTarget) event.currentTarget.close(); }}
+                className="w-[min(32rem,calc(100%-2rem))] rounded-2xl border border-border bg-card p-5 text-foreground shadow-2xl backdrop:bg-black/50 sm:p-6">
+                <h3 id={`exception-title-${typeCode}`} className="font-heading text-lg font-semibold text-primary">
+                  Marcar como não se aplica
+                </h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Explique por que {label.toLocaleLowerCase("pt-BR")} não se aplica a este processo.
+                </p>
+                <div className="mt-5">
+                  <ActionForm action={documentExceptionAction} submitLabel="Confirmar não se aplica"
+                    pendingLabel="Registrando…" hiddenFields={{ processId, typeCode }}
+                    onSuccess={() => exceptionDialogRef.current?.close()}>
+                    {(errors) => (
+                      <div>
+                        <label htmlFor={`exception-reason-${typeCode}`} className="mb-1.5 block text-sm font-medium">Justificativa</label>
+                        <textarea id={`exception-reason-${typeCode}`} name="justification" required minLength={10} maxLength={1000}
+                          rows={4} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          placeholder="Informe o motivo (mínimo de 10 caracteres)" />
+                        {errors.justification?.[0] ? <p role="alert" className="mt-1 text-xs text-destructive">{errors.justification[0]}</p> : null}
+                      </div>
+                    )}
+                  </ActionForm>
+                  <Button type="button" variant="ghost" className="mt-3" onClick={() => exceptionDialogRef.current?.close()}>
+                    Cancelar e sair
+                  </Button>
+                </div>
+              </dialog>
+            </>
           ) : null}
         </div>
       ) : null}

@@ -2,7 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { idSchema } from "@/shared/lib/service-support";
 import type { ContractRepository } from "@/modules/contracts/repository";
 import type { Contract } from "@/modules/contracts/schemas";
-import { callRpc, rpcOutcomeToResult, selectAll, toDate, toIso, toNumber, unwrap, type RpcOutcome } from "../db";
+import { fail } from "@/shared/lib/result";
+import { callRpc, DatabaseError, rpcOutcomeToResult, selectAll, toDate, toIso, toNumber, unwrap, type RpcOutcome } from "../db";
 
 interface ContractRow {
   closed_at?: string | null;
@@ -120,9 +121,18 @@ export class SupabaseContractRepository implements ContractRepository {
   }
 
   async insertAtomically(contract: Contract) {
-    const outcome = await callRpc<RpcOutcome>(this.db, "create_contract_with_ata", { p: toPayload(contract) });
-    const result = rpcOutcomeToResult(outcome);
-    return result.ok ? { ok: true as const, data: contract } : result;
+    try {
+      const outcome = await callRpc<RpcOutcome>(this.db, "create_contract_with_ata", { p: toPayload(contract) });
+      const result = rpcOutcomeToResult(outcome);
+      return result.ok ? { ok: true as const, data: contract } : result;
+    } catch (error) {
+      if (error instanceof DatabaseError && error.code === "23505") {
+        return fail("CONFLICT", "Já existe contrato com este número neste órgão. Informe outro número.", {
+          number: ["Escolha um número diferente do contrato já cadastrado."],
+        });
+      }
+      throw error;
+    }
   }
 
   async insert(contract: Contract) {
