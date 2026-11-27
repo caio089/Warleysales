@@ -19,11 +19,15 @@ describe("PDF de relatórios", () => {
       atas: { total: 1, expired: 0 },
     }, { totalEstimated: 10500.5, totalContracted: 800, totalSavings: 9700.5, averageSavingsPercent: 92.38, count: 1 }, context);
     expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe("%PDF-");
-    expect((await PDFDocument.load(bytes)).getPageCount()).toBe(1);
+    expect((await PDFDocument.load(bytes)).getPageCount()).toBeGreaterThanOrEqual(2);
     const pdf = await getDocumentProxy(bytes);
     try {
       const extracted = await extractText(pdf, { mergePages: true });
-      expect(String(extracted.text)).toMatch(/R\$\s+10\.500,50/);
+      const text = String(extracted.text);
+      expect(text).toMatch(/R\$\s+10\.500,50/);
+      expect(text).toContain("Processos por situação");
+      expect(text).toContain("Alertas operacionais");
+      expect(text).toContain("Comparativo financeiro");
     } finally {
       await pdf.destroy();
     }
@@ -53,6 +57,25 @@ describe("PDF de relatórios", () => {
     }));
     const document = await PDFDocument.load(await auditReportPdf(entries, "Sem filtros", context));
     expect(document.getPageCount()).toBeGreaterThan(1);
+  });
+  it("inclui gráficos de resultados e eventos frequentes na auditoria", async () => {
+    const bytes = await auditReportPdf([
+      { id: "1", actorId: "user-1", action: "process.create", entity: "process", entityId: null, councilId: null, result: "success", details: {}, createdAt: new Date("2026-11-16T12:00:00Z") },
+      { id: "2", actorId: "user-1", action: "document.upload", entity: "attachment", entityId: null, councilId: null, result: "denied", details: {}, createdAt: new Date("2026-11-16T12:00:00Z") },
+      { id: "3", actorId: "user-1", action: "process.create", entity: "process", entityId: null, councilId: null, result: "error", details: {}, createdAt: new Date("2026-11-16T12:00:00Z") },
+    ], "Sem filtros", context);
+    const pdf = await getDocumentProxy(bytes);
+    try {
+      const extracted = await extractText(pdf, { mergePages: true });
+      const text = String(extracted.text);
+      expect(text).toContain("Distribuição por resultado");
+      expect(text).toContain("Eventos mais frequentes");
+      expect(text).toContain("Concluídos: 1");
+      expect(text).toContain("Negados: 1");
+      expect(text).toContain("Erros: 1");
+    } finally {
+      await pdf.destroy();
+    }
   });
   it("apresenta eventos de auditoria em linguagem legível e preserva as referências", async () => {
     const id = "12345678-1234-1234-1234-123456789012";
