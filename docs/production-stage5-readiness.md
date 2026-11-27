@@ -1,0 +1,91 @@
+# Warleysales — Prontidão para produção
+
+**Parecer em 27/11/2026 — NÃO PRONTO PARA PRODUÇÃO.** A aplicação local passa no build e nas suítes executadas. A API de produção ainda apresenta diferenças incompatíveis com o código e a recuperação dos dados e arquivos não foi demonstrada.
+
+## Controle de versão
+
+A auditoria partiu de `26de3dc`, na branch `feat/etapa-3-remocao-transferencias`. A `main` remota apontava para `b1d3e49`. Os commits exclusivos da branch eram `151e356` (Etapa 3), `d1b9b98` (atas de reunião) e `26de3dc` (consentimento da IA). O conjunto inclui 81 arquivos, com mudanças em calendário, reuniões, transferências, formulários e testes. Há 35 migrations SQL versionadas. As alterações preexistentes do Graphify e os arquivos locais em `tmp/` foram preservados.
+
+## Funcionamento local
+
+| Área | Classificação | Evidência e limite |
+| --- | --- | --- |
+| Solicitações e processos | Funcional com ressalvas | SQL 002, 003 e 006 cobrem integridade, permissões, fluxo e vínculo. Falta uma repetição de cada ação e anexo pela interface autenticada. |
+| Atas e contratos | Funcional com ressalvas | SQL 003, 004 e 006 cobrem consumo, saldo, recebimento, duplicação e vínculos. A conferência direta dos históricos de produção depende de catálogo e linha de base. |
+| Estoque e transferências | Funcional com ressalvas | SQL 001 a 004, 006 e 007 cobrem integridade do estoque, recebimentos, imutabilidade e histórico de transferências. A API retornou zero transferências ativas nos estados que bloqueiam a migration na hora da consulta. Repetir imediatamente antes da janela. |
+| Relatórios | Funcional com ressalvas | Cobertura automatizada da aplicação. Falta confronto exaustivo de filtros, prévia, PDF, autoria e isolamento para todos os modelos. |
+| Calendário | Funcional com ressalvas | Testes da aplicação e SQL 008. Falta repetir todas as combinações de visões, filtros, links e permissões pela interface. |
+| Reuniões e atas manuais | Funcional com ressalvas | SQL 005, 009 e 010 e sessão autenticada local. Falta repetir todos os casos de edição e dados históricos na UI. |
+| IA interna de reuniões | Funcional com ressalvas | Gravação sintética, envio privado, revisão, aprovação, PDF e tarefa idempotente com sessão local. Testes de consentimento e processamento simulado. Groq real adiada. |
+
+O ensaio autenticado de reuniões conferiu três larguras. Playwright padrão cobre também navegação, teclado, tabela, modais e formulários em ambiente isolado com credenciais de backend vazias ou simuladas. SQL com papel `authenticated` valida RLS e tentativas de escrita conforme os cenários da suíte. Essas evidências têm alcances diferentes. A revisão detalhada de teclado, estados de erro e carregamento em todas as páginas, a matriz completa de perfis por operação e a medição de desempenho com volume representativo seguem pendentes. Tempo de compilação local e tempo de testes não são estimativas de resposta em produção.
+
+Uma navegação autenticada local carregou 12 rotas principais em 1440, 820 e 390 px sem rolagem horizontal no documento. As primeiras navegações em desenvolvimento ficaram entre 1,7 s e 3,8 s, incluindo compilação e espera pelo contêiner principal. Essa amostra não mede o custo de consultas, geração de PDF ou upload sob carga. A rota legada de criação de transferências respondeu HTTP 404 e a chamada ao worker com token inválido respondeu HTTP 401.
+
+Dois gestores sintéticos de órgãos distintos foram autenticados no Supabase local. O gestor do órgão de origem acessou o processo de teste tanto pela rota centralizada quanto pela legada. Na sessão do outro órgão, ambas apresentaram a tela de indisponibilidade sem exibir o registro, com HTTP 200 no navegador. A evidência comprova o isolamento desse processo nos dois caminhos. A matriz autenticada de relatórios, contratos e documentos por órgão continua parcial.
+
+## Execuções e correções
+
+- Vitest passou em 662 testes de 108 arquivos. Build passou com 55 páginas geradas. Typecheck passou. ESLint terminou com zero erros e quatro avisos de variáveis/imports não utilizados. `git diff --check` passou.
+- SQL 002 a 010 passou no Supabase local e em banco limpo com o bootstrap local e `supabase/apply_all.sql`. A execução em banco com stub é evidência de instalação reproduzível do esquema, sem substituir um ensaio de restauração com dados e arquivos.
+- SQL 001 teve duas falhas de teste, de gravidade baixa. A contagem incluía o tipo complementar entre os sete obrigatórios. O teste de exclusão de auditoria atuava numa tabela vazia, sem acionar o trigger por linha. O teste passou 14/14 em banco limpo com pgTAP após filtrar os tipos obrigatórios e inserir uma linha de teste no escopo da transação. Nenhuma migration nem regra da aplicação foi alterada.
+- Playwright registrou 21 aprovados e dois ignorados. Senha curta/divergente requer backend de autenticação, ausente no cenário isolado. O teste de busca do shell exige um controle que esse shell não expõe. Houve avisos do Next em desenvolvimento, sem falha de teste. A suíte autenticada de reuniões rodou à parte.
+
+## Compatibilidade e ordem de migrations
+
+O endpoint REST retornou `PGRST106` para o histórico formal. A confirmação de catálogo fica pendente para todas as versões abaixo. Execute [o roteiro somente leitura](production-stage5-readonly-audit.sql) no SQL Editor autorizado, compare as definições e permissões com as migrations versionadas e lide explicitamente com divergências entre registro formal e objetos.
+
+| Ordem | Versões | Evidência pelo REST de produção |
+| --- | --- | --- |
+| 1 | `20261125000004`, `20261126011635`, `20261126011903` | Existem `contracts.ata_id` e `contract_ata_items.ata_item_id`. Definições efetivas, permissões e efeitos das RPCs dependem do catálogo. Conferir os antecedentes `20261125000002` e `20261125000003` no histórico. |
+| 2 | `20261126020000`, `20261126020100`, `20261126020200`, `20261126020300` | `profiles.staff_category`, `administrative_processes.responsible_id`/`process_type` e `contracts.closed_at`/`closed_by` retornaram `42703`. `contract_receipt_lines`, `meeting_attendance` e `meeting_task_completions` não aparecem na API (`PGRST205`). `meetings.audio_path` aparece, o que indica evidência parcial de reuniões. |
+| 3 | `20261126020400`, `20261126020500`, `20261126020600` | Zero transferências em `aprovada`, `separada` ou `em_transito` no momento da consulta. `calendar_appointments` retornou `PGRST205` e `meetings.agenda`, `42703`. Confirmar a retirada efetiva das operações de escrita no catálogo. |
+| 4 | `20261127000001`, `20261127000002` | `meetings.minutes_approved_at` e `meetings.ai_consent_at` retornaram `42703`. Confirmar as definições do worker, grants, políticas e proteção dos registros aprovados. |
+
+A leitura também encontrou registros em contratos, movimentações, anexos e auditoria. Sem contagens ou inventário anteriores, isso comprova presença, sem provar ausência de perda histórica. Preserve atas e solicitações antigas, eventos de transferências, documentos e suas referências. As ausências na API são incompatibilidades observadas pela aplicação, mesmo quando a origem exata exige a conferência de catálogo. Não aplique o consolidado `apply_all.sql` em produção.
+
+## Checklist antes de autorizar publicação
+
+1. Confirmar backup do PostgreSQL no painel de Backups do Supabase, com data, janela e ponto recuperável. Exportar separadamente os arquivos de Storage, incluindo `process-documents` e `meeting-audio`, e inventariar objetos e referências. Restaurar em ambiente isolado, conferir amostras de documentos, vínculos, histórico e possibilidade de login. O backup do banco guarda metadados de Storage. [Banco e restauração](https://supabase.com/docs/guides/platform/backups) · [Cópia de objetos](https://supabase.com/docs/guides/storage/management/download-objects)
+2. Executar a auditoria somente leitura no projeto de produção autorizado. Guardar histórico formal, DDL efetivo, triggers, índices, constraints e RLS. Levantar contagens de referência sem dados pessoais e conferir transferências ativas novamente. Se houver operações em curso, resolver pelo fluxo existente antes da desativação.
+3. Em homologação restaurada, ensaiar as migrations em ordem, escolhendo apenas as efetivamente pendentes. Resolver históricos inconsistentes com evidência por versão antes de registrar, reconciliar ou aplicar. Validar recebimentos históricos, transferências preservadas e efeitos de alteração em permissões. A reversão da aposentadoria de transferências, das mudanças de integridade e dos estados de aprovação requer compatibilidade de código e banco.
+4. Completar os testes funcionais e por perfis ainda pendentes. Conferir login, ações de servidor, isolamento, anexos privados, URLs temporárias, PDFs e logs com dados sintéticos. Verificar desempenho das listagens, calendário e relatórios com volume de homologação.
+5. Conferir alvo, branch, variáveis e comportamento de publicação no painel da Vercel. Validar `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SITE_URL` e `APP_TIMEZONE`; manter `SUPABASE_SERVICE_ROLE_KEY` e `CRON_SECRET` no servidor. Revisar configurações de relatórios e e-mail conforme as funções usadas. Manter `MEETING_EXTERNAL_AI` desabilitada, sem configuração de cron de IA nesta liberação. Confirmar privacidade dos buckets, limites e acesso por papel.
+6. Após autorização específica, aplicar migrations verificadas antes do código que depende delas. Repetir auditoria somente leitura, comparar contagens e testar login, contratos, saldo, estoque, relatórios, calendário e reuniões. Publicar somente após a checagem de compatibilidade. Depois da publicação, testar rotas, permissões, arquivos e erros do servidor.
+7. Em caso de falha, interromper a publicação, preservar logs e evidências e revisar a compatibilidade do código anterior com o esquema aplicado antes de reverter o app. Para recuperação do banco, usar o ponto previamente ensaiado em ambiente separado e reconciliar gravações posteriores e arquivos de Storage antes de decidir pela restauração autorizada.
+
+## Conferência no Dashboard
+
+Abra o projeto de produção correto no Supabase Dashboard e entre em **SQL Editor → New query**. Cole e execute somente o **bloco 01** do [roteiro de auditoria](production-stage5-readonly-audit.sql). Ele retorna versões e nomes, sem o conteúdo SQL registrado no histórico. Envie as linhas retornadas ou informe que o resultado ficou vazio. Uma linha confirma o registro formal da versão. Uma ausência, numa consulta bem-sucedida, indica falta de registro, que pode coexistir com objetos aplicados manualmente. A comparação com o catálogo define o próximo passo.
+
+Quando autorizado e após a leitura do histórico, execute os blocos 02 a 10 em consultas separadas. Caso um bloco com várias instruções falhe ou o painel mostre apenas um resultado, rode cada `SELECT` isoladamente. Envie o número do bloco, nomes de objetos, tipos, presença, grants, contagens e códigos de erro. Definições são úteis depois de revisar e ocultar segredos ou referências privadas. Evite compartilhar chaves, senhas, tokens, URLs assinadas, caminhos de objetos, nomes, e-mails e dados de reuniões ou documentos.
+
+`42501` indica privilégio insuficiente. `42P01` indica relação não resolvida. `42703` aponta coluna não resolvida e `3F000`, esquema desconhecido quando o PostgreSQL o reportar separadamente. Registre o código e o nome do objeto, sem tentar alterar permissões ou criar objetos. Resultado vazio nos blocos de catálogo também pode depender da visibilidade da sessão. `PGRST106` observado na API indica que o esquema do histórico não estava exposto naquele canal. O SQL Editor é uma verificação distinta.
+
+## Matriz para reconciliar com produção
+
+Todas as versões abaixo têm situação formal **não verificada**. Evidências REST são parciais e foram coletadas na auditoria anterior. Compare o resultado local das migrations com o histórico e o catálogo efetivo antes de decidir quais aplicar.
+
+| Migration | Dependências principais | Objetos e efeitos | Risco e pré-condição | Evidência disponível | Evidência necessária |
+| --- | --- | --- | --- | --- | --- |
+| `20261125000002_process_contracting_mode.sql` | `administrative_processes` e autorização de processos | Coluna `contracting_mode` e RPC de atualização | Conferir modos existentes e permissões | SQL versionado | Histórico, coluna, check e RPC |
+| `20261125000003_process_price_research_lines.sql` | `administrative_processes` e autorização de processos | `price_research_lines` e RPC de pesquisa e total | Conferir representação das linhas e totais já existentes | SQL versionado | Histórico, tipo da coluna e RPC |
+| `20261125000004_contract_ata_link.sql` | `contracts`, `price_registration_atas`, `ata_items` e `save_contract` | FK de ata, `contract_ata_items`, índices, RLS e atualização de `save_contract` | Preservar itens e vínculos. Conferir FKs e RLS efetivas | REST vê `contracts.ata_id` e `contract_ata_items.ata_item_id` | Histórico, constraints, índices, grants, políticas e RPC |
+| `20261126011635_contract_ata_and_request_reservation.sql` | Vínculo contrato–ata, solicitações e `ata_commitments` | Aprovação e cancelamento, `create_contract_with_ata`, triggers de vínculo e liberação de reservas legadas | Conferir o ledger em cópia restaurada. Liberação legada pode abortar se houver excesso ou saldo insuficiente | Suítes locais do fluxo | Histórico, RPCs, triggers e reconciliação agregada de reservas em homologação |
+| `20261126011903_atomic_purchase_receipt.sql` | Solicitações, estoque e chaves de recebimento | RPC `receive_purchase_request` | Conferir atomicidade e idempotência com registros antigos | Suítes locais do fluxo | Histórico, assinatura, implementação e grants |
+| `20261126020000_profile_staff_category.sql` | `profiles` | Categoria com padrão `unclassified`, check e índice parcial | Perfis antigos ficam sem classificação específica. Conferir impacto nos relatórios | REST retornou `42703` | Histórico, coluna, check, índice e contagem por categoria em homologação |
+| `20261126020100_meeting_evidence.sql` | Reuniões, tarefas, perfis e vínculos de órgão | Presenças, conclusões, RLS, RPC de evidência e trigger de proteção | Conferir acesso por órgão e atividades anteriores | Tabelas não expostas no REST (`PGRST205`) | Histórico, tabelas, RLS, grants, RPC e trigger |
+| `20261126020200_process_assignment_contract_closure.sql` | Perfis, vínculos, contratos, `contract_ata_items`, chaves e RPC de `20261126011903` | Responsável e tipo do processo, encerramento do contrato, `contract_receipt_lines` e RPC contratual | Compatibilidade com processos sem responsável e recebimentos sem o novo detalhamento | Colunas `42703` e tabela `PGRST205` no REST | Histórico, FKs, constraints, políticas, triggers, índices e RPC |
+| `20261126020300_contract_receipt_integrity.sql` | `contract_receipt_lines` de `20261126020200` | Trigger e função de integridade das linhas de recebimento | Conferir saldo, contrato/ata correspondentes e reconstrução dos vínculos históricos em homologação | Testes SQL locais | Histórico, trigger habilitado e definição da função |
+| `20261126020400_retire_transfer_operations.sql` | Tabelas e RPCs históricas de transferências | Guarda operacional e revogação de escrita e execução | Zero `aprovada`, `separada`, `em_transito` imediatamente antes da janela. Preservar leitura e histórico | REST retornou zero na consulta anterior | Histórico, contagens atualizadas e grants efetivos |
+| `20261126020500_calendar_appointments.sql` | Perfis, órgãos e funções de autorização | `calendar_appointments`, índice e RLS | Conferir consulta e edição permitidas por órgão | `PGRST205` no REST | Histórico, tabela, índice, grants e políticas |
+| `20261126020600_meeting_details.sql` | Reuniões, perfis, membros e anexos | Responsável, pauta, decisões, participantes, anexos e trigger | Conferir escopo de novos vínculos e preservação dos anteriores | `meetings.agenda` retornou `42703` | Histórico, colunas, checks e trigger |
+| `20261127000001_meeting_minutes_review.sql` | Reuniões, tarefas, perfis e campos anteriores de áudio/transcrição | Fila, revisão, aprovação, chave de tarefa e RPC `claim_meeting_ai` | Conferir documentos históricos e tarefa idempotente. IA externa desabilitada | `minutes_approved_at` retornou `42703` | Histórico, índices, colunas, trigger e grant da RPC |
+| `20261127000002_meeting_ai_consent.sql` | Fila da versão `20261127000001`, perfis e vínculos | Campos de consentimento, invalidação de trabalhos legados em fila/execução e substituição da RPC | Inventariar fila em homologação antes de rodar. Trabalhos antigos em fila ou execução passam para falha | `ai_consent_at` retornou `42703` | Histórico, check, RPC, grants e comparação dos estados em homologação |
+
+### Evidências do ensaio antes da autorização
+
+1. Registre o horário do ponto recuperável, o mecanismo de backup disponível e a localização segura do inventário de arquivos. Verifique que o ponto é restaurável pelos responsáveis e que cobre a janela pretendida. A evidência de restauração deve incluir login e acesso aos arquivos por referências do banco.
+2. Prepare um destino isolado com credenciais próprias, acesso restrito, Groq desabilitada e sem cron ou webhooks apontando para produção. Em execução posterior autorizada, restaure o PostgreSQL e os objetos do Storage separadamente. Compare contagens, tamanhos e checksums disponíveis, políticas, vínculos de anexos e amostras históricas.
+3. Na cópia restaurada, registre a linha de base e aplique uma versão efetivamente pendente por vez na ordem versionada. Guarde o resultado e o catálogo de cada etapa. Verifique constraints, grants e políticas, mais os casos da tabela afetados pela versão. Para reservas de ata, recebimentos, transferências e fila de IA, compare estados, contagens e saldos antes e depois. Pare na primeira divergência sem explicação.
+4. Antes de autorizar atualização, reúna o histórico reconciliado, a prova da restauração, a listagem definitiva de migrations e seus resultados em homologação. Registre o responsável pela aprovação, a janela e o plano de recuperação. Nesta execução o procedimento foi preparado, sem backup, restauração ou aplicação de migrations.

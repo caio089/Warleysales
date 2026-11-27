@@ -1,4 +1,4 @@
--- Testes pgTAP (rodar com `supabase test db`; exigem Supabase local/Docker — NÃO executados no ambiente de desenvolvimento atual).
+-- Testes pgTAP para Supabase local/Docker (`supabase test db`).
 begin;
 select plan(14);
 
@@ -18,7 +18,7 @@ insert into public.administrative_processes (id, council_id, sequence, year, num
   ('30000000-0000-0000-0000-00000000000b', '10000000-0000-0000-0000-00000000000b', 1, 2026, '001/2026', 'Processo B', '00000000-0000-0000-0000-0000000000b1');
 
 -- 1-2: seed dos 7 tipos e número único por conselho
-select is((select count(*)::int from public.document_types), 7, 'seed possui os 7 tipos documentais');
+select is((select count(*)::int from public.document_types where is_required), 7, 'seed possui os 7 tipos documentais obrigatórios');
 select throws_ok($$insert into public.administrative_processes (council_id, sequence, year, number, title, created_by)
   values ('10000000-0000-0000-0000-00000000000a', 2, 2026, '001/2026', 'Duplicado', '00000000-0000-0000-0000-0000000000a1')$$,
   '23505', null, 'número de processo é único por conselho');
@@ -37,7 +37,9 @@ select is(public.apply_stock_mutation('10000000-0000-0000-0000-00000000000a', '2
 
 -- 7-8: ledger imutável
 select throws_ok($$update public.stock_movements set quantity = 99$$, '42501', null, 'ledger de estoque é imutável (UPDATE)');
-select throws_ok($$delete from public.audit_logs$$, '42501', null, 'auditoria é imutável (DELETE)');
+insert into public.audit_logs (actor_id, action, entity) values (null, 'teste_pgtap', 'teste');
+select throws_ok($$delete from public.audit_logs where action = 'teste_pgtap' and entity = 'teste'$$,
+  '42501', null, 'auditoria é imutável (DELETE)');
 
 -- 9-10: RLS — gestor do conselho A não enxerga processos do conselho B
 set local role authenticated;
