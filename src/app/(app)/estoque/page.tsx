@@ -15,7 +15,7 @@ import { PageHeader, SectionLabel } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { SimpleTable } from "@/shared/ui/simple-table";
-import { buildHoldRows } from "./hold-rows";
+import { buildHoldRows, contractedMaterialsByProcess } from "./hold-rows";
 import { buildStockEntrySources } from "./entry-sources";
 import { MovementForm } from "./movimentacoes/movement-form";
 import { MinimumForm } from "./minimum-form";
@@ -60,6 +60,7 @@ async function Content() {
         }
       }
     }
+    const contractedMaterials = contractedMaterialsByProcess(contracts.data.map(({ contract }) => contract), atas.data);
     const holds = buildHoldRows(
       requests.data
         .filter((request) => request.processId)
@@ -67,6 +68,7 @@ async function Content() {
           const processId = request.processId!;
           const view = processById.get(processId);
           const formalization = formalizationByProcess.get(processId);
+          const contracted = contractedMaterials.get(`${request.councilId}:${processId}`);
           const status = formalization?.status === "homologado"
             ? "disponivel"
             : formalization?.status === "aguardando_homologacao"
@@ -79,8 +81,16 @@ async function Content() {
             title: request.title,
             councilId: request.councilId,
             processId,
-            status,
-            items: request.items,
+            status: contracted === "all" && (status === "apto" || status === "bloqueado") ? "contratado" : status,
+            items: request.items.map((item) => ({
+              ...item,
+              status: item.quantity > 0 && item.receivedTotal >= item.quantity
+                ? "recebido"
+                : (status === "apto" || status === "bloqueado") &&
+                  (contracted === "all" || contracted?.has(item.materialId))
+                  ? "contratado"
+                  : status,
+            })),
           };
         }),
       { council: lookups.data.councilLabel, material: lookups.data.materialName },

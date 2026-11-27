@@ -1,3 +1,5 @@
+import type { AtaView } from "@/modules/atas/service";
+import type { Contract } from "@/modules/contracts/schemas";
 import { formatNumber } from "@/shared/lib/format";
 
 export interface HoldItemInput {
@@ -6,7 +8,31 @@ export interface HoldItemInput {
   councilId: string;
   processId: string;
   status: string;
-  items: readonly { materialId: string; quantity: number }[];
+  items: readonly { materialId: string; quantity: number; status?: string }[];
+}
+
+export function contractedMaterialsByProcess(contracts: readonly Contract[], atas: readonly AtaView[]) {
+  const cancelledAtas = new Set(atas.filter(({ ata }) => ata.status === "cancelada").map(({ ata }) => ata.id));
+  const materialByAtaItem = new Map(atas.flatMap(({ ata }) => ata.items.map((item) => [item.id, item.materialId] as const)));
+  const byProcess = new Map<string, Set<string> | "all">();
+  for (const contract of contracts) {
+    if (!contract.processId || (contract.ataId && cancelledAtas.has(contract.ataId))) continue;
+    const key = `${contract.councilId}:${contract.processId}`;
+    const existing = byProcess.get(key);
+    if (existing === "all") continue;
+    if (contract.ataItems.length === 0) {
+      byProcess.set(key, "all");
+      continue;
+    }
+    const materials = existing ?? new Set<string>();
+    for (const line of contract.ataItems) {
+      if (line.quantity <= 0) continue;
+      const material = materialByAtaItem.get(line.ataItemId);
+      if (material) materials.add(material);
+    }
+    byProcess.set(key, materials);
+  }
+  return byProcess;
 }
 
 export interface HoldRow extends Record<string, string | number | null> {
@@ -52,7 +78,7 @@ export function buildHoldRows(
         council: labels.council[request.councilId] ?? "—",
         quantity: item.quantity,
         quantityLabel: `${formatNumber(item.quantity)} un`,
-        status: request.status,
+        status: item.status ?? request.status,
         href: `/processos/${request.processId}`,
       });
     }

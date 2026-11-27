@@ -510,16 +510,16 @@
     "semantic_hash": ""
   },
   "src/app/(app)/estoque/hold-rows.test.ts": {
-    "mtime": 1795013830.9553382,
-    "seen": 1795707380.240767,
-    "ast_hash": "a7f35885b458eda9dc83b3ae51b60ab3",
-    "semantic_hash": "a7f35885b458eda9dc83b3ae51b60ab3"
+    "mtime": 1795790004.056769,
+    "seen": 1795790032.9968824,
+    "ast_hash": "4335dec9bc170362f8a14324a297825c",
+    "semantic_hash": ""
   },
   "src/app/(app)/estoque/hold-rows.ts": {
-    "mtime": 1795032617.3281538,
-    "seen": 1795707380.2407684,
-    "ast_hash": "d3375fed0c9dbe1fd5c70583ac6467b2",
-    "semantic_hash": "d3375fed0c9dbe1fd5c70583ac6467b2"
+    "mtime": 1795789968.9009047,
+    "seen": 1795790032.9968853,
+    "ast_hash": "a99902027382c86f4e7458dd794d7319",
+    "semantic_hash": ""
   },
   "src/app/(app)/estoque/materiais/new-material-form.tsx": {
     "mtime": 1793799737.52017,
@@ -576,9 +576,9 @@
     "semantic_hash": "d0e3e833599b5d3d104fddc751691690"
   },
   "src/app/(app)/estoque/page.tsx": {
-    "mtime": 1795789772.0220933,
-    "seen": 1795789782.537128,
-    "ast_hash": "7eadd29668ff2edaeda3694d8b3f7b0e",
+    "mtime": 1795789968.9009047,
+    "seen": 1795790032.9969122,
+    "ast_hash": "bb41aeecbc941e5e9c0d9f3e8ed72ab8",
     "semantic_hash": ""
   },
   "src/app/(app)/fornecedores/new-supplier-form.tsx": {
@@ -2838,10 +2838,10 @@
     "semantic_hash": ""
   },
   "src/shared/ui/status-presentation.ts": {
-    "mtime": 1795706385.260795,
-    "seen": 1795707380.241314,
-    "ast_hash": "12ea15a22d35104a3846acd550872754",
-    "semantic_hash": "12ea15a22d35104a3846acd550872754"
+    "mtime": 1795789968.9009047,
+    "seen": 1795790032.998232,
+    "ast_hash": "906ef5ac7d83b4419446220b217438da",
+    "semantic_hash": ""
   },
   "src/shared/ui/toast-store.ts": {
     "mtime": 1793799737.7229507,
