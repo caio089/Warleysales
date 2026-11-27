@@ -756,9 +756,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/process-actions.tsx": {
-    "mtime": 1795790414.360079,
-    "seen": 1795790538.29013,
-    "ast_hash": "cdd8249f148da906788acdebe30bf2b3",
+    "mtime": 1795790624.3867817,
+    "seen": 1795790693.617416,
+    "ast_hash": "83de5993b0bf41116a4670229102c96b",
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/process-header.test.tsx": {
@@ -792,9 +792,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/process-view.tsx": {
-    "mtime": 1795790414.3621757,
-    "seen": 1795790538.290138,
-    "ast_hash": "7d03f91e338730f5ba1641bc4f7f3cc5",
+    "mtime": 1795790664.1372526,
+    "seen": 1795790693.6174238,
+    "ast_hash": "ed252186d71990c189681400b365f1c2",
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/tabs/approvals-tab.tsx": {
@@ -864,9 +864,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/processos/page.tsx": {
-    "mtime": 1795790414.3654978,
-    "seen": 1795790538.29015,
-    "ast_hash": "7aa4c2459bea4373d82879d2198dd141",
+    "mtime": 1795790647.914758,
+    "seen": 1795790693.617437,
+    "ast_hash": "3f50eec41bb619cee685bcc52d123b81",
     "semantic_hash": ""
   },
   "src/app/(app)/processos/process-attachment-sheet.test.tsx": {
@@ -1788,9 +1788,9 @@
     "semantic_hash": ""
   },
   "src/modules/processes/actions.ts": {
-    "mtime": 1795790414.3999858,
-    "seen": 1795790538.290317,
-    "ast_hash": "2ba1374bb659797c23be1be15e7d78b7",
+    "mtime": 1795790606.002492,
+    "seen": 1795790693.617599,
+    "ast_hash": "f93abc7db41d5aa3743c31135367e58b",
     "semantic_hash": ""
   },
   "src/modules/processes/completion-refresher.ts": {
@@ -1842,8 +1842,8 @@
     "semantic_hash": ""
   },
   "src/modules/processes/domain/process-status.ts": {
-    "mtime": 1795790414.4014792,
-    "seen": 1795790538.290325,
+    "mtime": 1795790708.92449,
+    "seen": 1795790726.8036668,
     "ast_hash": "4fa745b0e9059e54d68099a531d63215",
     "semantic_hash": ""
   },
@@ -1908,8 +1908,8 @@
     "semantic_hash": ""
   },
   "src/modules/processes/service.test.ts": {
-    "mtime": 1795790414.4045453,
-    "seen": 1795790538.290336,
+    "mtime": 1795790708.945601,
+    "seen": 1795790726.803678,
     "ast_hash": "e059c43aef3d5a3746da2b57fca513f3",
     "semantic_hash": ""
   },
@@ -2496,15 +2496,15 @@
     "semantic_hash": ""
   },
   "src/shared/lib/authz/navigation.test.ts": {
-    "mtime": 1795790414.4214106,
-    "seen": 1795790538.2904372,
-    "ast_hash": "a4135d266ebd699078f7d35bf1433ce8",
+    "mtime": 1795790714.2656813,
+    "seen": 1795790726.803993,
+    "ast_hash": "25c327d251d2246c7944e70714630971",
     "semantic_hash": ""
   },
   "src/shared/lib/authz/navigation.ts": {
-    "mtime": 1795790414.421616,
-    "seen": 1795790538.290438,
-    "ast_hash": "1cb7048e78fce372737c45480d68ba49",
+    "mtime": 1795790606.0261488,
+    "seen": 1795790693.617717,
+    "ast_hash": "af9d44afdd8e04c9edbb51366f7a3d65",
     "semantic_hash": ""
   },
   "src/shared/lib/authz/policy.test.ts": {
@@ -3735,6 +3735,24 @@
     "mtime": 1795790488.9857247,
     "seen": 1795790538.2905412,
     "ast_hash": "739679f4eedb83206f4a312da3323dc2",
+    "semantic_hash": ""
+  },
+  "src/app/(app)/processos/[id]/archive-process-action.test.tsx": {
+    "mtime": 1795790708.9869273,
+    "seen": 1795790726.8032,
+    "ast_hash": "d7f97efd9d6697710bd0ec1b403ea218",
+    "semantic_hash": ""
+  },
+  "src/app/(app)/processos/[id]/archive-process-action.tsx": {
+    "mtime": 1795790708.9663079,
+    "seen": 1795790726.8032022,
+    "ast_hash": "5e53494d830d06a26982f79f76bc8b5e",
+    "semantic_hash": ""
+  },
+  "src/app/(app)/processos/arquivados/page.tsx": {
+    "mtime": 1795790647.9826155,
+    "seen": 1795790693.617434,
+    "ast_hash": "f7c421c9316a0ad1b900ba1709e15cac",
     "semantic_hash": ""
   },
   "package-lock.json": {

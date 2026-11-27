@@ -20,6 +20,7 @@ import { PlanDossierCard } from "@/app/(app)/solicitacoes/plan-dossier-card";
 import { planDossier } from "@/app/(app)/solicitacoes/request-facets";
 import type { TimelineEntry } from "@/shared/ui/activity-timeline";
 import { ProcessHeader } from "./process-header";
+import { ArchiveProcessAction } from "./archive-process-action";
 import { ProcessClassificationForm } from "./process-classification-form";
 import {
   ApprovalsTab,
@@ -206,8 +207,9 @@ export function ProcessView({
   const workUnlocked =
     approvalRequest == null ||
     ["aprovada", "em_atendimento", "parcialmente_atendida", "atendida"].includes(approvalRequest.status);
-  const canManageDocs = canManage && workUnlocked;
-  const canLinkInstruments = canManage && workUnlocked;
+  const canEditProcess = canManage && view.process.status !== "arquivado";
+  const canManageDocs = canEditProcess && workUnlocked;
+  const canLinkInstruments = canEditProcess && workUnlocked;
 
   const tabs: TabDefinition[] = [
     {
@@ -260,16 +262,18 @@ export function ProcessView({
         releaseStatusText={releaseStatusText}
       />
 
+      <ArchiveProcessAction processId={view.process.id} status={view.process.status} canArchive={canManage} />
+
       {!requestId && relatedRequests.length === 0 && (
         <section className="surface-card max-w-lg space-y-3 p-4" aria-label="Responsável e tipo do processo">
           <p className="text-sm">Responsável: {assignees.find((person) => person.value === view.process.responsibleId)?.label ?? (view.process.responsibleId || "Não atribuído")}</p>
           <p className="text-sm">Tipo: {view.process.processType || "Não classificado"}</p>
-          {canManage ? <ProcessClassificationForm processId={view.process.id} responsibleId={view.process.responsibleId ?? null} processType={view.process.processType ?? null} people={assignees} /> : null}
+          {canEditProcess ? <ProcessClassificationForm processId={view.process.id} responsibleId={view.process.responsibleId ?? null} processType={view.process.processType ?? null} people={assignees} /> : null}
         </section>
       )}
 
       <PlanDossierCard dossier={dossier} objectText={productName} />
-      {requestId && canManage ? <Link href={`/solicitacoes/${requestId}`} className="inline-flex rounded-md border px-4 py-2 text-sm font-medium">Corrigir solicitação vinculada</Link> : null}
+      {requestId && canEditProcess ? <Link href={`/solicitacoes/${requestId}`} className="inline-flex rounded-md border px-4 py-2 text-sm font-medium">Corrigir solicitação vinculada</Link> : null}
 
       {/* 2. Barra de Navegação por Abas */}
       <nav
@@ -366,7 +370,7 @@ export function ProcessView({
                 priceResearchItems={requestItems}
                 priceResearchLines={view.process.priceResearchLines ?? null}
                 publicSessionDate={view.process.publicSessionDate ?? null}
-                canEditPublicSessionDate={canManage}
+                canEditPublicSessionDate={canEditProcess}
                 validityStartDate={view.process.validityStartDate ?? null}
                 canEditValidityStart={canManageDocs && !view.process.snapshot && !["cancelado", "arquivado"].includes(view.process.status)}
                 contractingMode={view.process.contractingMode ?? null}
@@ -376,7 +380,7 @@ export function ProcessView({
                 validTypes={view.progress.validTypes}
                 documents={documents}
                 canManage={canManageDocs}
-                canUnlink={canUnlink && workUnlocked}
+                canUnlink={canUnlink && workUnlocked && canEditProcess}
               />
             </>
           )}
@@ -428,8 +432,8 @@ export function ProcessView({
             <GovernanceTab
               processId={view.process.id}
               status={view.process.status}
-              canChangeStatus={canManage}
-              canRegisterClosing={canRegisterClosing}
+              canChangeStatus={canEditProcess}
+              canRegisterClosing={canRegisterClosing && canEditProcess}
               closingReportRegistered={view.process.closingReportRegistered}
               documentalComplete={view.progress.isComplete}
             />

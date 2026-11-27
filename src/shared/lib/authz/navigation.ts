@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  Archive,
   BarChart3,
   Building2,
   Calendar,
@@ -64,6 +65,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Órgãos e empresas", href: "/conselhos", icon: Building2, allowedRoles: [], centralOnly: true, group: "outras" },
   { label: "Solicitações", href: "/solicitacoes", icon: ShoppingCart, allowedRoles: [...ALL_ROLES, "request_collaborator"], group: "processos" },
   { label: "Processos", href: "/processos", icon: FileText, allowedRoles: ALL_ROLES, group: "processos" },
+  { label: "Arquivados", href: "/processos/arquivados", icon: Archive, allowedRoles: ALL_ROLES, group: "processos" },
   { label: "Atas", href: "/atas", icon: ScrollText, allowedRoles: ALL_ROLES, group: "processos" },
   { label: "Contratos", href: "/contratos", icon: FileSignature, allowedRoles: ALL_ROLES, group: "processos" },
   { label: "Calendário", href: "/calendario", icon: Calendar, allowedRoles: ALL_ROLES, group: "agenda" },

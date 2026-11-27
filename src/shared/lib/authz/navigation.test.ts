@@ -66,7 +66,7 @@ describe("NAV_ITEMS — integridade de grupos", () => {
     const inicioLabels = NAV_ITEMS.filter((item) => item.group === "inicio").map((item) => item.label);
     expect(inicioLabels).toEqual(["Início"]);
     const processosLabels = NAV_ITEMS.filter((item) => item.group === "processos").map((item) => item.label);
-    expect(processosLabels).toEqual(["Solicitações", "Processos", "Atas", "Contratos"]);
+    expect(processosLabels).toEqual(["Solicitações", "Processos", "Arquivados", "Atas", "Contratos"]);
     const estoqueLabels = NAV_ITEMS.filter((item) => item.group === "estoque").map((item) => item.label);
     expect(estoqueLabels).toEqual(["Consultar estoque", "Entregas"]);
     const agendaLabels = NAV_ITEMS.filter((item) => item.group === "agenda").map((item) => item.label);
@@ -82,6 +82,7 @@ describe("NAV_ITEMS — baseline", () => {
     expect(NAV_ITEMS.map(({ href, allowedRoles, centralOnly }) => [href, allowedRoles, centralOnly ?? false])).toEqual([
       ["/dashboard", operationalRoles, false], ["/conselhos", [], true],
       ["/solicitacoes", [...operationalRoles, "request_collaborator"], false], ["/processos", operationalRoles, false],
+      ["/processos/arquivados", operationalRoles, false],
       ["/atas", operationalRoles, false], ["/contratos", operationalRoles, false],
       ["/calendario", operationalRoles, false], ["/fornecedores", operationalRoles, false],
       ["/reunioes", operationalRoles, false], ["/estoque", operationalRoles, false],
