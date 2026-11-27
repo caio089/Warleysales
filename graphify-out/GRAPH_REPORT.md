@@ -1,17 +1,17 @@
 # Graph Report - warleysales-atas-push  (2026-11-27)
 
 ## Corpus Check
-- 619 files · ~291,478 words
+- 619 files · ~291,528 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 7 file(s) not represented in the graph (top: (none) 3, .css 2, .example 1)
 
 ## Summary
-- 3709 nodes · 13112 edges · 179 communities (144 shown, 35 thin omitted)
+- 3709 nodes · 13110 edges · 179 communities (144 shown, 35 thin omitted)
 - Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 463 edges (avg confidence: 0.87)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `a2337d84`
+- Built from commit: `1475b74a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -190,16 +190,16 @@
 10. `unwrap()` - 80 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `Task 4: Refatoração da Barra de Atalhos Rápidos do Meu Painel (`ActionHub`)` --references--> `ActionHub()`  [INFERRED]
-  docs/superpowers/plans/2026-11-11-redesign-visao-geral-e-meu-painel.md → src/app/(app)/meu-conselho/action-hub.tsx
-- `6. Valores, estados e mensagens: salvaguardas` --references--> `buildCouncilActions()`  [INFERRED]
-  docs/proposta-redesign-funcional-inicio.md → src/app/(app)/meu-conselho/action-hub.tsx
-- `Reutilização em painéis por perfil` --references--> `buildCouncilActions()`  [INFERRED]
-  docs/ux-improvement-plan/03-arquitetura-proposta.md → src/app/(app)/meu-conselho/action-hub.tsx
-- `Task 4: Ajustar Alinhamento do Formulário em `FormalizationCard` e Criar Aba 2 (`ContractingTab`)` --references--> `FormalizationCard()`  [INFERRED]
-  docs/superpowers/plans/2026-11-11-process-page-redesign.md → src/app/(app)/processos/[id]/formalization-card.tsx
+- `Task 3: Orquestração na Criação de Solicitação (`createProcess`)` --references--> `ProcessService`  [INFERRED]
+  docs/superpowers/plans/2026-11-10-solicitacao-processo-anexagem.md → src/modules/processes/service.ts
+- `Task 2: Provisionamento Automático de Estoque Bloqueado pela Solicitação` --references--> `InventoryService`  [INFERRED]
+  docs/superpowers/plans/2026-11-10-onda1-estoque-formalizacao-economia.md → src/modules/inventory/service.ts
+- `Task 6: Segmentação de Estoque (Bloqueado, Pronto para Uso, Utilizado, % Liberado)` --references--> `InventoryService`  [INFERRED]
+  docs/superpowers/plans/2026-11-10-onda1-estoque-formalizacao-economia.md → src/modules/inventory/service.ts
 - `Task 5: Trilha de Auditoria Multidimensional (Filtros Avançados no Serviço e Adapters)` --references--> `AuditFilter`  [INFERRED]
   docs/superpowers/plans/2026-11-10-onda2-pedidos-justificativas-auditoria.md → src/modules/audit/schemas.ts
+- `Task 2: Redesign Executivo do Briefing de IA (`BriefingCard`)` --references--> `BriefingFacts`  [INFERRED]
+  docs/superpowers/plans/2026-11-11-redesign-visao-geral-e-meu-painel.md → src/modules/insights/briefing.ts
 
 ## Import Cycles
 - None detected.
@@ -790,17 +790,17 @@ Nodes (28): Contratos de serviço, Task 3: Serviço de Formalização e Veredito
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `vitest` connect `vitest` to `runAction`, `react`, `lucide-react`, `processes.test.ts`, `process-attachment-sheet.tsx`, `simple-table.tsx`, `db.ts`, `inventory/service.ts`, `ProcessFormalization`, `notifications/service.ts`, `purchases/service.ts`, `InMemoryAuditRepository`, `documentation-tab.tsx`, `package.json`, `purchases/service.test.ts`, `lucide-react`, `documents/service.ts`, `entry-sources.ts`, `guard.ts`, `toFortalezaDate`, `suppliers/schemas.ts`, `simple-table.tsx`, `request-template.ts`, `orders/actions.ts`, `relatorios/page.tsx`, `plan-calendar.ts`, `module-insight.ts`, `groq.ts`, `transfers/schemas.ts`, `movement-form.tsx`, `processes.ts`, `contracts/actions.ts`, `hold-rows.ts`, `documents/schemas.ts`, `analysis.ts`, `createSessionClient`, `media-actions.ts`, `Fluxos atuais e ideais`, `navigation.ts`, `callback-server.mjs`, `new-contract-form.tsx`, `file-upload.tsx`, `Input`, `ok`, `whatsapp.ts`, `atas/extract-pdf/route.ts`, `time.ts`, `formalization-queue.tsx`, `formatCurrency`, `@supabase/supabase-js`, `cnpj.ts`, `order.ts`, `atas/service.ts`, `orders/actions.ts`, `process-actions.tsx`, `react-dom`?**
-  _High betweenness centrality (0.083) - this node is a cross-community bridge._
+- **Why does `ok()` connect `ok` to `runAction`, `lucide-react`, `simple-table.tsx`, `result.ts`, `transfers/service.ts`, `inventory/service.ts`, `MembershipRepository`, `ProcessFormalization`, `purchases/service.ts`, `fail`, `InMemoryAuditRepository`, `vitest`, `documentation-tab.tsx`, `purchases/service.test.ts`, `Contract`, `Result`, `AdministrativeProcess`, `documents/service.ts`, `service-support.ts`, `InventoryRepository`, `guard.ts`, `entry-sources.ts`, `toFortalezaDate`, `SupabaseProcessRepository`, `reports/service.ts`, `process-view.tsx`, `relatorios/page.tsx`, `module-insight.ts`, `groq.ts`, `transfers/schemas.ts`, `Button`, `contracts/actions.ts`, `inventory.ts`, `policy.ts`, `container.ts`, `media-actions.ts`, `Fluxos atuais e ideais`, `identity.ts`, `processes.ts`, `meetings/service.ts`, `db.ts`, `Council`, `time.ts`, `@supabase/supabase-js`, `order.ts`, `atas/service.ts`, `processes/service.ts`?**
+  _High betweenness centrality (0.112) - this node is a cross-community bridge._
 - **What connects `PATH` to the rest of the system?**
   _1 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `runAction` be split into smaller, more focused modules?**
   _Cohesion score 0.08732394366197183 - nodes in this community are weakly interconnected._
-- **Why does `ok()` connect `ok` to `runAction`, `lucide-react`, `simple-table.tsx`, `result.ts`, `transfers/service.ts`, `inventory/service.ts`, `MembershipRepository`, `ProcessFormalization`, `purchases/service.ts`, `fail`, `InMemoryAuditRepository`, `vitest`, `documentation-tab.tsx`, `purchases/service.test.ts`, `Contract`, `Result`, `AdministrativeProcess`, `documents/service.ts`, `service-support.ts`, `InventoryRepository`, `guard.ts`, `entry-sources.ts`, `toFortalezaDate`, `SupabaseProcessRepository`, `reports/service.ts`, `process-view.tsx`, `relatorios/page.tsx`, `module-insight.ts`, `groq.ts`, `transfers/schemas.ts`, `Button`, `contracts/actions.ts`, `inventory.ts`, `policy.ts`, `container.ts`, `media-actions.ts`, `Fluxos atuais e ideais`, `identity.ts`, `processes.ts`, `meetings/service.ts`, `db.ts`, `Council`, `time.ts`, `@supabase/supabase-js`, `order.ts`, `atas/service.ts`, `processes/service.ts`?**
-  _High betweenness centrality (0.078) - this node is a cross-community bridge._
+- **Why does `vitest` connect `vitest` to `runAction`, `react`, `lucide-react`, `processes.test.ts`, `process-attachment-sheet.tsx`, `simple-table.tsx`, `db.ts`, `inventory/service.ts`, `ProcessFormalization`, `notifications/service.ts`, `purchases/service.ts`, `InMemoryAuditRepository`, `documentation-tab.tsx`, `package.json`, `purchases/service.test.ts`, `lucide-react`, `documents/service.ts`, `entry-sources.ts`, `guard.ts`, `toFortalezaDate`, `suppliers/schemas.ts`, `simple-table.tsx`, `request-template.ts`, `orders/actions.ts`, `relatorios/page.tsx`, `plan-calendar.ts`, `module-insight.ts`, `groq.ts`, `transfers/schemas.ts`, `movement-form.tsx`, `processes.ts`, `contracts/actions.ts`, `hold-rows.ts`, `documents/schemas.ts`, `analysis.ts`, `createSessionClient`, `media-actions.ts`, `Fluxos atuais e ideais`, `navigation.ts`, `callback-server.mjs`, `new-contract-form.tsx`, `file-upload.tsx`, `Input`, `ok`, `whatsapp.ts`, `atas/extract-pdf/route.ts`, `time.ts`, `formalization-queue.tsx`, `formatCurrency`, `@supabase/supabase-js`, `cnpj.ts`, `order.ts`, `atas/service.ts`, `orders/actions.ts`, `process-actions.tsx`, `react-dom`?**
+  _High betweenness centrality (0.064) - this node is a cross-community bridge._
 - **Should `lucide-react` be split into smaller, more focused modules?**
   _Cohesion score 0.07219662058371736 - nodes in this community are weakly interconnected._
-- **Why does `next` connect `next` to `react`, `runAction`, `lucide-react`, `process-attachment-sheet.tsx`, `simple-table.tsx`, `result.ts`, `documentation-tab.tsx`, `package.json`, `identity/actions.ts`, `FormField`, `Attachment`, `simple-table.tsx`, `flow-guide.tsx`, `relatorios/page.tsx`, `groq.ts`, `movement-form.tsx`, `Button`, `policy.ts`, `documents/schemas.ts`, `analysis.ts`, `createSessionClient`, `media-actions.ts`, `Fluxos atuais e ideais`, `navigation.ts`, `toast-store.ts`, `callback-server.mjs`, `new-contract-form.tsx`, `file-upload.tsx`, `ActionForm`, `atas/extract-pdf/route.ts`, `time.ts`, `formalization-queue.tsx`, `formatCurrency`, `orders/actions.ts`?**
-  _High betweenness centrality (0.058) - this node is a cross-community bridge._
+- **Why does `fail()` connect `ok` to `runAction`, `result.ts`, `transfers/service.ts`, `inventory/service.ts`, `MembershipRepository`, `ProcessFormalization`, `purchases/service.ts`, `fail`, `InMemoryAuditRepository`, `vitest`, `documentation-tab.tsx`, `purchases/service.test.ts`, `Contract`, `Result`, `AdministrativeProcess`, `documents/service.ts`, `identity/actions.ts`, `InventoryRepository`, `guard.ts`, `entry-sources.ts`, `toFortalezaDate`, `SupabaseProcessRepository`, `service-support.ts`, `reports/service.ts`, `process-view.tsx`, `relatorios/page.tsx`, `groq.ts`, `transfers/schemas.ts`, `Button`, `contracts/actions.ts`, `inventory.ts`, `container.ts`, `policy.ts`, `media-actions.ts`, `Fluxos atuais e ideais`, `identity.ts`, `processes.ts`, `meetings/service.ts`, `db.ts`, `Council`, `time.ts`, `@supabase/supabase-js`, `order.ts`, `atas/service.ts`, `processes/service.ts`?**
+  _High betweenness centrality (0.050) - this node is a cross-community bridge._
 - **Should `process-attachment-sheet.tsx` be split into smaller, more focused modules?**
   _Cohesion score 0.09988385598141696 - nodes in this community are weakly interconnected._

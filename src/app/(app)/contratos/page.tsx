@@ -24,7 +24,7 @@ async function Content() {
     if (!lookups.ok) return lookups;
     if (!processes.ok) return processes;
     const processLabel = Object.fromEntries(processes.data.map((view) => [view.process.id, `${view.process.number} — ${view.process.title}`]));
-    return ok({ contracts: contracts.data, lookups: lookups.data, processLabel, canCreate: canInAnyCouncil(ctx.actor, "contract.manage") });
+    return ok({ contracts: contracts.data, lookups: lookups.data, processLabel, canCreate: canInAnyCouncil(ctx.actor, "contract.create") });
   });
   return (
     <Screen result={result}>

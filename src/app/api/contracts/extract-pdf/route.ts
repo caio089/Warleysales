@@ -10,7 +10,7 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024;
 export async function POST(request: Request) {
   const session = await getSession();
   if (session.status !== "authenticated") return Response.json({ error: "Entre novamente para ler o PDF." }, { status: 401 });
-  if (!canInAnyCouncil(session.actor, "contract.manage")) return Response.json({ error: "Sem permissão para cadastrar contratos." }, { status: 403 });
+  if (!canInAnyCouncil(session.actor, "contract.create")) return Response.json({ error: "Sem permissão para cadastrar contratos." }, { status: 403 });
   if (!process.env.GROQ_API_KEY?.trim()) return Response.json({ error: "Leitura por IA indisponível: configure GROQ_API_KEY." }, { status: 503 });
   const declaredSize = Number(request.headers.get("content-length") ?? 0);
   if (declaredSize > MAX_FILE_BYTES + 100_000) return Response.json({ error: "O PDF deve ter até 10 MB." }, { status: 413 });

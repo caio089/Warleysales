@@ -15,7 +15,7 @@ import { PageHeader, SectionLabel } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { SimpleTable } from "@/shared/ui/simple-table";
-import { buildHoldRows, contractedMaterialsByProcess } from "./hold-rows";
+import { buildHoldRows } from "./hold-rows";
 import { buildStockEntrySources } from "./entry-sources";
 import { MovementForm } from "./movimentacoes/movement-form";
 import { MinimumForm } from "./minimum-form";
@@ -60,7 +60,25 @@ async function Content() {
         }
       }
     }
-    const contractedMaterials = contractedMaterialsByProcess(contracts.data.map(({ contract }) => contract), atas.data);
+    const entrySources = buildStockEntrySources({
+      requests: requests.data,
+      processes: processes.data,
+      atas: atas.data,
+      materialLabel: lookups.data.materialLabel,
+      contracts: contracts.data.map((view) => ({
+        id: view.contract.id,
+        number: view.contract.number,
+        processId: view.contract.processId ?? null,
+        ataId: view.contract.ataId ?? null,
+        ataItems: (view.contract.ataItems ?? []).map((item) => ({
+          ataItemId: item.ataItemId,
+          quantity: item.quantity,
+        })),
+      })),
+    });
+    const receivableMaterials = new Set(entrySources.flatMap((source) =>
+      source.items.map((item) => `${source.councilId}:${source.processId}:${item.materialId}`),
+    ));
     const holds = buildHoldRows(
       requests.data
         .filter((request) => request.processId)
@@ -68,7 +86,9 @@ async function Content() {
           const processId = request.processId!;
           const view = processById.get(processId);
           const formalization = formalizationByProcess.get(processId);
-          const contracted = contractedMaterials.get(`${request.councilId}:${processId}`);
+          const allItemsReceivable = request.items.length > 0 && request.items.every((item) =>
+            receivableMaterials.has(`${request.councilId}:${processId}:${item.materialId}`),
+          );
           const status = formalization?.status === "homologado"
             ? "disponivel"
             : formalization?.status === "aguardando_homologacao"
@@ -81,13 +101,13 @@ async function Content() {
             title: request.title,
             councilId: request.councilId,
             processId,
-            status: contracted === "all" && (status === "apto" || status === "bloqueado") ? "contratado" : status,
+            status: allItemsReceivable && (status === "apto" || status === "bloqueado") ? "contratado" : status,
             items: request.items.map((item) => ({
               ...item,
               status: item.quantity > 0 && item.receivedTotal >= item.quantity
                 ? "recebido"
                 : (status === "apto" || status === "bloqueado") &&
-                  (contracted === "all" || contracted?.has(item.materialId))
+                  receivableMaterials.has(`${request.councilId}:${processId}:${item.materialId}`)
                   ? "contratado"
                   : status,
             })),
@@ -101,22 +121,7 @@ async function Content() {
       summary,
       holds,
       processByMaterial,
-      entrySources: buildStockEntrySources({
-        requests: requests.data,
-        processes: processes.data,
-        atas: atas.data,
-        materialLabel: lookups.data.materialLabel,
-        contracts: contracts.data.map((view) => ({
-          id: view.contract.id,
-          number: view.contract.number,
-          processId: view.contract.processId ?? null,
-          ataId: view.contract.ataId ?? null,
-          ataItems: (view.contract.ataItems ?? []).map((item) => ({
-            ataItemId: item.ataItemId,
-            quantity: item.quantity,
-          })),
-        })),
-      }),
+      entrySources,
       canMove: canInAnyCouncil(ctx.actor, "stock.move"),
       canAdjust: canInAnyCouncil(ctx.actor, "stock.adjust"),
     });
@@ -213,7 +218,7 @@ async function Content() {
               <div>
                 <SectionLabel>Solicitações no estoque</SectionLabel>
                 <p className="text-xs text-muted-foreground">
-                  Cada produto da demanda aparece em uma linha. Clique para abrir o processo: documentos, atas, contratos e a liberação do estoque.
+                  Cada produto da demanda aparece em uma linha. O contrato libera a entrada do item; o saldo físico fica disponível após o recebimento. Clique para abrir o processo.
                 </p>
               </div>
               <SimpleTable

@@ -48,7 +48,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
     const supplierName = supplierRows.find((row) => row.id === supplierId)?.name ?? null;
     const process = processes.data.find((item) => item.process.id === processId)?.process;
     const contractDraft = process &&
-      can(actor, "contract.manage", councilId) && view.data.ata.status === "vigente" && view.data.validity === "vigente"
+      can(actor, "contract.create", councilId) && view.data.ata.status === "vigente" && view.data.validity === "vigente"
       ? {
           councilId, councilLabel: lookups.data.councilLabel[councilId] ?? "Órgão",
           processId: process.id, processLabel: `${process.number} — ${process.title}`, processNumber: process.number,

@@ -52,10 +52,14 @@ describe("ContractService", () => {
     expect(view.ok && view.data.terms.endDate).toBe("2027-06-30");
     expect(view.ok && view.data.contract.amendments[0]!.previous.endDate).toBe("2026-12-31");
   });
-  it("rejeita datas incoerentes, operador e conselho alheio", async () => {
+  it("permite criar ao operador, mas restringe aditivos e conselho alheio", async () => {
     const { service } = setup();
     expect((await service.create(managerOf(COUNCIL_A), { ...input, endDate: "2025-01-01" })).ok).toBe(false);
-    expect((await service.create(operatorOf(COUNCIL_A), input)).ok).toBe(false);
+    const operatorContract = await service.create(operatorOf(COUNCIL_A), input);
+    expect(operatorContract.ok).toBe(true);
+    if (!operatorContract.ok) throw new Error();
+    expect((await service.addAmendment(operatorOf(COUNCIL_A), { contractId: operatorContract.data.id, reason: "x1x", endDate: "2027-01-01", signedAt: "2026-07-02" })).ok).toBe(false);
+    expect((await service.close(operatorOf(COUNCIL_A), { contractId: operatorContract.data.id })).ok).toBe(false);
     const created = await service.create(managerOf(COUNCIL_A), input);
     if (!created.ok) throw new Error();
     expect((await service.get(managerOf(COUNCIL_B), created.data.id)).ok).toBe(false);

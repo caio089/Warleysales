@@ -96,7 +96,7 @@ export const COMPLETION_STATUS: Dictionary = {
 export const STOCK_HOLD_STATUS: Dictionary = {
   bloqueado: { label: "Bloqueado", tone: "warning" },
   apto: { label: "Bloqueado · pronto para contratar", tone: "info" },
-  contratado: { label: "Contrato registrado · estoque bloqueado", tone: "info" },
+  contratado: { label: "Contrato registrado · entrada liberada", tone: "success" },
   recebido: { label: "Recebido", tone: "success" },
   aguardando_homologacao: { label: "Bloqueado · aguardando liberação", tone: "warning" },
   disponivel: { label: "Disponível", tone: "success" },

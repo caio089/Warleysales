@@ -61,7 +61,7 @@ export class ContractService {
     const parsed = parseInput(createContractSchema, input);
     if (!parsed.ok) return parsed;
     const d = parsed.data;
-    const allowed = await guard(this.audit, actor, "contract.manage", d.councilId, "contract");
+    const allowed = await guard(this.audit, actor, "contract.create", d.councilId, "contract");
     if (!allowed.ok) return allowed;
     if (diffInDays(d.startDate, d.endDate) < 0) {
       return fail("VALIDATION", "A data final não pode ser anterior ao início.", { endDate: ["Data final anterior ao início."] });

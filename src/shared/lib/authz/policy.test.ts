@@ -26,6 +26,7 @@ const roleMatrix: readonly [PermissionAction, boolean, boolean, boolean, boolean
   ["material.manage", true, false, false, true],
   ["supplier.manage", true, false, false, true],
   ["ata.manage", true, false, false, true],
+  ["contract.create", true, true, false, true],
   ["contract.manage", true, false, false, true],
   ["meeting.manage", true, true, false, true],
   ["report.view", true, false, true, true],

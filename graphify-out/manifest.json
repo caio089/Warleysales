@@ -246,9 +246,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/atas/[id]/page.tsx": {
-    "mtime": 1795792325.93341,
-    "seen": 1795792378.158707,
-    "ast_hash": "d91b34c981f2d5e2532ce92e299430ff",
+    "mtime": 1795792758.3868294,
+    "seen": 1795792784.6163042,
+    "ast_hash": "e277884ca9740b08df0d18b44618415d",
     "semantic_hash": ""
   },
   "src/app/(app)/atas/nova/ata-materials-values.test.tsx": {
@@ -402,9 +402,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/contratos/page.tsx": {
-    "mtime": 1795790414.3466716,
-    "seen": 1795792378.158734,
-    "ast_hash": "1020f965b736152aeb8e928b01203f37",
+    "mtime": 1795792758.407866,
+    "seen": 1795792784.6163368,
+    "ast_hash": "0c38a4fc95db979c2e8badb1f1542201",
     "semantic_hash": ""
   },
   "src/app/(app)/dashboard/approval-queue.tsx": {
@@ -576,9 +576,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/estoque/page.tsx": {
-    "mtime": 1795790414.3529491,
-    "seen": 1795792378.1587589,
-    "ast_hash": "cb02cc7b72dd6faa1f9e87e730d7ff7b",
+    "mtime": 1795792830.2040718,
+    "seen": 1795792847.7811258,
+    "ast_hash": "16e792a3d572d5dac691afa947b1546b",
     "semantic_hash": ""
   },
   "src/app/(app)/fornecedores/new-supplier-form.tsx": {
@@ -1056,9 +1056,9 @@
     "semantic_hash": ""
   },
   "src/app/api/contracts/extract-pdf/route.ts": {
-    "mtime": 1795790414.372499,
-    "seen": 1795792378.158834,
-    "ast_hash": "147ae52a4796304b3983521a3dcadb7f",
+    "mtime": 1795792758.3640401,
+    "seen": 1795792784.616457,
+    "ast_hash": "9595b3b4cb8c840e26210beee2ddd1a5",
     "semantic_hash": ""
   },
   "src/app/api/cron/alertas/route.ts": {
@@ -1296,9 +1296,9 @@
     "semantic_hash": ""
   },
   "src/modules/contracts/actions.ts": {
-    "mtime": 1795792289.2978811,
-    "seen": 1795792378.158871,
-    "ast_hash": "9ae0869fd4a9fdb59d9bcb7729e97d2d",
+    "mtime": 1795792758.3387477,
+    "seen": 1795792784.616503,
+    "ast_hash": "b2818c5ba03e8ccb27f01004de060925",
     "semantic_hash": ""
   },
   "src/modules/contracts/domain/contracts.test.ts": {
@@ -1344,15 +1344,15 @@
     "semantic_hash": ""
   },
   "src/modules/contracts/service.test.ts": {
-    "mtime": 1795790414.3842344,
-    "seen": 1795792378.158879,
-    "ast_hash": "6ec73bc437d9fff3ba671acd5ba0aeff",
+    "mtime": 1795792792.969906,
+    "seen": 1795792806.343041,
+    "ast_hash": "0532fbb0788520a7524cd93acc033460",
     "semantic_hash": ""
   },
   "src/modules/contracts/service.ts": {
-    "mtime": 1795790420.469437,
-    "seen": 1795792378.15888,
-    "ast_hash": "39aca5f5a6bdf73b752fe2c40269b616",
+    "mtime": 1795792758.3121111,
+    "seen": 1795792784.616514,
+    "ast_hash": "68d82c065393cd6fc330381416462525",
     "semantic_hash": ""
   },
   "src/modules/documents/actions.ts": {
@@ -2508,15 +2508,15 @@
     "semantic_hash": ""
   },
   "src/shared/lib/authz/policy.test.ts": {
-    "mtime": 1795790414.421706,
-    "seen": 1795792378.159039,
-    "ast_hash": "6ab67ebcabff0aafecb9818f6dbe5525",
+    "mtime": 1795792758.2776701,
+    "seen": 1795792784.6167161,
+    "ast_hash": "8cf592071c883b5e43975b029f84274e",
     "semantic_hash": ""
   },
   "src/shared/lib/authz/policy.ts": {
-    "mtime": 1795790414.4219613,
-    "seen": 1795792378.159039,
-    "ast_hash": "985a1a67e785bca8f1d9fd4c23a91744",
+    "mtime": 1795792758.24931,
+    "seen": 1795792784.6167161,
+    "ast_hash": "fe771a8058240388161494f7fc212413",
     "semantic_hash": ""
   },
   "src/shared/lib/browser-upload.ts": {
@@ -2838,9 +2838,9 @@
     "semantic_hash": ""
   },
   "src/shared/ui/status-presentation.ts": {
-    "mtime": 1795790414.4352384,
-    "seen": 1795792378.159083,
-    "ast_hash": "f4f61829cd80779ec3e707bfcf3f9351",
+    "mtime": 1795792523.2784703,
+    "seen": 1795792784.61677,
+    "ast_hash": "5b7c291d05f6d60e97b6ed560888e112",
     "semantic_hash": ""
   },
   "src/shared/ui/toast-store.ts": {

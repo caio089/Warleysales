@@ -58,7 +58,7 @@ export async function createContractFormAction(_previous: ActionState, formData:
   const result = await runAction(async ({ services, actor }) => {
     const parsed = createContractSchema.safeParse(input);
     if (!parsed.success) return { ok: false as const, code: "VALIDATION" as const, message: "Confira os campos do contrato." };
-    if (!can(actor, "contract.manage", parsed.data.councilId)) return { ok: false as const, code: "FORBIDDEN" as const, message: "Sem permissão para este órgão." };
+    if (!can(actor, "contract.create", parsed.data.councilId)) return { ok: false as const, code: "FORBIDDEN" as const, message: "Sem permissão para este órgão." };
     if (diffInDays(parsed.data.startDate, parsed.data.endDate) < 0) return { ok: false as const, code: "VALIDATION" as const, message: "A data final não pode ser anterior ao início." };
     if (parsed.data.processId) {
       const process = await services.processes.get(actor, parsed.data.processId);

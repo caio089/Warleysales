@@ -20,6 +20,7 @@ export type PermissionAction =
   | "material.manage"
   | "supplier.manage"
   | "ata.manage"
+  | "contract.create"
   | "contract.manage"
   | "meeting.manage"
   | "report.view"
@@ -66,6 +67,7 @@ const ROLES_BY_ACTION: Record<Exclude<PermissionAction, "data.delete_manual">, R
   "material.manage": MANAGER,
   "supplier.manage": MANAGER,
   "ata.manage": MANAGER,
+  "contract.create": MANAGER_OPERATOR,
   "contract.manage": MANAGER,
   "meeting.manage": MANAGER_OPERATOR,
   "report.view": [...MANAGER, "viewer"],
