@@ -85,6 +85,9 @@ export class SupabaseAtaRepository implements AtaRepository {
     const response = (ata.processId
       ? await this.db.rpc("register_process_ata", { p: toPayload(ata), p_justification: replacementJustification ?? null })
       : await this.db.rpc("save_ata", { p: toPayload(ata) })) as DbResponse<null>;
+    if (ata.processId && (response.error?.code === "PGRST202" || response.error?.code === "42883")) {
+      return fail("UNAVAILABLE", "O banco ainda precisa da migração de cadastro e substituição de atas. Nenhuma ata foi alterada.");
+    }
     if (response.error?.code === "P0001" && response.error.message === "ata_replacement_justification_required") {
       return fail("VALIDATION", "Informe a justificativa para cadastrar outra ata neste processo.", {
         replacementJustification: ["A justificativa é obrigatória."],
@@ -95,7 +98,7 @@ export class SupabaseAtaRepository implements AtaRepository {
         number: ["Número já cadastrado."],
       });
     }
-    unwrap("rpc.save_ata", response);
+    unwrap(ata.processId ? "rpc.register_process_ata" : "rpc.save_ata", response);
     return ok(ata);
   }
 

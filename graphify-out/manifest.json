@@ -2346,9 +2346,9 @@
     "semantic_hash": "480e5e828dc4e7c3dcb684286b75b433"
   },
   "src/server/supabase/adapters/atas.ts": {
-    "mtime": 1795789610.3335514,
-    "seen": 1795789740.992915,
-    "ast_hash": "505c67f66fcb1bc75a13836927961783",
+    "mtime": 1795790261.3728123,
+    "seen": 1795790323.6139987,
+    "ast_hash": "4caf4099777eb7e21021bde647dcec65",
     "semantic_hash": ""
   },
   "src/server/supabase/adapters/audit.ts": {
@@ -2886,9 +2886,9 @@
     "semantic_hash": "15f8535c07ffa727a7e80cf4c5296f42"
   },
   "supabase/apply_all.sql": {
-    "mtime": 1795789610.597947,
-    "seen": 1795789740.993118,
-    "ast_hash": "dfee03a14e245dd8bc0776a1afd4b196",
+    "mtime": 1795790261.4856727,
+    "seen": 1795790323.6146922,
+    "ast_hash": "766cfcbe89110ef80e12ce60b26d69b5",
     "semantic_hash": ""
   },
   "supabase/migrations/20261102000001_identity.sql": {
@@ -3903,6 +3903,12 @@
     "mtime": 1795789772.0180955,
     "seen": 1795789782.5371099,
     "ast_hash": "3c7649cbabc4bc63511d3fe47b41ebaa",
+    "semantic_hash": ""
+  },
+  "supabase/migrations/20261127000004_reconcile_replaced_atas.sql": {
+    "mtime": 1795790261.2837443,
+    "seen": 1795790323.6149266,
+    "ast_hash": "befacb3456edfe040f9b066770e57ad6",
     "semantic_hash": ""
   },
   "package-lock.json": {
