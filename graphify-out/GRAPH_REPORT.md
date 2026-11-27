@@ -1,7 +1,7 @@
 # Graph Report - Warleysales  (2026-11-27)
 
 ## Corpus Check
-- 622 files · ~287,163 words
+- 622 files · ~287,138 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: (none) 2, .css 2, .example 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `335716f4`
+- Built from commit: `7a06ee92`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -784,16 +784,16 @@ Nodes (12): credentialsSchema, emailSchema, homeForCurrentUser(), newPasswordSch
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `ok()` connect `ok` to `Actor`, `process-view.tsx`, `vitest`, `adapters/purchases.ts`, `ok`, `purchases/service.ts`, `PriceRegistrationAta`, `notifications/service.ts`, `react`, `documentation-tab.tsx`, `purchases/service.test.ts`, `container.ts`, `runAction`, `processes/service.ts`, `identity/service.ts`, `meetings/service.ts`, `next`, `MaterialOrder`, `terms.ts`, `groq.ts`, `toFortalezaDate`, `AuditEntry`, `movement-form.tsx`, `formalization-card.tsx`, `SupabaseProcessRepository`, `processes.ts`, `identity.ts`, `atas.ts`, `Global Constraints`, `transfer.ts`, `toFortalezaDate`, `ref_server_only`, `reunioes/page.tsx`, `next`, `fail`, `agenda-board.tsx`, `inventory.ts`, `entry-sources.ts`, `atas/service.ts`, `relatorios/page.tsx`, `ok`, `formalizations/service.ts`, `media-actions.ts`, `repositories.ts`?**
-  _High betweenness centrality (0.095) - this node is a cross-community bridge._
+  _High betweenness centrality (0.078) - this node is a cross-community bridge._
 - **What connects `PATH` to the rest of the system?**
   _1 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `process-view.tsx` be split into smaller, more focused modules?**
   _Cohesion score 0.04443614637789395 - nodes in this community are weakly interconnected._
 - **Why does `vitest` connect `vitest` to `process-view.tsx`, `pdf.ts`, `navigation.ts`, `parseCurrencyInput`, `ok`, `formalization-card.tsx`, `notifications/service.ts`, `react`, `simple-table.tsx`, `documentation-tab.tsx`, `plan-calendar.ts`, `purchases/service.test.ts`, `new-contract-form.tsx`, `container.ts`, `processes/service.ts`, `utils.ts`, `identity/service.ts`, `package.json`, `processes/schemas.ts`, `lucide-react`, `Button`, `MaterialOrder`, `terms.ts`, `groq.ts`, `toFortalezaDate`, `extract-request/route.ts`, `provision-action.test.ts`, `formalization-card.tsx`, `atas/extract-pdf/route.ts`, `request-template.ts`, `handler.ts`, `createSessionClient`, `whatsapp.ts`, `ok`, `process-history.ts`, `transfer.ts`, `toFortalezaDate`, `callback-server.mjs`, `processes/actions.ts`, `analysis.ts`, `agenda-board.tsx`, `entry-sources.ts`, `cnpj.ts`, `atas/service.ts`, `order-queue.tsx`, `relatorios/page.tsx`, `formalizations/service.ts`, `media-actions.ts`, `Input`?**
-  _High betweenness centrality (0.076) - this node is a cross-community bridge._
+  _High betweenness centrality (0.072) - this node is a cross-community bridge._
 - **Should `navigation.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.10796221322537113 - nodes in this community are weakly interconnected._
 - **Why does `next` connect `next` to `process-view.tsx`, `navigation.ts`, `react`, `simple-table.tsx`, `documentation-tab.tsx`, `package.json`, `new-contract-form.tsx`, `runAction`, `utils.ts`, `package.json`, `next`, `processes/schemas.ts`, `lucide-react`, `Button`, `groq.ts`, `movement-form.tsx`, `formalization-card.tsx`, `atas/extract-pdf/route.ts`, `handler.ts`, `createSessionClient`, `toast-store.ts`, `toFortalezaDate`, `ref_server_only`, `callback-server.mjs`, `reunioes/page.tsx`, `processes/actions.ts`, `ActionForm`, `agenda-board.tsx`, `order-queue.tsx`, `relatorios/page.tsx`, `media-actions.ts`, `Input`?**
-  _High betweenness centrality (0.058) - this node is a cross-community bridge._
+  _High betweenness centrality (0.054) - this node is a cross-community bridge._
 - **Should `vitest` be split into smaller, more focused modules?**
   _Cohesion score 0.09107737874861163 - nodes in this community are weakly interconnected._
