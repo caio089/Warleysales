@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { createAtaFormAction } from "@/modules/atas/actions";
 import type { ExtractedAta } from "@/modules/atas/pdf-extraction";
 import { ActionForm } from "@/shared/ui/forms/action-form";
-import { CurrencyField, SelectField, TextField } from "@/shared/ui/forms/fields";
+import { CurrencyField, SelectField, TextAreaField, TextField } from "@/shared/ui/forms/fields";
 import { AtaMaterialsValues } from "./ata-materials-values";
 import { AtaValidityField } from "./ata-validity-field";
 import { matchPdfItems } from "./match-pdf-items";
@@ -51,6 +51,7 @@ export function NewAtaForm({
     validityStartDate?: string | null;
     /** Números já usados no órgão/processo — evita colidir com a unique (council, number). */
     existingAtaNumbers?: string[];
+    requireReplacementJustification?: boolean;
   };
 }) {
   const initial = processes.find((process) => process.value === defaultProcessId);
@@ -170,7 +171,7 @@ export function NewAtaForm({
         <ActionForm
           key={`ata-form-${suggestedNumber}-${pdfVersion}`}
           action={createAtaFormAction}
-          submitLabel="Registrar ata"
+          submitLabel={lockedProcess.requireReplacementJustification ? "Registrar nova ata" : "Registrar ata"}
           hiddenFields={{
             councilId: lockedProcess.councilId,
             processId: lockedProcess.processId,
@@ -188,6 +189,10 @@ export function NewAtaForm({
         >
           {(e) => (
             <div className="space-y-4">
+              {lockedProcess.requireReplacementJustification && (
+                <TextAreaField name="replacementJustification" label="Justificativa da troca de ata" required
+                  hint="Informe o motivo da criação de outra ata neste processo." errors={e.replacementJustification} />
+              )}
               <TextField
                 name="number"
                 label="Número da ata"

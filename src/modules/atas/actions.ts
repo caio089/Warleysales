@@ -115,6 +115,7 @@ export async function createAtaFormAction(_previous: ActionState, formData: Form
       councilId: formData.get("councilId"),
       number,
       startDate: formData.get("startDate"),
+      replacementJustification: String(formData.get("replacementJustification") ?? "").trim() || undefined,
       processId,
       supplierId,
       items,

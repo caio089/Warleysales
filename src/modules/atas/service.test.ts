@@ -23,6 +23,24 @@ async function activeAta(quantity = 100) {
 beforeEach(() => { ctx = setup(); });
 
 describe("AtaService — saldo (R9)", () => {
+  it("exige e audita a justificativa da nova ata para o mesmo processo", async () => {
+    const processId = "11111111-1111-4111-8111-111111111111";
+    const { runtime, repository } = ctx;
+    const audit = new InMemoryAuditRepository(runtime.now);
+    const service = new AtaService(repository, new AuditService(audit), runtime, {
+      findById: async () => ({ id: processId, councilId: COUNCIL_A }),
+    } as unknown as import("@/modules/processes/repository").ProcessRepository);
+    const input = { processId, councilId: COUNCIL_A, number: "ARP-1", startDate: "2026-11-01",
+      items: [{ description: "Papel", registeredQuantity: 1, unitPrice: 1 }] };
+    const first = await service.create(manager(), input);
+    if (!first.ok) throw new Error(first.message);
+    expect(await service.create(manager(), { ...input, number: "ARP-2" })).toMatchObject({ code: "VALIDATION" });
+    const replacementJustification = "A primeira ata contém um erro no valor.";
+    const second = await service.create(manager(), { ...input, number: "ARP-2", replacementJustification });
+    expect(second).toMatchObject({ ok: true, data: { status: "vigente" } });
+    expect((await audit.list()).at(-1)?.details).toMatchObject({ replacementJustification, priorAtaIds: [first.data.id] });
+    expect(await repository.findById(first.data.id)).toMatchObject({ processId });
+  });
   it("rascunho antigo não aceita comprometimento até ser ativado", async () => {
     const created = await ctx.service.create(manager(), { councilId: COUNCIL_A, number: "06/2026", startDate: "2026-11-01", items: [{ description: "Caneta", registeredQuantity: 10, unitPrice: 1 }] });
     if (!created.ok) throw new Error(created.message);

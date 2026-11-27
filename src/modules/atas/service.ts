@@ -51,7 +51,14 @@ export class AtaService {
     const processId = await this.sameCouncilProcess(d.councilId, d.processId);
     if (!processId.ok) return processId;
 
-    const sameNumber = (await this.repository.listByCouncils([d.councilId])).some(
+    const councilAtas = await this.repository.listByCouncils([d.councilId]);
+    const priorAtas = processId.data ? councilAtas.filter((ata) => ata.processId === processId.data) : [];
+    if (priorAtas.length > 0 && !d.replacementJustification) {
+      return fail("VALIDATION", "Informe a justificativa para cadastrar outra ata neste processo.", {
+        replacementJustification: ["A justificativa é obrigatória."],
+      });
+    }
+    const sameNumber = councilAtas.some(
       (ata) => ata.number.trim().toLocaleLowerCase("pt-BR") === d.number.trim().toLocaleLowerCase("pt-BR"),
     );
     if (sameNumber) {
@@ -73,7 +80,10 @@ export class AtaService {
       createdAt: this.runtime.now(),
     });
     if (!saved.ok) return saved;
-    await this.audit.record({ actorId: actor.userId, action: "ata.create", entity: "price_registration_ata", entityId: saved.data.id, councilId: d.councilId, result: "success", details: { number: d.number, status: saved.data.status } });
+    await this.audit.record({ actorId: actor.userId, action: "ata.create", entity: "price_registration_ata", entityId: saved.data.id, councilId: d.councilId, result: "success", details: {
+      number: d.number, status: saved.data.status,
+      ...(d.replacementJustification && { replacementJustification: d.replacementJustification, priorAtaIds: priorAtas.map((ata) => ata.id) }),
+    } });
     return saved;
   }
 

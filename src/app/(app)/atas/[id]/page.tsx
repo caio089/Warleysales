@@ -20,6 +20,7 @@ import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { StatusBadge } from "@/shared/ui/status-badge";
 import { linkAtaProcessFormAction } from "@/modules/atas/actions";
+import { AtaBalancePanel, buildAtaBalanceRows } from "../ata-balance-panel";
 import { ATA_MAX_EXTENSIONS } from "@/modules/atas/domain/validity";
 export const metadata: Metadata = { title: "Ata" };
 
@@ -72,9 +73,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
   return (
     <Screen result={result}>
       {({ view, lookups, supplierName, canManage, processes, processHref, processLabel, relatedContracts, councilContracts }) => {
-        const ataItemsById = Object.fromEntries(view.ata.items.map((item) => [item.id, item]));
         const totalRegistered = view.items.reduce((sum, item) => sum + item.balance.registered, 0);
-        const totalCommitted = view.items.reduce((sum, item) => sum + item.balance.committed, 0);
         const totalBalance = view.items.reduce((sum, item) => sum + item.balance.balance, 0);
         const totalValue = view.ata.items.reduce(
           (sum, item) => sum + item.registeredQuantity * item.unitPrice,
@@ -152,75 +151,12 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
             </section>
 
             {/* Faixa de saldo */}
-            <section aria-labelledby="saldo-heading" className="mb-8 rounded-2xl border border-border/70 bg-card p-5 shadow-xs">
-              <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
-                <div>
-                  <h2 id="saldo-heading" className="font-heading text-lg font-semibold text-primary">
-                    Saldo por item
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Registrada − comprometida = saldo. {isDraft ? "No rascunho o saldo ainda não é consumido." : "Pedidos aprovados consomem este saldo."}
-                  </p>
-                </div>
-              </div>
+            <div className="mb-8">
+              <AtaBalancePanel headingId="saldo-heading" items={buildAtaBalanceRows(view, lookups.materialLabel)} isDraft={isDraft} />
+            </div>
 
-              <div className="mb-5 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl bg-muted/40 px-4 py-3">
-                  <p className="text-xs font-medium text-muted-foreground">Registrada</p>
-                  <p className="mt-1 text-xl font-semibold tabular-nums">{formatNumber(totalRegistered)}</p>
-                </div>
-                <div className="rounded-xl bg-amber-50 px-4 py-3 ring-1 ring-amber-100">
-                  <p className="text-xs font-medium text-amber-800/80">Comprometida</p>
-                  <p className="mt-1 text-xl font-semibold tabular-nums text-amber-800">{formatNumber(totalCommitted)}</p>
-                </div>
-                <div className="rounded-xl bg-emerald-50 px-4 py-3 ring-1 ring-emerald-100">
-                  <p className="text-xs font-medium text-emerald-800/80">Saldo</p>
-                  <p className="mt-1 text-xl font-semibold tabular-nums text-emerald-700">{formatNumber(totalBalance)}</p>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto rounded-xl border border-border/60">
-                <table className="w-full min-w-[640px] text-left text-sm">
-                  <caption className="sr-only">Itens da ata com quantidades, valores e saldo</caption>
-                  <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
-                    <tr>
-                      <th className="px-3 py-2.5 font-semibold">Item</th>
-                      <th className="px-3 py-2.5 font-semibold">Material</th>
-                      <th className="px-3 py-2.5 text-right font-semibold">Qtd</th>
-                      <th className="px-3 py-2.5 text-right font-semibold">Unitário</th>
-                      <th className="px-3 py-2.5 text-right font-semibold">Total</th>
-                      <th className="px-3 py-2.5 text-right font-semibold">Comprometida</th>
-                      <th className="px-3 py-2.5 text-right font-semibold">Saldo</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/60">
-                    {view.items.map((row) => {
-                      const source = ataItemsById[row.itemId];
-                      const unitPrice = source?.unitPrice ?? 0;
-                      const lineTotal = row.balance.registered * unitPrice;
-                      return (
-                        <tr key={row.itemId} className="hover:bg-muted/30">
-                          <td className="px-3 py-3 font-medium text-foreground">{row.description}</td>
-                          <td className="px-3 py-3 text-muted-foreground">
-                            {row.materialId ? (lookups.materialLabel[row.materialId] ?? "—") : "—"}
-                          </td>
-                          <td className="px-3 py-3 text-right tabular-nums">{formatNumber(row.balance.registered)}</td>
-                          <td className="px-3 py-3 text-right tabular-nums">{formatCurrency(unitPrice)}</td>
-                          <td className="px-3 py-3 text-right tabular-nums font-medium">{formatCurrency(lineTotal)}</td>
-                          <td className="px-3 py-3 text-right tabular-nums text-amber-800">{formatNumber(row.balance.committed)}</td>
-                          <td className="px-3 py-3 text-right tabular-nums font-semibold text-emerald-700">
-                            {formatNumber(row.balance.balance)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            {/* Ativar / prorrogar */}
-            {canManage && (isDraft || (view.ata.status === "vigente" && isValid && view.ata.extensions.length < ATA_MAX_EXTENSIONS)) ? (
+            {/* Prorrogação */}
+            {canManage && view.ata.status === "vigente" && isValid && view.ata.extensions.length < ATA_MAX_EXTENSIONS ? (
               <section
                 aria-label="Ações da ata"
                 className="mb-8 rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/8 via-card to-card p-5 shadow-xs"
@@ -229,17 +165,14 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
                   <div className="min-w-0">
                     <h2 className="flex items-center gap-2 font-heading text-lg font-semibold text-primary">
                       <ScrollText className="size-5 shrink-0" aria-hidden />
-                      {isDraft ? "Pronto para ativar?" : "Prorrogar vigência"}
+                      Prorrogar vigência
                     </h2>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {isDraft
-                        ? `Confira o saldo (${formatNumber(totalBalance)}) e o valor (${formatCurrency(totalValue)}) acima. Ao ativar, a ata passa a consumir saldo em pedidos aprovados.`
-                        : `Prorroga por 1 ano (até ${ATA_MAX_EXTENSIONS} vezes). Hoje: ${formatDateOnly(view.endDate)}.`}
+                      {`Prorroga por 1 ano (até ${ATA_MAX_EXTENSIONS} vezes). Hoje: ${formatDateOnly(view.endDate)}.`}
                     </p>
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-3">
-                    {isDraft ? <AtaStepButton ataId={view.ata.id} step="activate" /> : null}
-                    {!isDraft ? <AtaStepButton ataId={view.ata.id} step="extend" /> : null}
+                    <AtaStepButton ataId={view.ata.id} />
                   </div>
                 </div>
               </section>

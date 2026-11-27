@@ -1,12 +1,15 @@
 "use client";
 
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ExternalLink, FileCheck2, ScrollText } from "lucide-react";
+import { AtaBalancePanel, type AtaBalanceRow } from "@/app/(app)/atas/ata-balance-panel";
 import { NewAtaForm } from "@/app/(app)/atas/nova/new-ata-form";
 import { NewContractForm } from "@/app/(app)/contratos/novo/new-contract-form";
 import type { ProcessContractingMode } from "@/modules/processes/contracting-mode";
 import { needsAta } from "@/modules/processes/contracting-mode";
-import { formatCurrency, formatNumber } from "@/shared/lib/format";
+import { formatCurrency } from "@/shared/lib/format";
 import { formatDateOnly } from "@/shared/lib/time";
 import { LinkAtaToProcessForm, LinkContractToProcessForm } from "@/shared/ui/forms/link-process-form";
 import { StatusBadge } from "@/shared/ui/status-badge";
@@ -22,18 +25,7 @@ export interface LinkedAtaItem {
   number: string;
   endDate: string | null;
   status: "Vigente" | "Vencida" | "Rascunho" | string;
-  registered?: number;
-  committed?: number;
-  balance?: number;
-  totalValue?: number;
-  itemCount?: number;
-  items?: Array<{
-    itemId: string;
-    description: string;
-    materialLabel: string;
-    balance: number;
-    unitPrice: number;
-  }>;
+  items?: AtaBalanceRow[];
 }
 
 export interface LinkedContractItem {
@@ -94,6 +86,9 @@ export function ContractingTab({
   draft,
   contractingMode = null,
 }: ContractingTabProps) {
+  const [replacementFor, setReplacementFor] = useState<string | null>(null);
+  const existingAta = linkedAtas[0];
+  const replacementOpen = existingAta != null && replacementFor === existingAta.id;
   const showAta = needsAta(contractingMode);
   const instrumentsReady =
     (!showAta || linkedAtas.length > 0) && linkedContracts.length > 0;
@@ -146,7 +141,7 @@ export function ContractingTab({
                 {linkedAtas.map((ata) => (
                   <div
                     key={ata.id}
-                    className="group relative flex flex-col justify-between gap-3 rounded-xl border border-border/70 bg-card p-4 transition-all hover:border-primary/40 hover:shadow-xs"
+                    className="group relative flex min-w-0 flex-col justify-between gap-3 rounded-xl border border-border/70 bg-card p-4 transition-all hover:border-primary/40 hover:shadow-xs"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -169,39 +164,14 @@ export function ContractingTab({
                       />
                     </div>
 
-                    {ata.balance != null || ata.totalValue != null ? (
-                      <dl className="grid grid-cols-2 gap-2 rounded-lg bg-muted/40 p-3 text-xs sm:grid-cols-4">
-                        <div>
-                          <dt className="text-muted-foreground">Valor</dt>
-                          <dd className="mt-0.5 font-semibold tabular-nums text-foreground">
-                            {ata.totalValue != null ? formatCurrency(ata.totalValue) : "—"}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt className="text-muted-foreground">Registrada</dt>
-                          <dd className="mt-0.5 font-semibold tabular-nums text-foreground">
-                            {ata.registered != null ? formatNumber(ata.registered) : "—"}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt className="text-muted-foreground">Comprometida</dt>
-                          <dd className="mt-0.5 font-semibold tabular-nums text-amber-800">
-                            {ata.committed != null ? formatNumber(ata.committed) : "—"}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt className="text-muted-foreground">Saldo</dt>
-                          <dd className="mt-0.5 font-semibold tabular-nums text-emerald-700">
-                            {ata.balance != null ? formatNumber(ata.balance) : "—"}
-                          </dd>
-                        </div>
-                      </dl>
-                    ) : null}
+                    {ata.items && (
+                      <AtaBalancePanel headingId={`saldo-ata-${ata.id}`} items={ata.items} isDraft={ata.status === "Rascunho"} />
+                    )}
 
                     <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs text-muted-foreground">
                       <span>
                         Vigência até {ata.endDate ? formatDateOnly(ata.endDate) : "—"}
-                        {ata.itemCount != null ? ` · ${ata.itemCount} item(ns)` : ""}
+                        {ata.items ? ` · ${ata.items.length} item(ns)` : ""}
                       </span>
                       <Link
                         href={`/atas/${ata.id}`}
@@ -221,16 +191,22 @@ export function ContractingTab({
                 </p>
               </div>
             )}
-            {canLink ? (
+            {canLink && existingAta && draft && (
+              <Button type="button" variant="outline" aria-expanded={replacementOpen}
+                onClick={() => setReplacementFor(replacementOpen ? null : existingAta.id)}>
+                {replacementOpen ? "Cancelar nova ata" : "Criar nova ata com justificativa"}
+              </Button>
+            )}
+            {canLink && (!existingAta || replacementOpen) ? (
               <div className="space-y-4 rounded-xl border border-border/70 bg-muted/10 p-4">
                 <p className="text-xs text-muted-foreground">
                   No registro de preços, anexe a ata em PDF para a IA ler itens, quantidades e valores. Depois, cada contrato desconta do saldo dessa ata.
                 </p>
-                {availableAtas.length > 0 ? (
+                {!existingAta && (availableAtas.length > 0 ? (
                   <LinkAtaToProcessForm processId={processId} atas={availableAtas} submitLabel="Vincular ata existente" />
                 ) : (
                   <p className="text-xs text-muted-foreground">Não há ata livre deste órgão para vincular.</p>
-                )}
+                ))}
                 {draft ? (
                   <NewAtaForm
                     councils={[]}
@@ -246,6 +222,7 @@ export function ContractingTab({
                       suppliers: draft.suppliers,
                       defaultValue: draft.defaultValue,
                       validityStartDate: draft.validityStartDate,
+                      requireReplacementJustification: replacementOpen,
                       existingAtaNumbers: linkedAtas.map((ata) => ata.number),
                     }}
                   />

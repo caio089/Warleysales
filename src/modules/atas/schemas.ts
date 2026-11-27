@@ -35,6 +35,7 @@ export const createAtaSchema = z.object({
   number: z.string().trim().min(1).max(40),
   supplierId: idSchema.nullable().optional(),
   processId: idSchema.nullable().optional(),
+  replacementJustification: z.string().trim().min(1, "Informe a justificativa.").max(1000).optional(),
   startDate: dateOnlySchema,
   items: z.array(z.object({
     description: z.string().trim().min(2).max(300),

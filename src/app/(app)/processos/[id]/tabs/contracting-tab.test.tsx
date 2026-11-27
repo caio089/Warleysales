@@ -68,11 +68,7 @@ const MOCK_ATAS: LinkedAtaItem[] = [
     number: "ARP 012/2026",
     endDate: "2026-12-31",
     status: "Vigente",
-    registered: 100,
-    committed: 25,
-    balance: 75,
-    totalValue: 15000,
-    itemCount: 2,
+    items: [{ itemId: "ata-item-1", description: "Papel A4", materialLabel: "PAP-01 — Papel A4", registered: 100, committed: 25, balance: 75, unitPrice: 150 }],
   },
 ];
 
@@ -169,6 +165,19 @@ describe("ContractingTab", () => {
     expect(html.indexOf("1. Ata de registro de preços")).toBeLessThan(html.indexOf("2. Contrato"));
   });
 
+  it("oculta os campos de cadastro de ata quando já existe uma vinculada", () => {
+    const html = renderToStaticMarkup(
+      <ContractingTab processId="proc-1" councilId="council-a" documentalComplete formalization={null}
+        suppliers={MOCK_SUPPLIERS} isWarley={false} canLink contractingMode="registro_precos"
+        linkedAtas={MOCK_ATAS}
+        draft={{ councilLabel: "CRQ18", processLabel: "Processo", processNumber: "012/2026",
+          materials: [], requestMaterials: [], suppliers: [] }} />,
+    );
+    expect(html).toContain("Criar nova ata com justificativa");
+    expect(html).not.toContain("Número da ata");
+    expect(html).not.toContain("Ler ata em PDF para preencher");
+  });
+
   it("esconde a ata quando o processo é somente contrato", () => {
     const html = renderToStaticMarkup(
       <ContractingTab
@@ -218,6 +227,8 @@ describe("ContractingTab", () => {
     expect(html).toContain("31/12/2026");
     expect(html).toContain("/atas/ata-1");
     expect(html).toContain("Ver saldo e detalhes");
+    expect(html).toContain("Saldo por item");
+    expect(html).toContain("PAP-01 — Papel A4");
     expect(html).toContain("15.000,00");
     expect(html).toContain(">75<");
 

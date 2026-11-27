@@ -43,15 +43,14 @@ export function LinkProcessForm({
   );
 }
 
-/** Botão sem campos, para ativar ou prorrogar a ata sem passar função pelo servidor. */
-export function AtaStepButton({ ataId, step }: { ataId: string; step: "activate" | "extend" }) {
-  const extend = step === "extend";
+/** Prorrogação da ata sem campos adicionais. */
+export function AtaStepButton({ ataId }: { ataId: string }) {
   return (
     <ActionForm
       action={ataStepFormAction}
-      submitLabel={extend ? "Prorrogar por 1 ano" : "Ativar ata"}
-      submitVariant={extend ? "outline" : "default"}
-      hiddenFields={{ ataId, step }}
+      submitLabel="Prorrogar por 1 ano"
+      submitVariant="outline"
+      hiddenFields={{ ataId, step: "extend" }}
     >
       {() => null}
     </ActionForm>
