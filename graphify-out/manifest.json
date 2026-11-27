@@ -138,9 +138,9 @@
     "semantic_hash": ""
   },
   "next.config.ts": {
-    "mtime": 1795790414.3323164,
-    "seen": 1795794879.6603909,
-    "ast_hash": "1c3eccdccede0147a774e7c79d449944",
+    "mtime": 1795795542.1030705,
+    "seen": 1795795638.577397,
+    "ast_hash": "cf33a1f9c8a72f098462f5f123dbe626",
     "semantic_hash": ""
   },
   "package.json": {
@@ -3450,15 +3450,15 @@
     "semantic_hash": ""
   },
   "src/modules/reports/detailed-pdf.test.ts": {
-    "mtime": 1795790414.410567,
-    "seen": 1795794879.660696,
-    "ast_hash": "f88dab5d779075a423d29978bfd25269",
+    "mtime": 1795795561.291223,
+    "seen": 1795795638.577753,
+    "ast_hash": "6eb28115c2c4a40689f05deab230086c",
     "semantic_hash": ""
   },
   "src/modules/reports/detailed-pdf.ts": {
-    "mtime": 1795790414.4106498,
-    "seen": 1795794879.660697,
-    "ast_hash": "3358a447fda4391cddab28422201817f",
+    "mtime": 1795795573.4184377,
+    "seen": 1795795638.577753,
+    "ast_hash": "17e25276e932534bd6c588bdfd5e7851",
     "semantic_hash": ""
   },
   "src/modules/reports/detailed.test.ts": {
@@ -3813,6 +3813,12 @@
     "mtime": 1795794859.3435373,
     "seen": 1795794879.660706,
     "ast_hash": "596a72d76584f1a81bcdd650f73f94a0",
+    "semantic_hash": ""
+  },
+  "public/brand/papel-timbrado.png": {
+    "mtime": 1795795489.6903887,
+    "seen": 1795795638.5779881,
+    "ast_hash": "4719d63eba2adab7f1912fccfa96bd82",
     "semantic_hash": ""
   },
   "package-lock.json": {

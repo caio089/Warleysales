@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  outputFileTracingIncludes: {
+    "/api/reports/detailed": ["./public/brand/papel-timbrado.png"],
+  },
   distDir: process.env.WARLEY_E2E === "1" ? "artifacts/e2e-next" : ".next",
   experimental: {
     agentUpgrade: "security",
