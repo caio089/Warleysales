@@ -1,7 +1,7 @@
 # Graph Report - Warleysales  (2026-11-27)
 
 ## Corpus Check
-- 623 files · ~287,382 words
+- 623 files · ~287,398 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: (none) 2, .css 2, .example 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `b2e52f6a`
+- Built from commit: `13a7cab0`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -807,16 +807,16 @@ Nodes (16): @supabase/ssr, credentialsSchema, emailSchema, homeForCurrentUser(),
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `ok()` connect `fail` to `Actor`, `vitest`, `adapters/purchases.ts`, `formalizations/service.test.ts`, `inventory/service.ts`, `purchases/service.ts`, `can`, `notifications/service.ts`, `formatCurrency`, `lucide-react`, `simple-table.tsx`, `documentation-tab.tsx`, `documents/service.ts`, `runAction`, `processes.ts`, `db.ts`, `container.ts`, `contracts.ts`, `processes/service.ts`, `next`, `Button`, `MaterialOrder`, `groq.ts`, `toFortalezaDate`, `processes/service.ts`, `formalizations/actions.ts`, `AuditEntry`, `movement-form.tsx`, `SupabaseProcessRepository`, `identity.ts`, `retention/service.ts`, `atas.ts`, `Result`, `state-machine.ts`, `documents/service.ts`, `ref_server_only`, `processos/page.tsx`, `calendario/page.tsx`, `agenda-board.tsx`, `service-support.ts`, `membership-forms.tsx`, `atas/service.ts`, `policy.ts`, `ok`, `formalizations/service.ts`, `media-actions.ts`, `repositories.ts`?**
-  _High betweenness centrality (0.088) - this node is a cross-community bridge._
+  _High betweenness centrality (0.105) - this node is a cross-community bridge._
 - **What connects `PATH` to the rest of the system?**
   _1 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `new-contract-form.tsx` be split into smaller, more focused modules?**
   _Cohesion score 0.13709677419354838 - nodes in this community are weakly interconnected._
 - **Why does `vitest` connect `vitest` to `new-contract-form.tsx`, `analysis.ts`, `pdf.ts`, `navigation.ts`, `formalizations/service.test.ts`, `inventory/service.ts`, `purchases/service.ts`, `formalization-card.tsx`, `notifications/service.ts`, `formatCurrency`, `lucide-react`, `simple-table.tsx`, `documentation-tab.tsx`, `request-facets.ts`, `new-contract-form.tsx`, `utils.ts`, `package.json`, `next`, `documentation-tab.tsx`, `material-order-dialog.tsx`, `Button`, `MaterialOrder`, `AuditService`, `getSession`, `groq.ts`, `toFortalezaDate`, `extract-request/route.ts`, `identity/service.test.ts`, `formalizations/actions.ts`, `formalization-card.tsx`, `purchases/service.test.ts`, `data-table-logic.ts`, `request-template.ts`, `handler.ts`, `retention/service.ts`, `createSessionClient`, `councils-page.tsx`, `process-history.ts`, `state-machine.ts`, `documents/service.ts`, `callback-server.mjs`, `processos/page.tsx`, `next`, `fail`, `plan-calendar.ts`, `analysis.ts`, `calendario/page.tsx`, `agenda-board.tsx`, `cnpj.ts`, `atas/service.ts`, `order-queue.tsx`, `policy.ts`, `formalizations/service.ts`, `media-actions.ts`, `Input`?**
-  _High betweenness centrality (0.056) - this node is a cross-community bridge._
+  _High betweenness centrality (0.069) - this node is a cross-community bridge._
 - **Should `navigation.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.11746031746031746 - nodes in this community are weakly interconnected._
 - **Why does `next` connect `next` to `new-contract-form.tsx`, `flow-guide.tsx`, `navigation.ts`, `formatCurrency`, `lucide-react`, `simple-table.tsx`, `documentation-tab.tsx`, `package.json`, `new-contract-form.tsx`, `runAction`, `utils.ts`, `package.json`, `next`, `documentation-tab.tsx`, `material-order-dialog.tsx`, `Button`, `getSession`, `groq.ts`, `formalizations/actions.ts`, `movement-form.tsx`, `formalization-card.tsx`, `handler.ts`, `createSessionClient`, `councils-page.tsx`, `toast-store.ts`, `ref_server_only`, `callback-server.mjs`, `auth-stage.tsx`, `processos/page.tsx`, `ActionForm`, `calendario/page.tsx`, `agenda-board.tsx`, `process-view.tsx`, `membership-forms.tsx`, `order-queue.tsx`, `policy.ts`, `media-actions.ts`, `Input`?**
-  _High betweenness centrality (0.047) - this node is a cross-community bridge._
+  _High betweenness centrality (0.054) - this node is a cross-community bridge._
 - **Should `vitest` be split into smaller, more focused modules?**
   _Cohesion score 0.09899749373433583 - nodes in this community are weakly interconnected._
