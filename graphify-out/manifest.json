@@ -570,9 +570,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/estoque/page.tsx": {
-    "mtime": 1795794366.227099,
-    "seen": 1795794879.660457,
-    "ast_hash": "4db37d1d197f4cb6f2ebaaea6b1f7bd5",
+    "mtime": 1795794933.2864926,
+    "seen": 1795794967.365289,
+    "ast_hash": "47095bdd699d08498e5c1a7a25130497",
     "semantic_hash": ""
   },
   "src/app/(app)/fornecedores/new-supplier-form.tsx": {
@@ -678,9 +678,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/meu-conselho/stock-section.tsx": {
-    "mtime": 1795790414.3558195,
-    "seen": 1795794879.6604722,
-    "ast_hash": "59e43b80fb8afedd2dc5ebdf6d172201",
+    "mtime": 1795794933.309412,
+    "seen": 1795794967.3653061,
+    "ast_hash": "249bec3576ab8de1e5324293815f5922",
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/additional-documents-card.test.tsx": {
@@ -2820,9 +2820,9 @@
     "semantic_hash": ""
   },
   "src/shared/ui/simple-table.tsx": {
-    "mtime": 1795794136.2167573,
-    "seen": 1795794879.660804,
-    "ast_hash": "2d8f5c80dc25a94fabefdcc8e6c58409",
+    "mtime": 1795794933.2641563,
+    "seen": 1795794967.365686,
+    "ast_hash": "b5aa70c139ede1ff74a2bc7d459d48c1",
     "semantic_hash": ""
   },
   "src/shared/ui/status-badge.tsx": {
@@ -2832,9 +2832,9 @@
     "semantic_hash": ""
   },
   "src/shared/ui/status-presentation.ts": {
-    "mtime": 1795792523.2784703,
-    "seen": 1795794879.6608052,
-    "ast_hash": "5b7c291d05f6d60e97b6ed560888e112",
+    "mtime": 1795794933.236372,
+    "seen": 1795794967.365688,
+    "ast_hash": "a46e9570785ef72c278b9c93bd8eed28",
     "semantic_hash": ""
   },
   "src/shared/ui/toast-store.ts": {

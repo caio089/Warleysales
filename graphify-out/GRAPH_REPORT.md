@@ -1,17 +1,17 @@
 # Graph Report - warleysales-atas-push  (2026-11-27)
 
 ## Corpus Check
-- 628 files · ~292,729 words
+- 628 files · ~292,826 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 7 file(s) not represented in the graph (top: (none) 3, .css 2, .example 1)
 
 ## Summary
-- 3723 nodes · 13148 edges · 170 communities (136 shown, 34 thin omitted)
+- 3724 nodes · 13150 edges · 167 communities (136 shown, 31 thin omitted)
 - Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 463 edges (avg confidence: 0.87)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7ba0c210`
+- Built from commit: `3c00d66c`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -19,70 +19,70 @@
 - runAction
 - Global Constraints
 - dashboard/page.tsx
-- simple-table.tsx
+- Button
 - process-attachment-sheet.tsx
 - simple-table.tsx
-- result.ts
+- Screen
 - InMemoryPurchaseRequestRepository
 - inventory/service.ts
-- ProfileSummary
-- formalizations.ts
+- identity/service.ts
+- ProcessFormalization
 - public.purchase_requests
 - apply_all.sql
 - Attachment
 - Tarefas
-- purchases/service.ts
+- ok
 - ok
 - ProcessService
 - vitest
 - documentation-tab.tsx
 - package.json
-- identity/service.test.ts
-- lucide-react
-- can
-- parseInput
+- material-order-dialog.tsx
+- solicitacoes/page.tsx
+- runAction
+- plan-calendar.ts
 - unwrap
 - anon
-- purchases/service.test.ts
-- [...path]/page.tsx
+- transfers/schemas.ts
+- overview-lists.tsx
 - documentation-tab.tsx
-- toFortalezaDate
-- processes/schemas.ts
+- Proposta funcional — página inicial Warley Gestão Operacional
+- processes.test.ts
 - public.profiles
 - can
-- pdf.ts
+- detailed.ts
 - public.create_contract_with_ata
 - server/session.ts
 - request-template.ts
 - 20261102000006_fk_indexes.sql
-- lucide-react
-- transfer.ts
+- simple-table.tsx
+- request-status.ts
 - adapters/purchases.ts
-- relatorios/page.tsx
+- result.ts
 - getSession
 - AuditEntry
 - groq.ts
-- identity.ts
+- MembershipRecord
 - processes.ts
 - formalization-card.tsx
-- toDate
-- InMemoryInventoryRepository
-- RetentionRepository
+- audit-trail-tab.tsx
+- inventory.ts
+- contratos/[id]/page.tsx
 - @playwright/test
-- alert-source.ts
+- notifications/service.ts
 - contracts/actions.ts
 - meetings/service.ts
 - createSessionClient
-- media-actions.ts
-- createSessionClient
+- reunioes/page.tsx
+- appointment-actions.ts
 - SupabaseContractRepository
 - app-shell.tsx
 - components.json
-- time.ts
-- orders.ts
+- new-contract-form.tsx
+- atas/actions.ts
 - RetentionRepository
 - meetings.ts
-- material-order-dialog.tsx
+- filters.tsx
 - compilerOptions
 - toast-store.ts
 - db.ts
@@ -97,7 +97,7 @@
 - 20261102000001_identity.sql
 - import-pca-crcpi-2027.mjs
 - contracts/service.ts
-- whatsapp.ts
+- lucide-react
 - PDFReport
 - contracts/actions.ts
 - processes.test.ts
@@ -108,38 +108,39 @@
 - Arquitetura proposta
 - Proposta de experiência simplificada
 - agenda-board.tsx
-- detailed/route.ts
+- orders/schemas.ts
 - contratos/[id]/page.tsx
-- atas/extract-pdf/route.ts
-- Global Constraints
+- identity.ts
+- Services
 - actions.movement-lines.test.ts
 - cnpj.ts
 - MaterialOrder
-- formalization.ts
+- formalizations/actions.ts
 - concorrencia.sh
 - bundle-migrations.sh script
 - vercel.json
 - Fase 1 — Descoberta e Arquitetura (fonte da verdade)
 - cnpj.ts
-- ata/route.ts
-- result.ts
+- Global Constraints
+- processos/page.tsx
 - Documento de Design Técnico: Onda 2 — Pedidos de Materiais, Justificativas e Trilha de Auditoria
 - Documento de Design Técnico: Redesign Visual e Arquitetura em Abas da Página de Processos
 - Global Constraints
 - Plano de testes e validação UX
-- material-order-dialog.tsx
-- react-dom
-- Diagnóstico validado de UX
+- order-queue.tsx
+- SupabaseDocumentRepository
+- document-types.ts
 - Execução local, deploy e backups
-- alertas/route.ts
+- cleanup-eligibility.ts
 - processes/actions.ts
 - react-dom
 - Fluxos atuais e ideais
 - Validação realmente executada
 - atas-de-reuniao-operacao.md
-- reunioes/page.tsx
+- DocumentTypeCode
 - Checklist de execução
 - Execução dos blocos 1 e 2
+- next
 - Pendências e limitações conhecidas
 - processes.ts
 - Relatório de alterações recentes
@@ -156,9 +157,8 @@
 - 02-permissoes.md
 - 09-reunioes-audio.md
 - 10-cadastro-contrato-pdf.md
-- fail
-- Global Constraints
-- file-upload.tsx
+- CommitmentEvent
+- file-validation.ts
 - repositories.ts
 - Auditoria de desempenho do Warley
 - 20261110000003_material_orders.sql
@@ -178,61 +178,65 @@
 10. `unwrap()` - 80 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `Task 4: Refatoração da Barra de Atalhos Rápidos do Meu Painel (`ActionHub`)` --references--> `ActionHub()`  [INFERRED]
-  docs/superpowers/plans/2026-11-11-redesign-visao-geral-e-meu-painel.md → src/app/(app)/meu-conselho/action-hub.tsx
-- `Task 4: Ajustar Alinhamento do Formulário em `FormalizationCard` e Criar Aba 2 (`ContractingTab`)` --references--> `FormalizationCard()`  [INFERRED]
-  docs/superpowers/plans/2026-11-11-process-page-redesign.md → src/app/(app)/processos/[id]/formalization-card.tsx
+- `Task 3: Orquestração na Criação de Solicitação (`createProcess`)` --references--> `ProcessService`  [INFERRED]
+  docs/superpowers/plans/2026-11-10-solicitacao-processo-anexagem.md → src/modules/processes/service.ts
+- `Task 2: Provisionamento Automático de Estoque Bloqueado pela Solicitação` --references--> `InventoryService`  [INFERRED]
+  docs/superpowers/plans/2026-11-10-onda1-estoque-formalizacao-economia.md → src/modules/inventory/service.ts
+- `Task 6: Segmentação de Estoque (Bloqueado, Pronto para Uso, Utilizado, % Liberado)` --references--> `InventoryService`  [INFERRED]
+  docs/superpowers/plans/2026-11-10-onda1-estoque-formalizacao-economia.md → src/modules/inventory/service.ts
 - `Task 5: Trilha de Auditoria Multidimensional (Filtros Avançados no Serviço e Adapters)` --references--> `AuditFilter`  [INFERRED]
   docs/superpowers/plans/2026-11-10-onda2-pedidos-justificativas-auditoria.md → src/modules/audit/schemas.ts
-- `Escopo e confiança` --references--> `assertInstrumentsLinked()`  [INFERRED]
-  docs/ux-improvement-plan/01-diagnostico-validado.md → src/modules/formalizations/actions.ts
-- `UX-16 — Baseline de testes e tipagem` --references--> `assertInstrumentsLinked()`  [INFERRED]
-  docs/ux-improvement-plan/04-roadmap-implementacao.md → src/modules/formalizations/actions.ts
+- `Task 2: Redesign Executivo do Briefing de IA (`BriefingCard`)` --references--> `BriefingFacts`  [INFERRED]
+  docs/superpowers/plans/2026-11-11-redesign-visao-geral-e-meu-painel.md → src/modules/insights/briefing.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (170 total, 34 thin omitted)
+## Communities (167 total, 31 thin omitted)
 
 ### Community 0 - "runAction"
-Cohesion: 0.09
-Nodes (40): Option, MarkReadForm(), input, saveAppointment(), assignMembershipFormAction(), createCouncilFormAction(), removeMembershipFormAction(), setStaffCategoryFormAction() (+32 more)
+Cohesion: 0.11
+Nodes (32): zod, draftSchema, GET(), maxDuration, saveAudio(), submit(), work(), confirmMeetingAudioAction() (+24 more)
 
 ### Community 1 - "Global Constraints"
 Cohesion: 0.25
 Nodes (7): Global Constraints, Plano de Implementação: Vínculo Solicitação-Processo e Painel Rápido de Anexagem, Task 1: Migração SQL e Suporte a `process_id` nos Repositórios, Task 3: Orquestração na Criação de Solicitação (`createProcess`), Task 4: Formulário de Nova Solicitação e Server Action, Task 5: Card de Destaque do Processo Vinculado em `/solicitacoes/[id]`, Task 7: Verificação Geral e Execução da Migração no Supabase
 
 ### Community 2 - "dashboard/page.tsx"
-Cohesion: 0.12
-Nodes (26): 5. Componentes existentes a reutilizar e mudanças propostas, Task 3: Reestruturação da Visão Geral em 4 KPIs Mestres e Grid 2 Colunas Balanceadas, DashboardFilters(), DashboardFiltersProps, FOCUS_OPTIONS, hrefFor(), FormalizationQueue(), FormalizationQueueProps (+18 more)
+Cohesion: 0.20
+Nodes (18): Task 3: Reestruturação da Visão Geral em 4 KPIs Mestres e Grid 2 Colunas Balanceadas, PendingApprovalItem, DashboardContent(), DashboardHeading(), DashboardPage(), metadata, one(), quickActions (+10 more)
+
+### Community 3 - "Button"
+Cohesion: 0.09
+Nodes (25): class-variance-authority@^0.7.1, cn@^0.5.2, @base-ui/react, class-variance-authority, cn, FormalizationQueue(), FormalizationQueueProps, INSTRUMENT_LABELS (+17 more)
 
 ### Community 4 - "process-attachment-sheet.tsx"
-Cohesion: 0.13
-Nodes (21): ComponentShowcase(), fixtureOrder, props, rows, MeetingDialog(), MeetingDialogProps, openProcessAttachment(), ProcessAttachmentSheet() (+13 more)
+Cohesion: 0.12
+Nodes (22): ComponentShowcase(), fixtureOrder, props, rows, NavigationFixture(), MeetingDialog(), MeetingDialogProps, Sheet() (+14 more)
 
 ### Community 5 - "simple-table.tsx"
-Cohesion: 0.14
-Nodes (25): DataTable(), DataTableColumn, DataTableProps, Cell, collator, compareValues(), filterAndSortTableRows(), FilterDefinition (+17 more)
+Cohesion: 0.09
+Nodes (42): columns, Kind, kinds, processRows, RouteFixture(), rows, titles, ProcessesTable() (+34 more)
 
-### Community 6 - "result.ts"
-Cohesion: 0.07
-Nodes (94): nextConfig, next, AuditPage(), AuditPageProps, Content(), metadata, one(), AdministrationPage() (+86 more)
+### Community 6 - "Screen"
+Cohesion: 0.12
+Nodes (44): Content(), metadata, UsersPage(), AlertsPage(), Content(), metadata, AtasPage(), Content() (+36 more)
 
 ### Community 7 - "InMemoryPurchaseRequestRepository"
 Cohesion: 0.06
-Nodes (5): InMemoryMeetingRepository, MeetingDetails, InMemoryPurchaseRequestRepository, InMemoryTransferRepository, setup()
+Nodes (4): InMemoryStorage, InMemoryMeetingRepository, InMemoryPurchaseRequestRepository, MemoryTable
 
 ### Community 8 - "inventory/service.ts"
-Cohesion: 0.07
-Nodes (45): CommitmentEventType, CommitRequest, computeAtaBalance(), validateAllocations(), validateCommitment(), none, classifyStockLevel(), CRITICAL_RATIO (+37 more)
+Cohesion: 0.09
+Nodes (39): CommitmentEventType, CommitRequest, computeAtaBalance(), validateAllocations(), validateCommitment(), calculateContractAtaValue(), none, classifyStockLevel() (+31 more)
 
-### Community 9 - "ProfileSummary"
-Cohesion: 0.12
-Nodes (10): CouncilRepository, MembershipRepository, Council, ProfileSummary, assignMembershipSchema, councilFields, createCouncilSchema, MembershipService (+2 more)
+### Community 9 - "identity/service.ts"
+Cohesion: 0.09
+Nodes (11): CouncilRepository, MembershipRepository, InMemoryCouncilRepository, InMemoryMembershipRepository, StaffCategory, assignMembershipSchema, councilFields, createCouncilSchema (+3 more)
 
-### Community 10 - "formalizations.ts"
-Cohesion: 0.27
-Nodes (4): FormalizationRow, fromRow(), SupabaseFormalizationRepository, toRow()
+### Community 10 - "ProcessFormalization"
+Cohesion: 0.17
+Nodes (9): FormalizationStatus, ProcessFormalization, FormalizationFilter, FormalizationRepository, InMemoryFormalizationRepository, FormalizationRow, fromRow(), SupabaseFormalizationRepository (+1 more)
 
 ### Community 11 - "public.purchase_requests"
 Cohesion: 0.06
@@ -243,92 +247,92 @@ Cohesion: 0.05
 Nodes (110): administrative_processes_responsible_id_idx, administrative_processes_responsible_membership, calendar_appointments_scope_date_idx, check_staff_membership, council_memberships_one_director, idx_administrative_processes_created_by, idx_ata_allocations_council_id, idx_ata_extensions_requested_by (+102 more)
 
 ### Community 13 - "Attachment"
-Cohesion: 0.08
-Nodes (37): Attachment, attachmentIdSchema, PreparedUpload, prepareUploadSchema, uploadDocumentSchema, CLEANUP_WAIT_DAYS, CleanupDecision, CleanupInput (+29 more)
+Cohesion: 0.19
+Nodes (13): Attachment, attachmentIdSchema, PreparedUpload, prepareUploadSchema, uploadDocumentSchema, DOCUMENT_TYPE_CODES, REQUIRED_DOCUMENT_COUNT, ATTACHMENT_PROGRESS_CRITERIA (+5 more)
 
 ### Community 14 - "Tarefas"
 Cohesion: 0.06
-Nodes (32): Ordem e checkpoints, Regras, Roadmap de implementação, Tarefas, UX-01 — Verificar isolamento E2E existente, UX-02 — Tornar compra/recebimento íntegros, UX-03 — Verificar policy e guards por serviço, UX-04 — Corrigir ajuste e linhas de solicitação (+24 more)
+Nodes (33): Ordem e checkpoints, Regras, Roadmap de implementação, Tarefas, UX-01 — Verificar isolamento E2E existente, UX-02 — Tornar compra/recebimento íntegros, UX-03 — Verificar policy e guards por serviço, UX-04 — Corrigir ajuste e linhas de solicitação (+25 more)
 
-### Community 15 - "purchases/service.ts"
+### Community 15 - "ok"
 Cohesion: 0.08
-Nodes (30): Task 4: Justificativa Obrigatória para Encerramento Incompleto (< 100%), Props, PurchaseRequest, PurchaseRequestEvent, RequestStatus, applyReceipt(), ReceiptItemResult, ReceiptItemState (+22 more)
+Nodes (14): Task 4: Justificativa Obrigatória para Encerramento Incompleto (< 100%), 6. Estratégia de Testes, 3.3. Repositório e Camada de Domínio, parseProcessNumber(), changeRequestStatus(), PurchaseRequest, PurchaseRequestService, Actor (+6 more)
 
 ### Community 16 - "ok"
-Cohesion: 0.09
-Nodes (14): 3.3. Repositório e Camada de Domínio, PriceRegistrationAta, Meeting, MeetingService, parseProcessNumber(), AdministrativeProcess, context(), guard() (+6 more)
+Cohesion: 0.08
+Nodes (9): PriceRegistrationAta, Council, Meeting, MeetingService, AdministrativeProcess, guard(), fail(), Result (+1 more)
 
 ### Community 17 - "ProcessService"
-Cohesion: 0.19
-Nodes (26): InMemoryAtaRepository, AtaService, setup(), InMemoryAuditRepository, AuditService, InMemoryContractRepository, ContractService, FailingRepository (+18 more)
+Cohesion: 0.13
+Nodes (35): Task 2: Serviços de Domínio e Repositórios de Pedidos de Materiais, InMemoryAtaRepository, AtaService, activeAta(), manager(), setup(), InMemoryAuditRepository, AuditService (+27 more)
 
 ### Community 18 - "vitest"
-Cohesion: 0.09
-Nodes (40): vitest, loadLookupsMock, loadScreenMock, loadScreenMock, loadLookupsMock, loadScreenMock, { loadScreenMock, loadLookupsMock }, activeAta() (+32 more)
+Cohesion: 0.08
+Nodes (42): vitest, loadLookupsMock, loadScreenMock, loadScreenMock, loadLookupsMock, loadScreenMock, { loadScreenMock, loadLookupsMock }, declared() (+34 more)
 
 ### Community 19 - "documentation-tab.tsx"
-Cohesion: 0.12
-Nodes (36): Task 2: Interface de Artefatos Adicionais no Drawer e na Página do Processo, Task 6: Painel Lateral (*Sheet*) de Anexagem Rápida em `/processos`, 4.3. Componente `ProcessAttachmentSheet` em `/processos`, ArchiveDocumentButton(), CompactDocumentFile, CompactDocumentRow(), handleDownload(), handleFileSelected() (+28 more)
+Cohesion: 0.08
+Nodes (55): Task 2: Interface de Artefatos Adicionais no Drawer e na Página do Processo, Task 6: Painel Lateral (*Sheet*) de Anexagem Rápida em `/processos`, 4.3. Componente `ProcessAttachmentSheet` em `/processos`, ArchiveDocumentButton(), CompactDocumentFile, CompactDocumentRow(), handleDownload(), handleFileSelected() (+47 more)
 
 ### Community 20 - "package.json"
 Cohesion: 0.12
 Nodes (22): eslintConfig, devDependencies, eslint@^9, eslint-config-next@16.4.6, tailwindcss@^4, @tailwindcss/turbopack@^4, @types/node@^22.20.5, @types/react@^19 (+14 more)
 
-### Community 21 - "identity/service.test.ts"
+### Community 21 - "material-order-dialog.tsx"
+Cohesion: 0.11
+Nodes (21): 5. Componentes existentes a reutilizar e mudanças propostas, 6. Valores, estados e mensagens: salvaguardas, Task 4: Refatoração da Barra de Atalhos Rápidos do Meu Painel (`ActionHub`), Reutilização em painéis por perfil, CouncilWorkspace(), CouncilWorkspaceProps, ActionHub(), ActionItem (+13 more)
+
+### Community 22 - "solicitacoes/page.tsx"
+Cohesion: 0.09
+Nodes (33): Content(), metadata, RequestsPage(), citedInstruments(), expiryFromText(), guardNatureza(), identifyPlanDate(), joinedNotes() (+25 more)
+
+### Community 23 - "runAction"
 Cohesion: 0.13
-Nodes (4): InMemoryCouncilRepository, InMemoryMembershipRepository, InMemorySupplierRepository, createMemoryRepositories()
+Nodes (26): manualDeleteFormAction(), assignMembershipFormAction(), createCouncilFormAction(), removeMembershipFormAction(), setStaffCategoryFormAction(), updateCouncilFormAction(), createMaterialFormAction(), done() (+18 more)
 
-### Community 22 - "lucide-react"
-Cohesion: 0.06
-Nodes (41): MonthDialog(), MonthDialogProps, citedInstruments(), expiryFromText(), guardNatureza(), identifyPlanDate(), joinedNotes(), MONTH_NAME (+33 more)
-
-### Community 23 - "can"
-Cohesion: 0.16
-Nodes (12): Task 3: Serviço de Formalização e Veredito de Warley (`FormalizationService`), calculateSavings(), ProcessFormalization, FormalizationRepository, FormalizationService, SavingsSummary, can(), PermissionAction (+4 more)
-
-### Community 24 - "parseInput"
-Cohesion: 0.15
-Nodes (13): NavigationFixture(), AuthLayout(), NotFound(), AppShell(), AppShellProps, getServerSidebarSnapshot(), getSidebarSnapshot(), subscribeSidebar() (+5 more)
+### Community 24 - "plan-calendar.ts"
+Cohesion: 0.14
+Nodes (18): MonthDialog(), MonthDialogProps, weekdays, CalendarKind, CalendarMark, calendarMarks(), CalendarSource, countsByMonth() (+10 more)
 
 ### Community 25 - "unwrap"
-Cohesion: 0.11
-Nodes (8): SupabaseNotificationRepository, toNotification(), SupabaseMaterialOrderRepository, SupabaseRetentionRepository, isUniqueViolation(), toIso(), unwrap(), SupabaseJobRunRepository
+Cohesion: 0.13
+Nodes (6): SupabaseNotificationRepository, SupabaseMaterialOrderRepository, SupabaseRetentionRepository, toIso(), unwrap(), SupabaseJobRunRepository
 
 ### Community 26 - "anon"
 Cohesion: 0.12
 Nodes (25): public.apply_stock_mutation(), public.correct_purchase_request(), public.register_process_ata(), public.register_process_ata_for_winner(), public.set_document_exception(), public.set_process_contracting_mode(), public.set_process_estimated_value(), public.set_process_validity_start_date() (+17 more)
 
-### Community 27 - "purchases/service.test.ts"
-Cohesion: 0.15
-Nodes (10): InMemoryStorage, createProcessWithProgress(), Ctx, PDF, approver(), ataItem(), manager(), stockOf() (+2 more)
+### Community 27 - "transfers/schemas.ts"
+Cohesion: 0.16
+Nodes (11): TransferStatus, InMemoryTransferRepository, TransferRepository, advanceTransferSchema, requestTransferSchema, Transfer, TransferEvent, TransferItem (+3 more)
 
-### Community 28 - "[...path]/page.tsx"
-Cohesion: 0.11
-Nodes (21): columns, Kind, kinds, processRows, RouteFixture(), rows, titles, ProcessHeader() (+13 more)
+### Community 28 - "overview-lists.tsx"
+Cohesion: 0.36
+Nodes (9): DICTS, MeetingsOverview(), PanelShell(), ProcessesOverview(), RequestsOverview(), Row(), RowLink, statusOf() (+1 more)
 
 ### Community 29 - "documentation-tab.tsx"
 Cohesion: 0.07
 Nodes (44): contract_ata_items_ata_item_id_idx, contract_ata_items_contract_id_idx, contract_ata_process_insert, contract_ata_process_update, contract_receipt_line_integrity, contract_receipt_lines_contract_idx, contracts_ata_id_idx, idx_ata_commitments_council_id (+36 more)
 
-### Community 30 - "toFortalezaDate"
-Cohesion: 0.23
-Nodes (14): auditEvents(), buildDetailedReport(), date(), DetailedFilter, DetailedKind, first(), kinds, parseDetailedFilter() (+6 more)
+### Community 30 - "Proposta funcional — página inicial Warley Gestão Operacional"
+Cohesion: 0.13
+Nodes (14): 1. Diagnóstico da página atual, 2. Hierarquia proposta, 3. Wireframe detalhado, 4. Fluxos de acesso rápido, 7. Plano incremental, 8. Critérios de validação, Decisões para aprovação, Estoque e materiais (+6 more)
 
-### Community 31 - "processes/schemas.ts"
-Cohesion: 0.15
-Nodes (13): FormalizationCardProps, ContractingTabProps, isProcessContractingMode(), needsAta(), PROCESS_CONTRACTING_MODES, ProcessContractingMode, changeProcessStatusSchema, classifyProcessSchema (+5 more)
+### Community 31 - "processes.test.ts"
+Cohesion: 0.27
+Nodes (10): refreshCompletion(), buildSnapshot(), CompletionEvent, CompletionState, CompletionTransition, effectiveProgressPercent(), reevaluateCompletion(), allSeven() (+2 more)
 
 ### Community 32 - "public.profiles"
 Cohesion: 0.12
 Nodes (32): public.administrative_processes, public.ata_allocations, public.ata_commitments, public.ata_extensions, public.ata_items, public.attachments, public.contract_amendments, public.contracts (+24 more)
 
 ### Community 33 - "can"
-Cohesion: 0.09
-Nodes (22): dependencies, @base-ui/react@^1.9.0, class-variance-authority@^0.7.1, cn@^0.5.2, gsap@^3.15.0, @gsap/react@^2.1.2, lucide-react@^1.66.0, next@16.4.6 (+14 more)
+Cohesion: 0.11
+Nodes (19): dependencies, @base-ui/react@^1.9.0, gsap@^3.15.0, @gsap/react@^2.1.2, lucide-react@^1.66.0, next@16.4.6, pdf-lib@^1.17.1, react@19.3.0 (+11 more)
 
-### Community 34 - "pdf.ts"
-Cohesion: 0.16
-Nodes (22): branding(), download(), GET(), demoCouncilIds(), hasOperationalData(), savingsForExport(), ACTION_LABELS, auditDetails() (+14 more)
+### Community 34 - "detailed.ts"
+Cohesion: 0.06
+Nodes (57): pdf-lib, GET(), branding(), download(), GET(), GET(), generateReportAnalysis(), analysisSchema (+49 more)
 
 ### Community 35 - "public.create_contract_with_ata"
 Cohesion: 0.09
@@ -339,120 +343,120 @@ Cohesion: 0.16
 Nodes (12): credentialsSchema, emailSchema, homeForCurrentUser(), newPasswordSchema, requestPasswordRecoveryAction(), signInAction(), signOutAction(), updatePasswordAction() (+4 more)
 
 ### Community 37 - "request-template.ts"
-Cohesion: 0.16
-Nodes (19): GET(), buildRequestExcelTemplate(), buildRequestWordTemplate(), escapeXml(), htmlTablesToMatrices(), ITEM_ALIASES, matchAlias(), normalizeHeader() (+11 more)
+Cohesion: 0.15
+Nodes (20): GET(), ExtractedPurchaseRequest, buildRequestExcelTemplate(), buildRequestWordTemplate(), escapeXml(), htmlTablesToMatrices(), ITEM_ALIASES, matchAlias() (+12 more)
 
 ### Community 38 - "20261102000006_fk_indexes.sql"
 Cohesion: 0.05
 Nodes (34): public.apply_stock_mutation(), public.save_transfer(), trg_stock_movements_immutable, idx_administrative_processes_created_by, idx_attachments_council_id, idx_attachments_type_code, idx_attachments_uploaded_by, idx_audit_logs_actor_id (+26 more)
 
-### Community 39 - "lucide-react"
-Cohesion: 0.06
-Nodes (69): 6. Valores, estados e mensagens: salvaguardas, Reutilização em painéis por perfil, lucide-react, weekdays, ApprovalQueue(), ApprovalQueueProps, PendingApprovalItem, CouncilWorkspace() (+61 more)
+### Community 39 - "simple-table.tsx"
+Cohesion: 0.09
+Nodes (43): buildStockEntrySources(), RECEIVABLE, StockEntryItem, LinkedProcessCard(), LinkedProcessCardProps, Content(), metadata, RequestPage() (+35 more)
 
-### Community 40 - "transfer.ts"
-Cohesion: 0.17
-Nodes (16): changeMeetingStatus(), MEETING_TRANSITIONS, changeProcessStatus(), PROCESS_TRANSITIONS, changeTransferStatus(), HOLDS_RESERVATION, receiveEffect(), stockEffectFor() (+8 more)
+### Community 40 - "request-status.ts"
+Cohesion: 0.11
+Nodes (25): Props, changeMeetingStatus(), MEETING_TRANSITIONS, PurchaseRequest, PurchaseRequestEvent, RequestStatus, ReceiptItemResult, ReceiptItemState (+17 more)
 
 ### Community 41 - "adapters/purchases.ts"
-Cohesion: 0.21
-Nodes (7): AtomicDecision, AtomicReceipt, LinkedRequestNotes, LinkedRequestNotesRow, SupabasePurchaseRequestRepository, toRequest(), rpcOutcomeToResult()
+Cohesion: 0.26
+Nodes (4): AtomicDecision, AtomicReceipt, SupabasePurchaseRequestRepository, toRequest()
 
-### Community 42 - "relatorios/page.tsx"
-Cohesion: 0.11
-Nodes (25): ACTION_LABELS, AuditTrailFilters, AuditTrailTab(), AuditTrailTabProps, ENTITY_LABELS, extractJustificationOrDetails(), formatActionLabel(), formatEntityLabel() (+17 more)
+### Community 42 - "result.ts"
+Cohesion: 0.07
+Nodes (52): AuditPage(), AuditPageProps, Content(), metadata, one(), ACTION_LABEL, Content(), metadata (+44 more)
 
 ### Community 43 - "getSession"
-Cohesion: 0.24
-Nodes (11): Arquitetura e caminho dos dados, GET(), AuthenticatedShell(), AppLayout(), Home(), RedirectHome(), getServices(), getSession() (+3 more)
+Cohesion: 0.09
+Nodes (28): Arquitetura (estado atual da implementação), Banco: privilégios e schema `private`, Concorrência e atomicidade, Jobs (Vercel Cron), Sessão e autenticação, Visão geral, @supabase/ssr, GET() (+20 more)
 
 ### Community 44 - "AuditEntry"
-Cohesion: 0.25
-Nodes (6): AuditRepository, parseDateRange(), AuditEntry, AuditFilter, AuditResult, NewAuditEntry
+Cohesion: 0.18
+Nodes (10): AuditRepository, parseDateRange(), AuditEntry, AuditFilter, AuditResult, NewAuditEntry, AuditRow, parseDateRange() (+2 more)
 
 ### Community 45 - "groq.ts"
-Cohesion: 0.05
-Nodes (50): 1. Diagnóstico da página atual, 2. Hierarquia proposta, 3. Wireframe detalhado, 4. Fluxos de acesso rápido, 7. Plano incremental, 8. Critérios de validação, Decisões para aprovação, Estoque e materiais (+42 more)
+Cohesion: 0.14
+Nodes (23): BriefingCard(), BriefingFallback(), BRIEFING_SYSTEM_PROMPT, BriefingFacts, briefingSchema, briefingUsesOnlyKnownNumbers(), buildBriefingFacts(), coerceBriefing() (+15 more)
 
-### Community 46 - "identity.ts"
-Cohesion: 0.09
-Nodes (13): MembershipRecord, StaffCategory, MembershipDirectory, SessionState, CouncilRow, MembershipRow, SupabaseCouncilRepository, SupabaseMembershipRepository (+5 more)
+### Community 46 - "MembershipRecord"
+Cohesion: 0.14
+Nodes (4): MembershipRecord, ProfileSummary, MembershipDirectory, SupabaseMembershipRepository
 
 ### Community 47 - "processes.ts"
-Cohesion: 0.15
-Nodes (16): mammoth@^1.13.0, mammoth, xlsx, POST(), detectRequestDocument(), extractRequestDocumentText(), extractSpreadsheetText(), extractWordText() (+8 more)
+Cohesion: 0.16
+Nodes (15): mammoth@^1.13.0, mammoth, xlsx, POST(), detectRequestDocument(), extractRequestDocumentText(), extractSpreadsheetText(), extractWordText() (+7 more)
 
 ### Community 48 - "formalization-card.tsx"
-Cohesion: 0.09
-Nodes (33): Task 4: Card de Formalização no Processo e Cálculo de Economia em Tempo Real, AtaMaterialLine, AtaMaterialsValues(), buildDrafts(), parseMoney(), handleQuickHomologate(), auctionLabel(), FormalizationCard() (+25 more)
+Cohesion: 0.08
+Nodes (30): AtaMaterialLine, AtaMaterialsValues(), buildDrafts(), parseMoney(), ProductField(), ProductFieldProps, exactProduct(), filterProducts() (+22 more)
 
-### Community 49 - "toDate"
-Cohesion: 0.36
-Nodes (7): Lookup, notificationDestination(), NotificationReference, notificationResourceKey(), resolveNotificationDestinations(), ata, contract
+### Community 49 - "audit-trail-tab.tsx"
+Cohesion: 0.26
+Nodes (9): ACTION_LABELS, AuditTrailFilters, AuditTrailTab(), AuditTrailTabProps, ENTITY_LABELS, extractJustificationOrDetails(), formatActionLabel(), formatEntityLabel() (+1 more)
 
-### Community 50 - "InMemoryInventoryRepository"
-Cohesion: 0.23
-Nodes (8): StockBalance, InMemoryInventoryRepository, keyOf(), StockKey, StockMutation, StockRow, StockState, MovementRecord
+### Community 50 - "inventory.ts"
+Cohesion: 0.11
+Nodes (18): MovementType, StockBalance, InventoryRepository, keyOf(), StockKey, StockMutation, StockRow, StockState (+10 more)
+
+### Community 51 - "contratos/[id]/page.tsx"
+Cohesion: 0.27
+Nodes (8): CloseContractForm(), Content(), ContractPage(), metadata, contractReceiptBalance(), ContractReceiptLine, ProgressBar(), ProgressBarProps
 
 ### Community 52 - "@playwright/test"
 Cohesion: 0.09
 Nodes (14): evidence, routes, sanitizeText(), sanitizeUrl(), destinations, @playwright/test@^1.65.1, envFiles, envNames (+6 more)
 
-### Community 53 - "alert-source.ts"
-Cohesion: 0.14
-Nodes (11): AlertEntityType, AlertMilestone, digestMessage(), dispatchNotificationEmails(), EmailDispatchSummary, EmailMessage, groupByRecipient(), NotificationRepository (+3 more)
+### Community 53 - "notifications/service.ts"
+Cohesion: 0.06
+Nodes (29): Lookup, notificationDestination(), NotificationReference, notificationResourceKey(), resolveNotificationDestinations(), ata, contract, ALERT_MILESTONES (+21 more)
 
 ### Community 54 - "contracts/actions.ts"
-Cohesion: 0.16
-Nodes (12): ai@^7.0.159, @ai-sdk/groq@^4.0.74, unpdf@^1.6.2, ai, @ai-sdk/groq, unpdf, POST(), ExtractedContract (+4 more)
+Cohesion: 0.11
+Nodes (19): ai@^7.0.159, @ai-sdk/groq@^4.0.74, unpdf@^1.6.2, ai, @ai-sdk/groq, unpdf, POST(), POST() (+11 more)
 
 ### Community 55 - "meetings/service.ts"
-Cohesion: 0.25
-Nodes (5): SupplierRepository, createSupplierSchema, Supplier, supplierFields, updateSupplierSchema
+Cohesion: 0.16
+Nodes (6): InMemorySupplierRepository, SupplierRepository, createSupplierSchema, Supplier, supplierFields, updateSupplierSchema
 
 ### Community 56 - "createSessionClient"
-Cohesion: 0.15
-Nodes (12): GET, GET, isCronAuthorized(), createCronHandler(), CronHandlerOptions, createSupabaseJobRunRepository(), JobOutcome, JobRunRepository (+4 more)
+Cohesion: 0.13
+Nodes (14): GET, GET, GET, isCronAuthorized(), createCronHandler(), CronHandlerOptions, createResendSender(), createSupabaseJobRunRepository() (+6 more)
 
-### Community 57 - "media-actions.ts"
+### Community 57 - "reunioes/page.tsx"
 Cohesion: 0.14
-Nodes (19): draftSchema, GET(), maxDuration, MeetingFile(), getUrl(), AUDIO_TYPES, MeetingMediaPanel(), openSavedAudio() (+11 more)
+Nodes (19): MeetingFile(), getUrl(), AUDIO_TYPES, MeetingMediaPanel(), openSavedAudio(), MeetingOption, AttachmentRow, calendarHref() (+11 more)
 
-### Community 58 - "createSessionClient"
-Cohesion: 0.21
-Nodes (10): UX-17 — Recovery, callback e falha de provedor, @supabase/ssr, ALLOWED_NEXT, GET(), createClient, config, proxy(), getSupabaseConfig() (+2 more)
-
-### Community 59 - "SupabaseContractRepository"
-Cohesion: 0.27
-Nodes (3): SupabaseContractRepository, toContract(), toPayload()
+### Community 58 - "appointment-actions.ts"
+Cohesion: 0.15
+Nodes (13): Conclusões classificadas e prioridade revisada, Diagnóstico validado de UX, Escopo e confiança, Fase 0 — capacidade e resultados finais, Limites e cobertura, Sistema e limites, ALLOWED_NEXT, GET() (+5 more)
 
 ### Community 60 - "app-shell.tsx"
-Cohesion: 0.14
-Nodes (20): STAFF_CATEGORIES, STAFF_CATEGORY_LABELS, ALL_ROLES, COUNCIL_ROLE_LABELS, COUNCIL_ROLES, filterNavigation(), NAV_GROUPS, NAV_ITEMS (+12 more)
+Cohesion: 0.13
+Nodes (22): provisionCouncilAccess(), schema, STAFF_CATEGORIES, STAFF_CATEGORY_LABELS, ALL_ROLES, COUNCIL_ROLE_LABELS, COUNCIL_ROLES, isStaffRole() (+14 more)
 
 ### Community 61 - "components.json"
 Cohesion: 0.09
 Nodes (21): aliases, components, hooks, lib, ui, utils, iconLibrary, menuAccent (+13 more)
 
-### Community 62 - "time.ts"
-Cohesion: 0.08
-Nodes (49): AtaBalancePanel(), AtaBalanceRow, buildAtaBalanceRows(), AtaPage(), Content(), metadata, AtaValidityField(), applyStart() (+41 more)
+### Community 62 - "new-contract-form.tsx"
+Cohesion: 0.18
+Nodes (17): react-dom, AtaValidityField(), applyStart(), onBrChange(), firstDayOfMonth(), QuickDateButton(), validStartDateFromInput(), matchPdfItems() (+9 more)
 
-### Community 63 - "orders.ts"
-Cohesion: 0.16
-Nodes (16): matchPdfItems(), NewAtaForm(), Option, ProcessOption, RequestMaterial, suggestAtaNumber(), SupplierOption, ataStepFormAction() (+8 more)
+### Community 63 - "atas/actions.ts"
+Cohesion: 0.42
+Nodes (9): ataStepFormAction(), createAtaFormAction(), linkAtaProcessFormAction(), optionalId(), processReturnPath(), readProcessItems(), setAllocationsFormAction(), toMoney() (+1 more)
 
 ### Community 64 - "RetentionRepository"
-Cohesion: 0.24
-Nodes (5): InMemoryRetentionRepository, CleanupRun, RetentionAuthorization, RetentionHold, HoldRow
+Cohesion: 0.16
+Nodes (6): InMemoryRetentionRepository, RetentionRepository, CleanupRun, RetentionAuthorization, RetentionHold, HoldRow
 
 ### Community 65 - "meetings.ts"
-Cohesion: 0.19
-Nodes (8): MeetingStatus, MeetingRow, SupabaseMeetingRepository, toMeeting(), toPayload(), toPayload(), callRpc(), toDateOrNull()
+Cohesion: 0.20
+Nodes (7): MeetingStatus, MeetingRow, SupabaseMeetingRepository, toMeeting(), toPayload(), toPayload(), callRpc()
 
-### Community 66 - "material-order-dialog.tsx"
-Cohesion: 0.29
-Nodes (6): Arquitetura (estado atual da implementação), Banco: privilégios e schema `private`, Concorrência e atomicidade, Jobs (Vercel Cron), Sessão e autenticação, Visão geral
+### Community 66 - "filters.tsx"
+Cohesion: 0.23
+Nodes (10): DashboardFilters(), DashboardFiltersProps, FOCUS_OPTIONS, hrefFor(), DASHBOARD_FOCUS, DashboardFocus, first(), focusSchema (+2 more)
 
 ### Community 67 - "compilerOptions"
 Cohesion: 0.11
@@ -463,8 +467,8 @@ Cohesion: 0.16
 Nodes (15): geistMono, jakarta, metadata, RootLayout(), dismissToast(), emit(), EMPTY, listeners (+7 more)
 
 ### Community 69 - "db.ts"
-Cohesion: 0.09
-Nodes (23): @supabase/supabase-js, MovementType, InternalMovement, ContractRow, BalanceRow, MaterialRow, MovementRow, SupabaseInventoryRepository (+15 more)
+Cohesion: 0.12
+Nodes (24): @supabase/supabase-js, AtaStatus, AtaRow, CommitmentRow, toCommitment(), ContractRow, toContract(), toMovement() (+16 more)
 
 ### Community 70 - "compilerOptions"
 Cohesion: 0.11
@@ -475,28 +479,28 @@ Cohesion: 0.12
 Nodes (10): nextConfig, repoRoot, app, auth, authState, build, handle, require (+2 more)
 
 ### Community 72 - "home-overview.tsx"
-Cohesion: 0.22
-Nodes (12): BigStat(), ChartCard(), HomeOverview(), HomeOverviewProps, PROCESS_BAR, PROCESS_LABEL, BarStatItem, BarStatList() (+4 more)
+Cohesion: 0.16
+Nodes (15): BigStat(), ChartCard(), HomeOverview(), HomeOverviewProps, PROCESS_BAR, PROCESS_LABEL, baseAtas, baseContracts (+7 more)
 
 ### Community 73 - "Design Spec: Redesign Visual e Proporcional de "Visão Geral" e "Meu Painel""
 Cohesion: 0.11
 Nodes (17): 1. Contexto e Problema, 2. Objetivos e Não-Objetivos, 3.1. Topo & Briefing Executivo de IA, 3.2. Régua de Métricas Estratégicas (4 KPIs Mestres), 3.3. Grid Balanceado em 2 Colunas (50 / 50), 3.4. Rodapé Limpo, 3. Especificação Detalhada da Página "Visão Geral" (`/dashboard`), 4.1. Topo & Barra de Atalhos Rápidos (+9 more)
 
 ### Community 74 - "react"
-Cohesion: 0.25
-Nodes (6): FixtureReady(), FixtureLayout(), react, RetryButton(), refresh, startTransition
+Cohesion: 0.53
+Nodes (3): FixtureReady(), FixtureLayout(), react
 
 ### Community 75 - "atas.ts"
-Cohesion: 0.18
-Nodes (8): AtaStatus, AtaRow, CommitmentRow, SupabaseAtaRepository, toAta(), toCommitment(), toPayload(), DbResponse
+Cohesion: 0.31
+Nodes (3): SupabaseAtaRepository, toAta(), toPayload()
 
 ### Community 76 - "process-view.tsx"
-Cohesion: 0.06
-Nodes (52): buildStockEntrySources(), RECEIVABLE, StockEntryItem, ArchiveProcessAction(), FormalizationSupplier, PROCESS_TAB_IDS, processTabFromSearch(), ProcessTabId (+44 more)
+Cohesion: 0.05
+Nodes (72): AtaBalancePanel(), AtaBalanceRow, ApprovalQueue(), ApprovalQueueProps, auctionLabel(), FormalizationCard(), FormalizationCardProps, FormalizationSupplier (+64 more)
 
 ### Community 77 - "ActionForm"
-Cohesion: 0.11
-Nodes (40): RetentionForms(), MembershipForms(), ProvisionCouncilForm(), StaffCategoryForm(), EditCouncilForm(), NewCouncilForm(), AmendmentForm(), NewMaterialForm() (+32 more)
+Cohesion: 0.08
+Nodes (51): Option, RetentionForms(), MembershipForms(), Option, ProvisionCouncilForm(), StaffCategoryForm(), MarkReadForm(), NewAtaForm() (+43 more)
 
 ### Community 78 - "20261102000001_identity.sql"
 Cohesion: 0.36
@@ -508,15 +512,15 @@ Nodes (26): assertOk(), buildNote(), cleanText(), contractingForm(), groupLabel(
 
 ### Community 80 - "contracts/service.ts"
 Cohesion: 0.07
-Nodes (36): AtaExtension, ExtensionRequest, AtaView, original, addAmendment(), AmendmentInput, ContractAmendment, ContractTerms (+28 more)
+Nodes (44): buildHoldRows(), contractedMaterialsByProcess(), HoldItemInput, HoldRow, StockSectionProps, CouncilAllocation, ATA_INITIAL_YEARS, ATA_LEGAL_BASIS (+36 more)
 
-### Community 81 - "whatsapp.ts"
-Cohesion: 0.32
-Nodes (8): CouncilsContent(), CouncilsPage(), metadata, formatWhatsapp(), onlyDigits(), parseWhatsapp(), whatsappHref(), WhatsappParse
+### Community 81 - "lucide-react"
+Cohesion: 0.13
+Nodes (24): lucide-react, AdministrationPage(), Content(), LINKS, metadata, CouncilsContent(), CouncilsPage(), metadata (+16 more)
 
 ### Community 83 - "contracts/actions.ts"
-Cohesion: 0.28
-Nodes (9): CloseContractForm(), addAmendmentFormAction(), closeContractFormAction(), createContractFormAction(), linkContractProcessFormAction(), optionalNumber(), optionalText(), processReturnPath() (+1 more)
+Cohesion: 0.42
+Nodes (7): addAmendmentFormAction(), closeContractFormAction(), createContractFormAction(), linkContractProcessFormAction(), optionalNumber(), optionalText(), processReturnPath()
 
 ### Community 84 - "processes.test.ts"
 Cohesion: 0.29
@@ -527,16 +531,16 @@ Cohesion: 0.18
 Nodes (11): scripts, build, db:bundle, db:check, db:seed-demo, dev, e2e, lint (+3 more)
 
 ### Community 86 - "Especificação de Design: Vínculo Solicitação-Processo e Painel Rápido de Anexagem"
-Cohesion: 0.12
-Nodes (15): 1. Visão Geral e Contexto, 2. Requisitos e Casos de Uso, 3.1. Banco de Dados (PostgreSQL / Supabase), 3.2. Sequenciamento de Processos (`nextProcessNumber`), 3. Arquitetura e Modelo de Dados, 4.1. Formulário em `/solicitacoes/nova`, 4.2. Card em `/solicitacoes/[id]`, 4. Design de Interface (UI/UX) (+7 more)
+Cohesion: 0.13
+Nodes (14): 1. Visão Geral e Contexto, 2. Requisitos e Casos de Uso, 3.1. Banco de Dados (PostgreSQL / Supabase), 3.2. Sequenciamento de Processos (`nextProcessNumber`), 3. Arquitetura e Modelo de Dados, 4.1. Formulário em `/solicitacoes/nova`, 4.2. Card em `/solicitacoes/[id]`, 4. Design de Interface (UI/UX) (+6 more)
 
 ### Community 87 - "public.record_meeting_evidence"
 Cohesion: 0.14
 Nodes (16): public.save_meeting(), idx_meeting_action_items_meeting_id, idx_meeting_action_items_responsible_id, idx_meetings_created_by, idx_meetings_minutes_registered_by, keep_meeting_task_completion, private.keep_meeting_task_completion(), public.meeting_attendance (+8 more)
 
 ### Community 88 - "2. Requisitos e Casos de Uso"
-Cohesion: 0.13
-Nodes (14): 1. Visão Geral e Objetivos, 2. Requisitos e Casos de Uso, 3.1. Migração PostgreSQL / Supabase, 3.2. Serviços e Ações, 3. Modelo de Dados e Arquitetura, 4. Segurança, Permissões e Auditoria, 5. Estratégia de Testes, Especificação de Design: Onda 1 — Estoque Bloqueado, Formalização, Economia e Usabilidade (+6 more)
+Cohesion: 0.14
+Nodes (13): 1. Visão Geral e Objetivos, 2. Requisitos e Casos de Uso, 3.1. Migração PostgreSQL / Supabase, 3. Modelo de Dados e Arquitetura, 4. Segurança, Permissões e Auditoria, 5. Estratégia de Testes, Especificação de Design: Onda 1 — Estoque Bloqueado, Formalização, Economia e Usabilidade, UC-01: Registro do Valor Estimado e Bloqueio de Estoque (+5 more)
 
 ### Community 89 - "Arquitetura proposta"
 Cohesion: 0.13
@@ -550,37 +554,37 @@ Nodes (13): Decisões pendentes e salvaguardas, Diagnóstico, Exemplos de tela, 
 Cohesion: 0.15
 Nodes (26): AgendaBoard(), dateLabel(), FormState, hours, monthLabel(), MonthPlan, Option, Person (+18 more)
 
-### Community 92 - "detailed/route.ts"
-Cohesion: 0.35
-Nodes (7): GET(), loadReportNames(), localDate(), presentDetailedReport(), readable(), ReportNames, terms
+### Community 92 - "orders/schemas.ts"
+Cohesion: 0.17
+Nodes (11): ApproveMaterialOrderInput, approveMaterialOrderSchema, CancelMaterialOrderInput, cancelMaterialOrderSchema, CreateMaterialOrderInput, createMaterialOrderItemSchema, createMaterialOrderSchema, materialOrderStatuses (+3 more)
 
 ### Community 93 - "contratos/[id]/page.tsx"
-Cohesion: 0.21
-Nodes (12): CalendarOrgFilter(), CalendarOrgFilterProps, hrefFor(), CalendarReportPanel(), CalendarReportPanelProps, AppointmentRow, CalendarioPage(), Content() (+4 more)
+Cohesion: 0.13
+Nodes (17): CalendarOrgFilter(), CalendarOrgFilterProps, hrefFor(), CalendarReportPanel(), CalendarReportPanelProps, AppointmentRow, CalendarioPage(), Content() (+9 more)
 
-### Community 94 - "atas/extract-pdf/route.ts"
-Cohesion: 0.27
-Nodes (7): POST(), ExtractedAta, ExtractedAtaItem, extractedItemSchema, extractedSchema, parseExtractedAta(), valid
+### Community 94 - "identity.ts"
+Cohesion: 0.33
+Nodes (5): CouncilRow, SupabaseCouncilRepository, toCouncil(), toRow(), isUniqueViolation()
 
-### Community 95 - "Global Constraints"
-Cohesion: 0.22
-Nodes (8): Global Constraints, Plano de Implementação: Onda 1 — Estoque Bloqueado, Formalização, Economia e Usabilidade, Task 1: Migração SQL e Entidades de Domínio (Formalizações e Estoque Bloqueado), Task 2: Provisionamento Automático de Estoque Bloqueado pela Solicitação, Task 5: Fila de Veredito de Warley no Dashboard e Destaque de Economia no Portal do Gestor, Task 6: Segmentação de Estoque (Bloqueado, Pronto para Uso, Utilizado, % Liberado), Task 7: Ajustes Imediatos de Usabilidade (Botão Voltar, Visibilidade de Nova Solicitação e Termo Órgão), Task 8: Consolidação, Validação Geral e Empacotamento de Migrações
+### Community 95 - "Services"
+Cohesion: 0.12
+Nodes (23): Contratos de serviço, Global Constraints, Plano de Implementação: Onda 1 — Estoque Bloqueado, Formalização, Economia e Usabilidade, Task 1: Migração SQL e Entidades de Domínio (Formalizações e Estoque Bloqueado), Task 2: Provisionamento Automático de Estoque Bloqueado pela Solicitação, Task 3: Serviço de Formalização e Veredito de Warley (`FormalizationService`), Task 5: Fila de Veredito de Warley no Dashboard e Destaque de Economia no Portal do Gestor, Task 6: Segmentação de Estoque (Bloqueado, Pronto para Uso, Utilizado, % Liberado) (+15 more)
 
 ### Community 96 - "actions.movement-lines.test.ts"
 Cohesion: 0.22
 Nodes (7): admin, anon, bucket, env, opts, results, TABLES
 
 ### Community 97 - "cnpj.ts"
-Cohesion: 0.36
-Nodes (7): buildProcessHistory(), DOCUMENT_LABEL, documentPlacementDates(), documentTypeLabel(), ProcessHistoryInput, REQUEST_EVENT_TITLE, toIso()
+Cohesion: 0.31
+Nodes (8): buildProcessHistory(), DOCUMENT_LABEL, documentPlacementDates(), documentTypeLabel(), ProcessHistoryInput, REQUEST_EVENT_TITLE, toIso(), ALL_DOCUMENT_TYPES
 
 ### Community 98 - "MaterialOrder"
-Cohesion: 0.07
-Nodes (33): Task 1: Migração SQL e Modelo de Domínio de Pedidos de Materiais (`material_orders`), Task 2: Serviços de Domínio e Repositórios de Pedidos de Materiais, approveMaterialOrder(), approveOrder, cancelMaterialOrder(), cancelOrder, changeMaterialOrderStatus(), changeOrderStatus (+25 more)
+Cohesion: 0.08
+Nodes (28): Global Constraints, Plano de Implementação: Onda 2 — Pedidos de Materiais, Justificativas e Trilha de Auditoria, Task 1: Migração SQL e Modelo de Domínio de Pedidos de Materiais (`material_orders`), Task 3: Server Actions e Interfaces de Pedidos no Portal do Órgão e Fila de Warley, Task 5: Trilha de Auditoria Multidimensional (Filtros Avançados no Serviço e Adapters), Task 6: Reformulação da Página de Relatórios e Tela de Auditoria com Abas e Filtros, Task 7: Consolidação Geral, `db:bundle`, `db:check`, Testes 100% e Build, approveMaterialOrder() (+20 more)
 
-### Community 99 - "formalization.ts"
-Cohesion: 0.10
-Nodes (17): BASE_FORMALIZATION, MOCK_SUPPLIERS, contractedItemSchema, FormalizationStatus, formalizationStatuses, formalizationStatusSchema, HomologateFormalizationInput, homologateFormalizationSchema (+9 more)
+### Community 99 - "formalizations/actions.ts"
+Cohesion: 0.38
+Nodes (8): Task 4: Card de Formalização no Processo e Cálculo de Economia em Tempo Real, handleQuickHomologate(), assertInstrumentsLinked(), homologateFormalizationAction(), parseMoney(), rejectFormalizationAction(), submitFormalizationFormAction(), mockRunAction
 
 ### Community 100 - "concorrencia.sh"
 Cohesion: 0.60
@@ -594,17 +598,17 @@ Nodes (11): 10. Riscos, 1. Regras confirmadas (imutáveis sem decisão do usuár
 Cohesion: 0.73
 Nodes (4): checkDigit(), formatCnpj(), isValidCnpj(), onlyDigits()
 
-### Community 112 - "ata/route.ts"
-Cohesion: 0.46
-Nodes (5): pdf-lib, GET(), DetailedReport, clean(), detailedReportPdf()
+### Community 112 - "Global Constraints"
+Cohesion: 0.25
+Nodes (7): Global Constraints, Redesign Visual e Proporcional de "Visão Geral" e "Meu Painel" Implementation Plan, Task 1: Refatoração do componente compartilhado `KpiCard`, Task 2: Redesign Executivo do Briefing de IA (`BriefingCard`), Task 5: Modal de Agendamento de Reuniões no Meu Painel (`MeetingDialog`), Task 6: Reestruturação do Meu Painel em 4 KPIs e Grid 2 Colunas Balanceadas, Task 7: Verificação Integrada de Qualidade (Testes, Typecheck e Build)
 
-### Community 113 - "result.ts"
-Cohesion: 0.32
-Nodes (9): generateReportAnalysis(), analysisSchema, auditSources(), fallbackReportAnalysis(), operationalSources(), parseReportAnalysis(), ReportAnalysis, ReportSource (+1 more)
+### Community 113 - "processos/page.tsx"
+Cohesion: 0.43
+Nodes (5): deadlinePriority(), Content(), metadata, ProcessesPage(), processDisplayStatus()
 
 ### Community 114 - "Documento de Design Técnico: Onda 2 — Pedidos de Materiais, Justificativas e Trilha de Auditoria"
-Cohesion: 0.13
-Nodes (14): 1. Contexto e Objetivos, 2.1 Modelo de Dados (Supabase Migration), 2.2 Regras de Negócio e Domínio de Estoque, 2.3 Interfaces de Usuário para Pedidos, 2. Subsistema 1: Pedidos de Materiais (`material_orders`), 3.1 Encerramento de Processo com Documentação Parcial, 3.2 Recebimento de Materiais com Saldo Pendente, 3. Subsistema 2: Justificativas para Conclusão Incompleta (< 100%) (+6 more)
+Cohesion: 0.14
+Nodes (13): 1. Contexto e Objetivos, 2.1 Modelo de Dados (Supabase Migration), 2.2 Regras de Negócio e Domínio de Estoque, 2.3 Interfaces de Usuário para Pedidos, 2. Subsistema 1: Pedidos de Materiais (`material_orders`), 3.1 Encerramento de Processo com Documentação Parcial, 3.2 Recebimento de Materiais com Saldo Pendente, 3. Subsistema 2: Justificativas para Conclusão Incompleta (< 100%) (+5 more)
 
 ### Community 115 - "Documento de Design Técnico: Redesign Visual e Arquitetura em Abas da Página de Processos"
 Cohesion: 0.18
@@ -618,33 +622,29 @@ Nodes (9): Global Constraints, Redesign Visual da Página de Processos — Plano
 Cohesion: 0.20
 Nodes (9): Camadas e evidência, E2E e navegação, Estado da execução, Estados e segurança, Gate de baseline técnica, Integridade backend prioritária, Matriz navegador e acessibilidade, Plano de testes e validação UX (+1 more)
 
-### Community 118 - "material-order-dialog.tsx"
-Cohesion: 0.08
-Nodes (30): @base-ui/react, cn, OrderQueue(), handleApprove(), handleConfirmReject(), OrderQueueProps, PendingOrderItem, MaterialOrderDialog() (+22 more)
+### Community 118 - "order-queue.tsx"
+Cohesion: 0.22
+Nodes (15): OrderQueue(), handleApprove(), handleConfirmReject(), OrderQueueProps, PendingOrderItem, approveMaterialOrderAction(), cancelMaterialOrderAction(), createMaterialOrderAction() (+7 more)
 
-### Community 119 - "react-dom"
-Cohesion: 0.25
-Nodes (5): react-dom, baseAtas, baseContracts, baseStock, BASE_PROPS
-
-### Community 120 - "Diagnóstico validado de UX"
+### Community 120 - "document-types.ts"
 Cohesion: 0.29
-Nodes (6): Conclusões classificadas e prioridade revisada, Diagnóstico validado de UX, Escopo e confiança, Fase 0 — capacidade e resultados finais, Limites e cobertura, Sistema e limites
+Nodes (6): ADDITIONAL_DOCUMENT_TYPE_CODES, ADDITIONAL_DOCUMENT_TYPES, AdditionalDocumentTypeCode, ALL_DOCUMENT_TYPE_CODES, AllDocumentTypeCode, DOCUMENT_TYPES
 
 ### Community 121 - "Execução local, deploy e backups"
 Cohesion: 0.25
 Nodes (7): Aplicar o banco (migrations 0001–0007 + seed + bucket), Backups, Deploy (Vercel + Supabase), Execução local, deploy e backups, Local sem Docker (validação do SQL), Primeiro acesso (cadastro somente por convite, P7), Projeto Supabase e variáveis (estado real)
 
-### Community 122 - "alertas/route.ts"
-Cohesion: 0.38
-Nodes (3): GET, EmailSender, createResendSender()
+### Community 122 - "cleanup-eligibility.ts"
+Cohesion: 0.40
+Nodes (5): CLEANUP_WAIT_DAYS, CleanupDecision, CleanupInput, evaluateCleanupEligibility(), addDaysToInstant()
 
 ### Community 123 - "processes/actions.ts"
-Cohesion: 0.14
-Nodes (18): Option, ProcessActions(), ProcessActionsProps, GovernanceTab(), GovernanceTabProps, BASE_PROPS, changeProcessStatusFormAction(), classifyProcessFormAction() (+10 more)
+Cohesion: 0.15
+Nodes (16): ArchiveProcessAction(), ProcessActions(), ProcessActionsProps, GovernanceTab(), GovernanceTabProps, BASE_PROPS, changeProcessStatusFormAction(), classifyProcessFormAction() (+8 more)
 
 ### Community 124 - "react-dom"
-Cohesion: 0.20
-Nodes (18): CurrencyFixture(), buildInitialDrafts(), PriceResearchForm(), PriceResearchSummary(), DocumentationTabProps, lineSchema, saveProcessPriceResearch(), PriceResearchItemInput (+10 more)
+Cohesion: 0.22
+Nodes (16): CurrencyFixture(), buildInitialDrafts(), PriceResearchForm(), PriceResearchSummary(), lineSchema, saveProcessPriceResearch(), PriceResearchItemInput, PriceResearchLine (+8 more)
 
 ### Community 125 - "Fluxos atuais e ideais"
 Cohesion: 0.33
@@ -654,9 +654,9 @@ Nodes (5): Escopo e leitura das evidências, Fluxos atuais e ideais, Fluxos por 
 Cohesion: 0.29
 Nodes (6): 1. Projeto Supabase real (`wdefwnmqcdomupdiorbo`) — NÃO foi alterado, 2. Postgres 16 local (descartável) com stub do Supabase, 3. Aplicação, 4. Limitações resolvidas nesta rodada, Bugs encontrados pelos testes e corrigidos, Validação realmente executada
 
-### Community 128 - "reunioes/page.tsx"
-Cohesion: 0.28
-Nodes (8): AttachmentRow, calendarHref(), detailHref(), MeetingCard(), meetingStatus(), metadata, Option, Query
+### Community 128 - "DocumentTypeCode"
+Cohesion: 0.40
+Nodes (5): DocumentalSnapshot, DocumentTypeCode, DocumentalProgress, AttachmentRow, SnapshotJson
 
 ### Community 129 - "Checklist de execução"
 Cohesion: 0.29
@@ -666,13 +666,17 @@ Nodes (6): Checklist de execução, Checklist UX-27 — hierarquia do dashboard 
 Cohesion: 0.29
 Nodes (6): Decisões adicionais dos blocos 1 e 2, Decisões pendentes do bloco 3, Estado por ID, Execução dos blocos 1 e 2, Restrições e resultados de navegador, Verificações após correções
 
+### Community 131 - "next"
+Cohesion: 0.12
+Nodes (3): nextConfig, next, CouncilPickerProps
+
 ### Community 133 - "Pendências e limitações conhecidas"
 Cohesion: 0.33
 Nodes (5): Decisões do usuário ainda abertas, Limitações de projeto, O que depende do usuário, Pendências e limitações conhecidas, Validação (ver `07-validacao-executada.md`)
 
 ### Community 134 - "processes.ts"
-Cohesion: 0.18
-Nodes (7): snapshotToJson(), SupabaseDocumentRepository, SupabaseProcessRepository, toAttachment(), toProcess(), toProcessChanges(), toIsoOrNull()
+Cohesion: 0.20
+Nodes (8): AttachmentForProgress, toNotification(), snapshotToJson(), SupabaseProcessRepository, toProcess(), toProcessChanges(), toDateOrNull(), toIsoOrNull()
 
 ### Community 135 - "Relatório de alterações recentes"
 Cohesion: 0.33
@@ -706,57 +710,53 @@ Nodes (3): Deploy on Vercel, Getting Started, Learn More
 Cohesion: 0.15
 Nodes (12): 1. Contexto e Objetivos, 2.1 Modelo de Dados e Banco (Supabase Migration), 2.2 Domínio de Processos e Cálculo de Progresso, 2.3 Interface do Usuário (UI), 2. Subsistema 1: Artefatos Adicionais nos Processos Administrativos, 3.1 Unificação dos Grupos de Navegação (`src/shared/lib/authz/navigation.ts`), 3. Subsistema 2: Centralização da Navegação e Nomenclatura Institucional, 4.1 KPIs e Indicadores no Topo de `/reunioes` (+4 more)
 
-### Community 150 - "fail"
-Cohesion: 0.10
-Nodes (21): AtaBalance, CommitmentEvent, CouncilAllocation, ATA_INITIAL_YEARS, ATA_LEGAL_BASIS, ATA_MAX_EXTENSIONS, AtaValidityStatus, ataValidityStatus() (+13 more)
-
-### Community 151 - "Global Constraints"
-Cohesion: 0.29
-Nodes (6): Global Constraints, Plano de Implementação: Onda 2 — Pedidos de Materiais, Justificativas e Trilha de Auditoria, Task 3: Server Actions e Interfaces de Pedidos no Portal do Órgão e Fila de Warley, Task 5: Trilha de Auditoria Multidimensional (Filtros Avançados no Serviço e Adapters), Task 6: Reformulação da Página de Relatórios e Tela de Auditoria com Abas e Filtros, Task 7: Consolidação Geral, `db:bundle`, `db:check`, Testes 100% e Build
-
-### Community 153 - "file-upload.tsx"
+### Community 150 - "CommitmentEvent"
 Cohesion: 0.14
-Nodes (18): sanitizeFileName(), SIGNATURES, startsWith(), pdf, ValidatedFile, validateUpload(), ALLOWED_EXTENSIONS_LABEL, ALLOWED_FILE_TYPES (+10 more)
+Nodes (5): AtaBalance, CommitmentEvent, ataValidityStatus(), currentEndDate(), requestExtension()
+
+### Community 153 - "file-validation.ts"
+Cohesion: 0.29
+Nodes (7): sanitizeFileName(), SIGNATURES, startsWith(), pdf, ValidatedFile, validateUpload(), extensionOf()
 
 ### Community 154 - "repositories.ts"
-Cohesion: 0.13
-Nodes (7): AuditRow, parseDateRange(), SupabaseAuditRepository, toEntry(), SupabaseStorage, SupabaseSupplierRepository, createSupabaseRepositories()
+Cohesion: 0.10
+Nodes (5): SupabaseInventoryRepository, SupabaseStorage, SupabaseSupplierRepository, SupabaseTransferRepository, createSupabaseRepositories()
 
 ### Community 161 - "Auditoria de desempenho do Warley"
-Cohesion: 0.20
-Nodes (9): Auditoria de desempenho do Warley, Diagnóstico executivo, Frontend, API e banco, Gargalos priorizados, IA, Implementação posterior à auditoria, Matriz de regressão, Medições e limites (+1 more)
+Cohesion: 0.18
+Nodes (10): Arquitetura e caminho dos dados, Auditoria de desempenho do Warley, Diagnóstico executivo, Frontend, API e banco, Gargalos priorizados, IA, Implementação posterior à auditoria, Matriz de regressão (+2 more)
 
 ### Community 173 - "20261110000003_material_orders.sql"
 Cohesion: 0.42
 Nodes (8): idx_material_order_items_material, idx_material_order_items_order, idx_material_orders_council, idx_material_orders_created_at, idx_material_orders_requested_by, idx_material_orders_status, public.material_order_items, public.material_orders
 
 ### Community 175 - "movement-form.tsx"
-Cohesion: 0.12
-Nodes (24): StockEntrySource, EntryFromProcessForm(), isLedgerType(), LedgerType, Line, MovementForm(), MovementFormProps, newLine() (+16 more)
+Cohesion: 0.23
+Nodes (11): StockEntrySource, EntryFromProcessForm(), isLedgerType(), LedgerType, Line, MovementForm(), MovementFormProps, newLine() (+3 more)
 
 ### Community 180 - "container.ts"
-Cohesion: 0.06
-Nodes (45): Contratos de serviço, Task 2: Geração Automática do Próximo Número de Processo (`nextSequence`), zod, AuditRecorder, AttachmentForProgress, DocumentRepository, StoragePort, isVisibleAttachment() (+37 more)
+Cohesion: 0.05
+Nodes (50): Task 2: Geração Automática do Próximo Número de Processo (`nextSequence`), 6. Estratégia de Testes, AtaRepository, AuditRecorder, DocumentRepository, StoragePort, isVisibleAttachment(), SavingsSummary (+42 more)
 
 ## Knowledge Gaps
 - **1 isolated node(s):** `PATH`
   These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 951 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **34 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **31 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `ok()` connect `ok` to `reunioes/page.tsx`, `runAction`, `dashboard/page.tsx`, `process-attachment-sheet.tsx`, `result.ts`, `processes.ts`, `inventory/service.ts`, `ProfileSummary`, `purchases/service.ts`, `ProcessService`, `vitest`, `documentation-tab.tsx`, `identity/service.test.ts`, `fail`, `can`, `file-upload.tsx`, `repositories.ts`, `purchases/service.test.ts`, `toFortalezaDate`, `server/session.ts`, `lucide-react`, `transfer.ts`, `adapters/purchases.ts`, `relatorios/page.tsx`, `AuditEntry`, `groq.ts`, `identity.ts`, `formalization-card.tsx`, `InMemoryInventoryRepository`, `RetentionRepository`, `container.ts`, `meetings/service.ts`, `media-actions.ts`, `time.ts`, `db.ts`, `atas.ts`, `process-view.tsx`, `contracts/service.ts`, `contratos/[id]/page.tsx`, `MaterialOrder`, `react-dom`?**
-  _High betweenness centrality (0.107) - this node is a cross-community bridge._
+- **Why does `ok()` connect `ok` to `runAction`, `dashboard/page.tsx`, `Screen`, `InMemoryPurchaseRequestRepository`, `inventory/service.ts`, `identity/service.ts`, `processes.ts`, `ok`, `ProcessService`, `vitest`, `documentation-tab.tsx`, `solicitacoes/page.tsx`, `CommitmentEvent`, `file-validation.ts`, `detailed.ts`, `server/session.ts`, `simple-table.tsx`, `request-status.ts`, `adapters/purchases.ts`, `result.ts`, `AuditEntry`, `groq.ts`, `inventory.ts`, `contratos/[id]/page.tsx`, `container.ts`, `notifications/service.ts`, `meetings/service.ts`, `reunioes/page.tsx`, `appointment-actions.ts`, `app-shell.tsx`, `db.ts`, `atas.ts`, `contracts/service.ts`, `lucide-react`, `contratos/[id]/page.tsx`, `identity.ts`, `MaterialOrder`, `formalizations/actions.ts`, `processos/page.tsx`, `react-dom`?**
+  _High betweenness centrality (0.084) - this node is a cross-community bridge._
 - **What connects `PATH` to the rest of the system?**
   _1 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `runAction` be split into smaller, more focused modules?**
-  _Cohesion score 0.08870056497175141 - nodes in this community are weakly interconnected._
-- **Why does `vitest` connect `vitest` to `dashboard/page.tsx`, `process-attachment-sheet.tsx`, `simple-table.tsx`, `result.ts`, `inventory/service.ts`, `Attachment`, `purchases/service.ts`, `ok`, `ProcessService`, `documentation-tab.tsx`, `package.json`, `lucide-react`, `fail`, `can`, `file-upload.tsx`, `purchases/service.test.ts`, `[...path]/page.tsx`, `toFortalezaDate`, `processes/schemas.ts`, `pdf.ts`, `request-template.ts`, `lucide-react`, `transfer.ts`, `relatorios/page.tsx`, `groq.ts`, `movement-form.tsx`, `formalization-card.tsx`, `toDate`, `processes.ts`, `alert-source.ts`, `contracts/actions.ts`, `createSessionClient`, `media-actions.ts`, `createSessionClient`, `app-shell.tsx`, `time.ts`, `orders.ts`, `db.ts`, `callback-server.mjs`, `home-overview.tsx`, `react`, `process-view.tsx`, `contracts/service.ts`, `whatsapp.ts`, `contracts/actions.ts`, `agenda-board.tsx`, `detailed/route.ts`, `atas/extract-pdf/route.ts`, `cnpj.ts`, `MaterialOrder`, `formalization.ts`, `cnpj.ts`, `ata/route.ts`, `result.ts`, `material-order-dialog.tsx`, `react-dom`, `processes/actions.ts`, `react-dom`?**
-  _High betweenness centrality (0.073) - this node is a cross-community bridge._
-- **Should `dashboard/page.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.125 - nodes in this community are weakly interconnected._
-- **Why does `fail()` connect `ok` to `reunioes/page.tsx`, `runAction`, `process-attachment-sheet.tsx`, `result.ts`, `processes.ts`, `inventory/service.ts`, `ProfileSummary`, `purchases/service.ts`, `ProcessService`, `vitest`, `documentation-tab.tsx`, `identity/service.test.ts`, `fail`, `can`, `file-upload.tsx`, `repositories.ts`, `purchases/service.test.ts`, `toFortalezaDate`, `server/session.ts`, `transfer.ts`, `adapters/purchases.ts`, `relatorios/page.tsx`, `AuditEntry`, `groq.ts`, `identity.ts`, `formalization-card.tsx`, `InMemoryInventoryRepository`, `container.ts`, `meetings/service.ts`, `media-actions.ts`, `SupabaseContractRepository`, `db.ts`, `atas.ts`, `process-view.tsx`, `contracts/service.ts`, `contratos/[id]/page.tsx`, `MaterialOrder`, `processes/actions.ts`, `react-dom`?**
-  _High betweenness centrality (0.057) - this node is a cross-community bridge._
+  _Cohesion score 0.11054421768707483 - nodes in this community are weakly interconnected._
+- **Why does `vitest` connect `vitest` to `runAction`, `dashboard/page.tsx`, `Button`, `process-attachment-sheet.tsx`, `simple-table.tsx`, `inventory/service.ts`, `ok`, `ProcessService`, `documentation-tab.tsx`, `package.json`, `material-order-dialog.tsx`, `solicitacoes/page.tsx`, `plan-calendar.ts`, `file-validation.ts`, `overview-lists.tsx`, `processes.test.ts`, `detailed.ts`, `request-template.ts`, `simple-table.tsx`, `request-status.ts`, `result.ts`, `groq.ts`, `movement-form.tsx`, `formalization-card.tsx`, `audit-trail-tab.tsx`, `processes.ts`, `contratos/[id]/page.tsx`, `notifications/service.ts`, `contracts/actions.ts`, `createSessionClient`, `appointment-actions.ts`, `app-shell.tsx`, `new-contract-form.tsx`, `db.ts`, `callback-server.mjs`, `home-overview.tsx`, `process-view.tsx`, `ActionForm`, `contracts/service.ts`, `lucide-react`, `agenda-board.tsx`, `contratos/[id]/page.tsx`, `cnpj.ts`, `MaterialOrder`, `formalizations/actions.ts`, `cnpj.ts`, `processos/page.tsx`, `order-queue.tsx`, `processes/actions.ts`, `react-dom`?**
+  _High betweenness centrality (0.058) - this node is a cross-community bridge._
+- **Should `Button` be split into smaller, more focused modules?**
+  _Cohesion score 0.09176788124156546 - nodes in this community are weakly interconnected._
+- **Why does `Result` connect `ok` to `runAction`, `InMemoryPurchaseRequestRepository`, `inventory/service.ts`, `identity/service.ts`, `ok`, `ProcessService`, `vitest`, `documentation-tab.tsx`, `CommitmentEvent`, `file-validation.ts`, `detailed.ts`, `server/session.ts`, `simple-table.tsx`, `request-status.ts`, `adapters/purchases.ts`, `result.ts`, `AuditEntry`, `groq.ts`, `inventory.ts`, `container.ts`, `notifications/service.ts`, `meetings/service.ts`, `db.ts`, `contracts/service.ts`, `MaterialOrder`, `formalizations/actions.ts`?**
+  _High betweenness centrality (0.044) - this node is a cross-community bridge._
 - **Should `process-attachment-sheet.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.12773109243697478 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.11561561561561562 - nodes in this community are weakly interconnected._

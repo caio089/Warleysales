@@ -123,7 +123,7 @@ export function StockSection({
                           </span>
                         ) : null}
                       </td>
-                      <td className="py-2.5 text-center font-bold text-slate-900 tabular-nums">
+                      <td className={`py-2.5 text-center font-bold tabular-nums ${s.available <= 0 ? "text-red-700 dark:text-red-400" : s.level === "critico" ? "text-amber-700 dark:text-amber-400" : "text-slate-900"}`}>
                         {s.available}
                       </td>
                       <td className="py-2.5 text-center text-slate-500 tabular-nums">

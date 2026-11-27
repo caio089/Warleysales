@@ -17,6 +17,7 @@ import {
   PROCESS_STATUS,
   REQUEST_STATUS,
   STOCK_LEVEL,
+  STOCK_AVAILABILITY,
   TRANSFER_STATUS,
 } from "./status-presentation";
 
@@ -26,6 +27,7 @@ const DICTIONARIES = {
   transfer: TRANSFER_STATUS,
   meeting: MEETING_STATUS,
   stock: STOCK_LEVEL,
+  availability: STOCK_AVAILABILITY,
   completion: COMPLETION_STATUS,
   order: ORDER_STATUS,
   hold: STOCK_HOLD_STATUS,
@@ -40,7 +42,7 @@ export type SimpleRow = { id: string } & Record<string, Cell>;
 export interface SimpleColumn {
   key: string;
   header: string;
-  kind?: "text" | "number" | "currency" | "percent" | "date" | "datetime" | "status" | "progress" | "link";
+  kind?: "text" | "number" | "balance" | "currency" | "percent" | "date" | "datetime" | "status" | "progress" | "link";
   dictionary?: StatusDictionary;
   /** Para kind "link": chave da linha que contém o href. */
   hrefKey?: string;
@@ -85,6 +87,7 @@ function renderCell(column: SimpleColumn, row: SimpleRow) {
   if (value === null || value === undefined || value === "") return "—";
   switch (column.kind) {
     case "number": return formatNumber(Number(value));
+    case "balance": return <span className={Number(value) <= 0 ? "font-semibold text-red-700 dark:text-red-400" : "tabular-nums"}>{formatNumber(Number(value))}</span>;
     case "currency": return formatCurrency(Number(value));
     case "percent": return `${Number(value).toFixed(2).replace(".", ",")}%`;
     case "date": return formatDateOnly(String(value));

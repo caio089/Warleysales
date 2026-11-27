@@ -83,8 +83,17 @@ export const MEETING_STATUS: Dictionary = {
 export const STOCK_LEVEL: Dictionary = {
   normal: { label: "Normal", tone: "success" },
   atencao: { label: "Atenção", tone: "warning" },
-  critico: { label: "Crítico", tone: "danger" },
+  critico: { label: "Crítico", tone: "warning" },
   sem_disponibilidade: { label: "Sem disponibilidade", tone: "danger" },
+};
+
+export const STOCK_AVAILABILITY: Dictionary = {
+  "Ata esgotada": { label: "Ata esgotada", tone: "danger" },
+  "Contrato esgotado": { label: "Contrato esgotado", tone: "danger" },
+  "Estoque físico zerado": { label: "Estoque físico zerado", tone: "danger" },
+  "Disponível": { label: "Disponível", tone: "success" },
+  "Sem ata": { label: "Sem ata", tone: "neutral" },
+  "Sem contrato": { label: "Sem contrato", tone: "info" },
 };
 
 export const COMPLETION_STATUS: Dictionary = {
