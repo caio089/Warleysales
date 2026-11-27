@@ -175,9 +175,8 @@ export function NewContractForm({
           hiddenFields={{
             councilId: lockedProcess.councilId,
             processId: lockedProcess.processId,
-            number: (extracted?.number?.trim() || suggestedNumber).slice(0, 40),
-            object: extracted?.object?.trim() || object,
             returnTo: lockedProcess.returnToAtaId ? `/atas/${lockedProcess.returnToAtaId}` : `/processos/${lockedProcess.processId}`,
+            ...(atas.length === 1 ? { ataId: atas[0]!.id } : {}),
             ...(valueFromQuantities ? { value: String(computedContractValue) } : {}),
           }}
         >
@@ -196,6 +195,11 @@ export function NewContractForm({
                 ) : null}
               </div>
 
+              <div className="grid gap-3 sm:grid-cols-2">
+                <TextField name="number" label="Número do contrato" required defaultValue={(extracted?.number?.trim() || suggestedNumber).slice(0, 40)} errors={e.number} />
+                <TextField name="object" label="Objeto do contrato" required defaultValue={extracted?.object?.trim() || object} errors={e.object} />
+              </div>
+
               {atas.length > 0 ? (
                 <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
                   <div>
@@ -207,7 +211,7 @@ export function NewContractForm({
                   {extracted?.items?.length && pdfMatches.some((match) => match === null) ? (
                     <p role="status" className="text-sm text-amber-700">Alguns itens do PDF não correspondem de forma única aos itens da ata. Confira e informe as quantidades manualmente.</p>
                   ) : null}
-                  <SelectField
+                  {atas.length > 1 ? <SelectField
                     name="ataId"
                     label="Ata de registro de preços"
                     required
@@ -222,7 +226,12 @@ export function NewContractForm({
                       setSupplierId(atas.find((ata) => ata.id === next)?.supplierId ?? "");
                     }}
                     errors={e.ataId}
-                  />
+                  /> : selectedAta ? (
+                    <p className="rounded-lg bg-card px-3 py-2 text-sm text-foreground ring-1 ring-border/60">
+                      Ata selecionada: <span className="font-semibold">{selectedAta.number}</span>
+                      {selectedAta.supplierName ? ` · ${selectedAta.supplierName}` : ""}
+                    </p>
+                  ) : null}
                   {selectedAta?.status === "Rascunho" ? (
                     <p className="text-xs text-amber-700">Ative a ata antes de consumir saldo com o contrato.</p>
                   ) : null}

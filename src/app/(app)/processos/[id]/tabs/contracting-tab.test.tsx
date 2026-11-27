@@ -223,7 +223,7 @@ describe("ContractingTab", () => {
     expect(html).toContain("Vigente");
     expect(html).toContain("31/12/2026");
     expect(html).toContain("/atas/ata-1");
-    expect(html).toContain("Ver saldo e detalhes");
+    expect(html).toContain("Abrir ata e contratos");
     expect(html).toContain("Saldo por item");
     expect(html).toContain("PAP-01 — Papel A4");
     expect(html).toContain("15.000,00");

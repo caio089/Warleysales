@@ -163,9 +163,9 @@ export function ContractingTab({
                         <span className="text-[0.7rem] font-medium uppercase tracking-wider text-muted-foreground">
                           Ata de Registro de Preços
                         </span>
-                        <p className="mt-0.5 font-semibold text-foreground group-hover:text-primary transition-colors">
+                        <Link href={`/atas/${ata.id}`} className="mt-0.5 block font-semibold text-foreground transition-colors group-hover:text-primary hover:underline">
                           {ata.number}
-                        </p>
+                        </Link>
                       </div>
                       <StatusBadge
                         label={ata.status}
@@ -195,7 +195,7 @@ export function ContractingTab({
                         href={`/atas/${ata.id}`}
                         className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
                       >
-                        <span>Ver saldo e detalhes</span>
+                        <span>Abrir ata e contratos</span>
                         <ExternalLink className="size-3" aria-hidden="true" />
                       </Link>
                       {ata.id === existingAta?.id && cancelledAtas.length > 0 && <CancelledAtaHistory atas={cancelledAtas} />}

@@ -165,7 +165,7 @@ export function FormalizationCard({
             Primeiro anexe ou crie a ata. Depois anexe ou crie o contrato.
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Em processos com ata, abra Ver saldo e detalhes para cadastrar o contrato. O fornecedor, o pregão e a liberação do estoque ficam disponíveis depois disso.
+            Em processos com ata, abra a ata para cadastrar o contrato. O fornecedor, o pregão e a liberação do estoque ficam disponíveis depois disso.
           </p>
         </div>
         {exceptionButton}
