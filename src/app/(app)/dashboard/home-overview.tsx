@@ -9,7 +9,6 @@ import {
   Package,
   PiggyBank,
   Timer,
-  Truck,
 } from "lucide-react";
 import { formatCurrency } from "@/shared/lib/format";
 import { BarStatList } from "@/shared/ui/charts/bar-stat-list";
@@ -25,7 +24,6 @@ export type HomeOverviewProps = {
   stockAttention: number;
   contracts: { total: number; expired: number; expiring30: number };
   atas: { total: number; expired: number };
-  deliveries: { delivered: number; pending: number };
   processProgress: number | null;
   savingsTotal: number;
   savingsProcesses: number;
@@ -128,7 +126,7 @@ function ChartCard({
   );
 }
 
-/** Visão do dia: KPIs densos + gráficos de solicitações, processos, estoque, prazos e entregas. */
+/** Visão do dia: KPIs densos + gráficos de solicitações, processos, estoque e prazos. */
 export function HomeOverview({
   isWarley,
   requests,
@@ -137,7 +135,6 @@ export function HomeOverview({
   stockAttention,
   contracts,
   atas,
-  deliveries,
   processProgress,
   savingsTotal,
   savingsProcesses,
@@ -148,8 +145,6 @@ export function HomeOverview({
   const requestTotal = requests.pending + requests.inProgress + requests.completed;
   const stockTotal =
     stockByLevel.normal + stockByLevel.atencao + stockByLevel.critico + stockByLevel.semDisponibilidade;
-  const deliveryTotal = deliveries.delivered + deliveries.pending;
-  const deliveryPct = deliveryTotal > 0 ? Math.round((deliveries.delivered / deliveryTotal) * 100) : 100;
 
   const processBars = processStatuses
     .filter((row) => row.count > 0)
@@ -237,14 +232,6 @@ export function HomeOverview({
           href: "/estoque",
           tone: stockAttention > 0 ? ("warn" as const) : ("ok" as const),
         },
-        {
-          icon: Truck,
-          value: deliveries.pending,
-          label: "Entregas pendentes",
-          hint: `${deliveries.delivered} já recebidas`,
-          href: "/entregas",
-          tone: deliveries.pending > 0 ? ("warn" as const) : ("ok" as const),
-        },
       ]
     : [
         {
@@ -289,13 +276,6 @@ export function HomeOverview({
           href: "/contratos",
           tone: contracts.expiring30 + atas.expired > 0 ? ("warn" as const) : ("ok" as const),
         },
-        {
-          icon: Truck,
-          value: deliveries.pending,
-          label: "A receber",
-          hint: `${deliveries.delivered} já recebidas`,
-          href: "/entregas",
-        },
       ];
 
   return (
@@ -311,7 +291,7 @@ export function HomeOverview({
           <p className="text-sm text-muted-foreground">
             {isWarley
               ? "Números e gráficos do que pede atenção — e do que já anda bem."
-              : "Pedidos, estoque, prazos e entregas do seu órgão."}
+              : "Pedidos, estoque e prazos do seu órgão."}
           </p>
         </div>
       </div>
@@ -368,17 +348,9 @@ export function HomeOverview({
           ) : null}
         </ChartCard>
 
-        <ChartCard title="Contratos, atas e entregas">
+        <ChartCard title="Contratos e atas">
           <BarStatList items={deadlineBars} emptyLabel="Sem contratos ou atas neste recorte." />
           <div className="mt-4 space-y-2 border-t border-border/60 pt-3">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Entregas concluídas</span>
-              <span className="font-semibold tabular-nums text-foreground">{deliveryPct}%</span>
-            </div>
-            <ProgressBar value={deliveryPct} label="Taxa de entregas" showValue={false} />
-            <p className="text-[0.7rem] text-muted-foreground">
-              {deliveries.delivered} recebidas · {deliveries.pending} pendentes
-            </p>
             {savingsTotal > 0 ? (
               <p className="rounded-lg bg-emerald-50 px-2.5 py-1.5 text-[0.7rem] font-medium text-emerald-800">
                 Economia: {formatCurrency(savingsTotal)}

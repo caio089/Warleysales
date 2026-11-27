@@ -13,6 +13,7 @@ import { ProgressBar } from "@/shared/ui/progress-bar";
 import { Screen } from "@/shared/ui/screen";
 import { SimpleTable } from "@/shared/ui/simple-table";
 import { formatCurrency } from "@/shared/lib/format";
+import { contractReceiptBalance } from "@/modules/contracts/domain/receipt-balance";
 import { toFortalezaDate } from "@/shared/lib/time";
 import { AmendmentForm } from "./amendment-form";
 import { CloseContractForm } from "./close-contract-form";
@@ -22,18 +23,24 @@ export const metadata: Metadata = { title: "Contrato" };
 async function Content({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const result = await loadScreen(async ({ services, actor }) => {
-    const [view, processes, atas] = await Promise.all([
+    const [view, processes, atas, receiptLines] = await Promise.all([
       services.contracts.get(actor, id),
       services.processes.list(actor),
       services.atas.list(actor),
+      services.contracts.listReceiptLines(actor),
     ]);
     if (!view.ok) return view;
     if (!processes.ok) return processes;
     if (!atas.ok) return atas;
+    if (!receiptLines.ok) return receiptLines;
     const councilId = view.data.contract.councilId;
     const processId = view.data.contract.processId ?? null;
+    const balance = contractReceiptBalance(id, view.data.contract.ataItems, receiptLines.data);
+    const ataItems = atas.data.find((item) => item.ata.id === view.data.contract.ataId)?.ata.items ?? [];
     return ok({
       view: view.data,
+      balance,
+      itemNames: Object.fromEntries(ataItems.map((item) => [item.id, item.description])),
       canManage: can(actor, "contract.manage", councilId),
       processes: processes.data
         .filter((item) => item.process.councilId === councilId)
@@ -52,7 +59,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
   });
   return (
     <Screen result={result}>
-      {({ view, canManage, processes, processHref, processLabel, relatedAtas, councilAtas }) => (
+      {({ view, balance, itemNames, canManage, processes, processHref, processLabel, relatedAtas, councilAtas }) => (
         <>
           <PageHeader eyebrow="Acompanhamento · Contratos" backHref="/contratos" returnToPath="/contratos" backLabel="Todos os contratos" title={`Contrato ${view.contract.number}`} description={view.contract.object} />
           <section className="surface-card mb-4 max-w-lg space-y-3 p-4">
@@ -88,6 +95,21 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
             ) : null}
           </section>
           <div className="space-y-8">
+            <section aria-labelledby="saldo-contrato" className="space-y-3">
+              <h2 id="saldo-contrato" className="font-heading text-lg font-semibold text-primary">Saldo do contrato</h2>
+              {balance.registered ? <>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <KpiCard label="Quantidade contratada" value={balance.contracted} />
+                  <KpiCard label="Quantidade recebida" value={balance.received} />
+                  <KpiCard label="Saldo a receber" value={balance.remaining} hint={balance.remaining === 0 ? "Saldo esgotado" : undefined} accent={balance.remaining === 0} />
+                </div>
+                <SimpleTable
+                  caption="Saldo por item do contrato"
+                  rows={balance.rows.map((row) => ({ id: row.ataItemId, item: itemNames[row.ataItemId] ?? "Item da ata", contracted: row.contracted, received: row.received, remaining: row.remaining, status: row.remaining === 0 ? "Esgotado" : "Disponível" }))}
+                  columns={[{ key: "item", header: "Item" }, { key: "contracted", header: "Contratada", kind: "number" }, { key: "received", header: "Recebida", kind: "number" }, { key: "remaining", header: "Saldo a receber", kind: "number" }, { key: "status", header: "Situação" }]}
+                />
+              </> : <p className="text-sm text-muted-foreground">Este contrato não possui quantidades de itens da ata registradas.</p>}
+            </section>
             <div className="grid gap-4 sm:grid-cols-3">
               <KpiCard label="Dias restantes" value={view.remainingDays} hint={view.status === "vencido" ? "Contrato vencido" : undefined} />
               <KpiCard label="Valor vigente" value={formatCurrency(view.terms.value)} />

@@ -63,6 +63,7 @@ export interface ContractingTabProps {
     councilLabel: string;
     processLabel: string;
     processNumber: string;
+    suggestedNumber?: string;
     materials: { value: string; label: string }[];
     requestMaterials: { materialId: string; name: string; quantity: number }[];
     defaultValue?: number | null;
@@ -347,6 +348,7 @@ export function ContractingTab({
                       processId,
                       processLabel: draft.processLabel,
                       processNumber: draft.processNumber,
+                      suggestedNumber: draft.suggestedNumber,
                       object: draft.processLabel,
                       defaultValue: draft.defaultValue,
                       validityStartDate: draft.validityStartDate,

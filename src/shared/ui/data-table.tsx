@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowDown, ArrowUp, ArrowUpDown, Search, SlidersHorizontal, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,7 @@ interface DataTableProps<T> {
   data: readonly T[];
   columns: readonly DataTableColumn<T>[];
   getRowId: (row: T) => string;
+  getRowHref?: (row: T) => string | null;
   filters?: readonly FilterDefinition<T>[];
   pageSize?: number;
   queryKey?: string;
@@ -46,6 +48,7 @@ export function DataTable<T>({
   data,
   columns,
   getRowId,
+  getRowHref,
   filters = [],
   pageSize = 10,
   queryKey,
@@ -53,6 +56,7 @@ export function DataTable<T>({
   emptyDescription,
   emptyAction,
 }: DataTableProps<T>) {
+  const router = useRouter();
   const searchId = useId();
   const namespace = queryKey ?? tableQueryKey(caption);
   const [tableState, setTableState] = useState({ search: "", sortKey: null as string | null, sortDirection: "asc" as SortDirection, filters: {} as Record<string, string>, page: 1 });
@@ -171,7 +175,14 @@ export function DataTable<T>({
               </thead>
               <tbody>
                 {result.rows.map((row) => (
-                  <tr key={getRowId(row)} className="border-t border-border/70 transition-colors even:bg-secondary/20 hover:bg-primary/[0.06] focus-within:bg-primary/[0.06]">
+                  <tr
+                    key={getRowId(row)}
+                    className={`border-t border-border/70 transition-colors even:bg-secondary/20 hover:bg-primary/[0.06] focus-within:bg-primary/[0.06] ${getRowHref?.(row) ? "cursor-pointer" : ""}`}
+                    onClick={(event) => {
+                      const href = getRowHref?.(row);
+                      if (href && !(event.target as HTMLElement).closest("a, button, input, select, textarea")) router.push(href);
+                    }}
+                  >
                     {columns.map((col) => (
                       <td key={col.key} className={col.className ?? "px-4 py-3.5"}>
                         {col.render ? col.render(row) : (col.accessor(row) ?? "—")}

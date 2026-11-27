@@ -224,7 +224,7 @@ async function DashboardContent({
         ).length;
         const reqCompleted = scopedRequests.filter((r) => r.status === "atendida").length;
 
-        // Entregas pendentes (para o briefing)
+        // Quantidades a receber (para o resumo operacional)
         let pendingDeliveryUnits = 0;
         scopedRequests.forEach((r) => {
           if (["aprovada", "em_atendimento", "parcialmente_atendida"].includes(r.status)) {
@@ -315,14 +315,6 @@ async function DashboardContent({
 
         const tightDeadlines = dash.deadlines.filter((d) => d.days <= 15).length;
 
-        // Unidades já recebidas (espelha o cálculo de pendentes do briefing)
-        let deliveredUnits = 0;
-        scopedRequests.forEach((r) => {
-          r.items.forEach((item) => {
-            deliveredUnits += Number(item.receivedTotal || 0);
-          });
-        });
-
         const stockByLevel = {
           normal: stockLevels.filter((l) => l.level === "normal").length,
           atencao: stockLevels.filter((l) => l.level === "atencao").length,
@@ -353,7 +345,6 @@ async function DashboardContent({
               stockAttention={replenishmentItems.length}
               contracts={dash.summary.contracts}
               atas={dash.summary.atas}
-              deliveries={{ delivered: deliveredUnits, pending: pendingDeliveryUnits }}
               processProgress={dash.summary.processes.averageProgress}
               savingsTotal={savingsSummary.totalSavings}
               savingsProcesses={savingsSummary.count}

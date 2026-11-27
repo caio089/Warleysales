@@ -72,7 +72,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Fornecedores", href: "/fornecedores", icon: Truck, allowedRoles: ALL_ROLES, group: "outras" },
   { label: "Reuniões", href: "/reunioes", icon: CalendarDays, allowedRoles: ALL_ROLES, group: "agenda" },
   { label: "Consultar estoque", href: "/estoque", icon: Package, allowedRoles: ALL_ROLES, group: "estoque" },
-  { label: "Entregas", href: "/entregas", icon: Truck, allowedRoles: ALL_ROLES, group: "estoque" },
   { label: "Alertas", href: "/alertas", icon: AlertTriangle, allowedRoles: ALL_ROLES, group: "outras" },
   { label: "Relatórios", href: "/relatorios", icon: BarChart3, allowedRoles: ["council_manager", "viewer", "director", "purchasing_collaborator"], group: "outras" },
   { label: "Auditoria", href: "/administracao/auditoria", icon: History, allowedRoles: ["council_manager", "director", "purchasing_collaborator"], group: "outras" },

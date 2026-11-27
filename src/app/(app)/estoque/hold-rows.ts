@@ -8,7 +8,7 @@ export interface HoldItemInput {
   councilId: string;
   processId: string;
   status: string;
-  items: readonly { materialId: string; quantity: number; status?: string }[];
+  items: readonly { materialId: string; quantity: number; status?: string; ataTotal?: number | null; ataBalance?: number | null; contractTotal?: number | null; contractBalance?: number | null; stockBalance?: number | null }[];
 }
 
 export function contractedMaterialsByProcess(contracts: readonly Contract[], atas: readonly AtaView[]) {
@@ -44,6 +44,12 @@ export interface HoldRow extends Record<string, string | number | null> {
   quantityLabel: string;
   status: string;
   href: string;
+  ataTotal: number | null;
+  ataBalance: number | null;
+  contractTotal: number | null;
+  contractBalance: number | null;
+  stockBalance: number | null;
+  balanceNotice: string;
 }
 
 /**
@@ -66,6 +72,7 @@ export function buildHoldRows(
         quantityLabel: "—",
         status: request.status,
         href: `/processos/${request.processId}`,
+        ataTotal: null, ataBalance: null, contractTotal: null, contractBalance: null, stockBalance: null, balanceNotice: "—",
       });
       continue;
     }
@@ -80,6 +87,12 @@ export function buildHoldRows(
         quantityLabel: `${formatNumber(item.quantity)} un`,
         status: item.status ?? request.status,
         href: `/processos/${request.processId}`,
+        ataTotal: item.ataTotal ?? null,
+        ataBalance: item.ataBalance ?? null,
+        contractTotal: item.contractTotal ?? null,
+        contractBalance: item.contractBalance ?? null,
+        stockBalance: item.stockBalance ?? null,
+        balanceNotice: item.ataTotal == null ? "Sem ata" : item.ataBalance === 0 ? "Ata esgotada" : item.contractTotal == null ? "Sem contrato" : item.contractBalance === 0 ? "Contrato esgotado" : item.stockBalance === 0 ? "Estoque físico zerado" : "Disponível",
       });
     }
   }

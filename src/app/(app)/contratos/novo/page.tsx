@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
 import { ok } from "@/shared/lib/result";
+import { toFortalezaDate } from "@/shared/lib/time";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
@@ -18,6 +19,12 @@ async function Content({ processId }: { processId?: string }) {
     if (!processes.ok) return processes;
     const suppliers = await ctx.services.suppliers.list(ctx.actor);
     if (!suppliers.ok) return suppliers;
+    const contracts = await ctx.services.contracts.list(ctx.actor);
+    if (!contracts.ok) return contracts;
+    const existingContractNumbersByCouncil: Record<string, string[]> = {};
+    for (const { contract } of contracts.data) {
+      (existingContractNumbersByCouncil[contract.councilId] ??= []).push(contract.number);
+    }
     return ok({
       lookups: lookups.data,
       suppliers: suppliers.data.filter((supplier) => supplier.active).map((supplier) => ({ value: supplier.id, label: supplier.name, cnpj: supplier.cnpj })),
@@ -26,6 +33,8 @@ async function Content({ processId }: { processId?: string }) {
         label: `${view.process.number} — ${view.process.title}`,
         councilId: view.process.councilId,
       })),
+      currentYear: Number(toFortalezaDate(new Date()).slice(0, 4)),
+      existingContractNumbersByCouncil,
     });
   });
   return (
@@ -37,6 +46,8 @@ async function Content({ processId }: { processId?: string }) {
             processes={data.processes}
             suppliers={data.suppliers}
             defaultProcessId={processId}
+            currentYear={data.currentYear}
+            existingContractNumbersByCouncil={data.existingContractNumbersByCouncil}
           />
         </div>
       )}

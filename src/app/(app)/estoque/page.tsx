@@ -16,6 +16,7 @@ import { Screen } from "@/shared/ui/screen";
 import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { SimpleTable } from "@/shared/ui/simple-table";
 import { buildHoldRows } from "./hold-rows";
+import { contractReceiptBalance } from "@/modules/contracts/domain/receipt-balance";
 import { buildStockEntrySources } from "./entry-sources";
 import { MovementForm } from "./movimentacoes/movement-form";
 import { MinimumForm } from "./minimum-form";
@@ -24,13 +25,14 @@ export const metadata: Metadata = { title: "Gestão de Estoque" };
 
 async function Content() {
   const result = await loadScreen(async (ctx) => {
-    const [levels, lookups, requests, processes, atas, contracts, pendingFormalizations, homologatedFormalizations] = await Promise.all([
+    const [levels, lookups, requests, processes, atas, contracts, receiptLines, pendingFormalizations, homologatedFormalizations] = await Promise.all([
       ctx.services.inventory.listLevels(ctx.actor),
       loadLookups(ctx),
       ctx.services.purchases.list(ctx.actor),
       ctx.services.processes.list(ctx.actor),
       ctx.services.atas.list(ctx.actor),
       ctx.services.contracts.list(ctx.actor),
+      ctx.services.contracts.listReceiptLines(ctx.actor),
       ctx.services.formalizations.listPending(ctx.actor),
       ctx.services.formalizations.listHomologated(ctx.actor),
     ]);
@@ -40,12 +42,43 @@ async function Content() {
     if (!processes.ok) return processes;
     if (!atas.ok) return atas;
     if (!contracts.ok) return contracts;
+    if (!receiptLines.ok) return receiptLines;
     const summary = calculateStockSummary(levels.data);
     const formalizations = [
       ...(pendingFormalizations.ok ? pendingFormalizations.data : []),
       ...(homologatedFormalizations.ok ? homologatedFormalizations.data : []),
     ];
     const processById = new Map(processes.data.map((view) => [view.process.id, view]));
+    const ataByItem = new Map(atas.data.flatMap((view) => view.ata.items.map((item) => [item.id, { view, item }] as const)));
+    const stockByMaterial = new Map(levels.data.map((level) => [`${level.councilId}:${level.materialId}`, level.available]));
+    const balancesByMaterial = new Map<string, { ataTotal: number; ataBalance: number; contractTotal: number; contractBalance: number }>();
+    for (const view of atas.data) {
+      if (view.ata.status === "cancelada" || !view.ata.processId) continue;
+      for (const item of view.items) {
+        if (!item.materialId) continue;
+        const key = `${view.ata.councilId}:${view.ata.processId}:${item.materialId}`;
+        const current = balancesByMaterial.get(key) ?? { ataTotal: 0, ataBalance: 0, contractTotal: 0, contractBalance: 0 };
+        current.ataTotal += item.balance.registered;
+        current.ataBalance += item.balance.balance;
+        balancesByMaterial.set(key, current);
+      }
+    }
+    for (const view of contracts.data) {
+      const contract = view.contract;
+      if (!contract.processId || !contract.ataId) continue;
+      const ata = atas.data.find((item) => item.ata.id === contract.ataId);
+      if (!ata || ata.ata.status === "cancelada") continue;
+      const balance = contractReceiptBalance(contract.id, contract.ataItems, receiptLines.data);
+      for (const row of balance.rows) {
+        const materialId = ataByItem.get(row.ataItemId)?.item.materialId;
+        if (!materialId) continue;
+        const key = `${contract.councilId}:${contract.processId}:${materialId}`;
+        const current = balancesByMaterial.get(key) ?? { ataTotal: 0, ataBalance: 0, contractTotal: 0, contractBalance: 0 };
+        current.contractTotal += row.contracted;
+        current.contractBalance += row.remaining;
+        balancesByMaterial.set(key, current);
+      }
+    }
     const formalizationByProcess = new Map(formalizations.map((item) => [item.processId, item]));
     const processByMaterial = new Map<string, string>();
     for (const request of requests.data) {
@@ -104,6 +137,8 @@ async function Content() {
             status: allItemsReceivable && (status === "apto" || status === "bloqueado") ? "contratado" : status,
             items: request.items.map((item) => ({
               ...item,
+              ...balancesByMaterial.get(`${request.councilId}:${processId}:${item.materialId}`),
+              stockBalance: stockByMaterial.get(`${request.councilId}:${item.materialId}`) ?? 0,
               status: item.quantity > 0 && item.receivedTotal >= item.quantity
                 ? "recebido"
                 : (status === "apto" || status === "bloqueado") &&
@@ -161,7 +196,7 @@ async function Content() {
                 icon={<Package className="size-4" aria-hidden />}
                 label="Reservado / Em Trânsito"
                 value={`${formatNumber(summary.totalReserved)} un`}
-                hint="Alocado para transferências ou entregas"
+                hint="Alocado para transferências ou saídas"
               />
               <KpiCard
                 icon={<Percent className="size-4" aria-hidden />}
@@ -215,6 +250,12 @@ async function Content() {
             ) : null}
 
             <section aria-label="Solicitações no estoque" className="space-y-3">
+              {holds.some((row) => row.balanceNotice.includes("esgotad")) ? (
+                <div role="alert" className="flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+                  <AlertTriangle className="size-4 shrink-0" aria-hidden />
+                  Há itens com saldo da ata ou do contrato esgotado. Confira as linhas abaixo antes de registrar novas entradas.
+                </div>
+              ) : null}
               <div>
                 <SectionLabel>Solicitações no estoque</SectionLabel>
                 <p className="text-xs text-muted-foreground">
@@ -227,6 +268,12 @@ async function Content() {
                 columns={[
                   { key: "name", header: "Produto", kind: "link", hrefKey: "href" },
                   { key: "quantityLabel", header: "Quantidade" },
+                  { key: "ataTotal", header: "Total da ata", kind: "number" },
+                  { key: "ataBalance", header: "Saldo da ata", kind: "number" },
+                  { key: "contractTotal", header: "Total contratado", kind: "number" },
+                  { key: "contractBalance", header: "Saldo do contrato", kind: "number" },
+                  { key: "stockBalance", header: "Saldo físico atual", kind: "number" },
+                  { key: "balanceNotice", header: "Disponibilidade" },
                   { key: "demand", header: "Demanda" },
                   { key: "council", header: "Órgão" },
                   { key: "status", header: "Status", kind: "status", dictionary: "hold" },

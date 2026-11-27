@@ -8,6 +8,7 @@ import { computeInitialEndDate } from "@/modules/atas/domain/validity";
 import type { ExtractedContract } from "@/modules/contracts/pdf-extraction";
 import { createContractFormAction } from "@/modules/contracts/actions";
 import { calculateContractAtaValue } from "@/modules/contracts/domain/ata-value";
+import { suggestContractNumber } from "@/modules/contracts/domain/suggest-number";
 import { formatCurrency, formatNumber } from "@/shared/lib/format";
 import { formatDateOnly } from "@/shared/lib/time";
 import { ActionForm } from "@/shared/ui/forms/action-form";
@@ -38,11 +39,15 @@ export function NewContractForm({
   suppliers,
   defaultProcessId = "",
   lockedProcess,
+  currentYear,
+  existingContractNumbersByCouncil,
 }: {
   councils: Option[];
   processes: ProcessOption[];
   suppliers: SupplierOption[];
   defaultProcessId?: string;
+  currentYear?: number;
+  existingContractNumbersByCouncil?: Record<string, string[]>;
   /** Dentro do processo: puxa materiais, vigência do TR e valor do PP. */
   lockedProcess?: {
     returnToAtaId?: string;
@@ -142,7 +147,7 @@ export function NewContractForm({
     const materials = lockedProcess.requestMaterials ?? [];
     const start = lockedProcess.validityStartDate ?? undefined;
     const end = start ? computeInitialEndDate(start) : undefined;
-    const suggestedNumber = lockedProcess.suggestedNumber ?? `CTR ${lockedProcess.processNumber}`.slice(0, 40);
+    const suggestedNumber = lockedProcess.suggestedNumber ?? suggestContractNumber(currentYear ?? new Date().getFullYear(), []);
     const object =
       lockedProcess.object
       ?? (materials.length === 1 ? materials[0]!.name : lockedProcess.processLabel);
@@ -374,7 +379,9 @@ export function NewContractForm({
         <SelectField key={`supplier-${supplierId}`} name="supplierId" label="Fornecedor existente" options={suppliers} optional placeholder="Cadastrar pelo nome abaixo" defaultValue={supplierId} onChange={setSupplierId} errors={e.supplierId} />
         <TextField key={`name-${extracted?.supplierName ?? ""}`} name="supplierName" label="Empresa/fornecedor (se novo)" defaultValue={extracted?.supplierName ?? ""} hint="Se não selecionar um fornecedor existente, este nome será cadastrado ao confirmar." errors={e.supplierName} />
         <TextField key={`cnpj-${extracted?.supplierCnpj ?? ""}`} name="supplierCnpj" label="CNPJ (se novo)" defaultValue={extracted?.supplierCnpj ?? ""} errors={e.supplierCnpj} />
-        <TextField key={`number-${extracted?.number ?? ""}`} name="number" label="Número" required defaultValue={extracted?.number ?? ""} errors={e.number} />
+        <TextField key={`number-${councilId}-${extracted?.number ?? ""}`} name="number" label="Número" required
+          defaultValue={extracted?.number ?? (councilId ? suggestContractNumber(currentYear ?? new Date().getFullYear(), existingContractNumbersByCouncil?.[councilId] ?? []) : "")}
+          errors={e.number} />
         <TextField key={`object-${extracted?.object ?? ""}`} name="object" label="Objeto" required defaultValue={extracted?.object ?? ""} errors={e.object} />
         <TextField key={`start-${extracted?.startDate ?? ""}`} name="startDate" label="Início" type="date" required defaultValue={extracted?.startDate ?? ""} errors={e.startDate} />
         <TextField key={`end-${extracted?.endDate ?? ""}`} name="endDate" label="Fim/validade" type="date" required defaultValue={extracted?.endDate ?? ""} errors={e.endDate} />

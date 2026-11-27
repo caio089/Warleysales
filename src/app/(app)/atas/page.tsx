@@ -44,10 +44,11 @@ async function Content() {
         </Suspense>
         <SimpleTable
           caption="Atas de registro de preços"
-          rows={atas.map((a) => ({ id: a.ata.id, number: a.ata.number, council: lookups.councilLabel[a.ata.councilId] ?? "—", process: a.ata.processId ? (processLabel[a.ata.processId] ?? "Processo") : "—", status: a.ata.status === "cancelada" ? "Cancelada" : a.ata.status === "rascunho" ? "Rascunho" : a.validity === "vigente" ? "Vigente" : "Vencida", endDate: a.endDate, extensions: a.ata.extensions.length, href: `/atas/${a.ata.id}`, processHref: a.ata.processId ? `/solicitacoes/processos/${a.ata.processId}` : "" }))}
+          rowHrefKey="href"
+          rows={atas.map((a) => ({ id: a.ata.id, number: a.ata.number, council: lookups.councilLabel[a.ata.councilId] ?? "—", process: a.ata.processId ? (processLabel[a.ata.processId] ?? "Processo") : "—", status: a.ata.status === "cancelada" ? "Cancelada" : a.ata.status === "rascunho" ? "Rascunho" : a.validity === "vigente" ? "Vigente" : "Vencida", endDate: a.endDate, extensions: a.ata.extensions.length, href: `/atas/${a.ata.id}` }))}
           columns={[
             { key: "number", header: "Número", kind: "link", hrefKey: "href" }, { key: "council", header: "Órgão gerenciador" },
-            { key: "process", header: "Processo", kind: "link", hrefKey: "processHref" },
+            { key: "process", header: "Processo" },
             { key: "status", header: "Situação" }, { key: "endDate", header: "Vigência até", kind: "date" }, { key: "extensions", header: "Prorrogações", kind: "number" },
           ]}
           filterKeys={[{ key: "status", label: "Situação" }]}

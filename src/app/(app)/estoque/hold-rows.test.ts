@@ -39,4 +39,12 @@ describe("linhas de solicitação no estoque", () => {
     expect(rows[1]?.name).toBe("Caneta azul");
     expect(rows.every((row) => row.demand === "Demanda de teste")).toBe(true);
   });
+
+  it("mostra saldo da ata, do contrato e aviso quando o contrato esgota", () => {
+    const [row] = buildHoldRows([{
+      id: "req-1", title: "Cadeiras", councilId: "org-1", processId: "proc-1", status: "contratado",
+      items: [{ materialId: "cadeira", quantity: 10, ataTotal: 50, ataBalance: 20, contractTotal: 10, contractBalance: 0, stockBalance: 10 }],
+    }], { council: { "org-1": "CRCPI" }, material: { cadeira: "Cadeiras" } });
+    expect(row).toMatchObject({ ataTotal: 50, ataBalance: 20, contractTotal: 10, contractBalance: 0, stockBalance: 10, balanceNotice: "Contrato esgotado" });
+  });
 });

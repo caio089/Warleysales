@@ -4,7 +4,6 @@ import {
   AgendaAndDeadlinesPanel,
   UpcomingMeetingsPanel,
   AlertsPanel,
-  DeliveriesSummaryPanel,
   RecentRequestsPanel,
   ReplenishmentPanel,
 } from "./panels";
@@ -52,14 +51,6 @@ describe("Dashboard Panels", () => {
     expect(html).toContain("Avisos");
     expect(html).toContain("Ata vencendo");
     expect(html).toContain("1 não lido");
-  });
-
-  it("DeliveriesSummaryPanel renderiza entregas e taxa de conclusão", () => {
-    const html = renderToStaticMarkup(<DeliveriesSummaryPanel delivered={10} pending={5} />);
-    expect(html).toContain("Entregas &amp; Atendimento");
-    expect(html).toContain("10 un");
-    expect(html).toContain("5 un");
-    expect(html).toContain("67%");
   });
 
   it("ReplenishmentPanel renderiza lista e empty state", () => {

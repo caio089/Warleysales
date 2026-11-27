@@ -7,6 +7,8 @@ import { loadLookups } from "@/server/lookups";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { Screen } from "@/shared/ui/screen";
 import { buildAtaBalanceRows } from "@/app/(app)/atas/ata-balance-panel";
+import { suggestContractNumber } from "@/modules/contracts/domain/suggest-number";
+import { toFortalezaDate } from "@/shared/lib/time";
 import { buildProcessHistory } from "./process-history";
 import { ProcessView } from "./process-view";
 
@@ -32,7 +34,7 @@ export async function ProcessContent({
       services.purchases.findLinkedByProcess(actor, id),
       services.purchases.list(actor),
       services.atas.list(actor, instrumentScope),
-      services.contracts.list(actor, instrumentScope),
+      services.contracts.list(actor),
       loadLookups({ services, actor }),
     ]);
     if (!formalization.ok) return formalization;
@@ -159,6 +161,9 @@ export async function ProcessContent({
         councilLabel: lookups.data.councilLabel[councilId] ?? "Órgão",
         processLabel: `${view.process.number} — ${view.process.title}`,
         processNumber: view.process.number,
+        suggestedNumber: suggestContractNumber(Number(toFortalezaDate(new Date()).slice(0, 4)), contracts.data
+          .filter(({ contract }) => contract.councilId === councilId)
+          .map(({ contract }) => contract.number)),
         materials: lookups.data.materials.map((material) => ({ value: material.id, label: material.label })),
         requestMaterials: requestItems,
         defaultValue: linkedRequest?.estimatedValue ?? view.process.estimatedValue ?? null,

@@ -68,7 +68,7 @@ describe("NAV_ITEMS — integridade de grupos", () => {
     const processosLabels = NAV_ITEMS.filter((item) => item.group === "processos").map((item) => item.label);
     expect(processosLabels).toEqual(["Solicitações", "Processos", "Arquivados", "Atas", "Contratos"]);
     const estoqueLabels = NAV_ITEMS.filter((item) => item.group === "estoque").map((item) => item.label);
-    expect(estoqueLabels).toEqual(["Consultar estoque", "Entregas"]);
+    expect(estoqueLabels).toEqual(["Consultar estoque"]);
     const agendaLabels = NAV_ITEMS.filter((item) => item.group === "agenda").map((item) => item.label);
     expect(agendaLabels).toEqual(["Calendário", "Reuniões"]);
     const outrasLabels = NAV_ITEMS.filter((item) => item.group === "outras").map((item) => item.label);
@@ -86,7 +86,6 @@ describe("NAV_ITEMS — baseline", () => {
       ["/atas", operationalRoles, false], ["/contratos", operationalRoles, false],
       ["/calendario", operationalRoles, false], ["/fornecedores", operationalRoles, false],
       ["/reunioes", operationalRoles, false], ["/estoque", operationalRoles, false],
-      ["/entregas", operationalRoles, false],
       ["/alertas", operationalRoles, false], ["/relatorios", ["council_manager", "viewer", "director", "purchasing_collaborator"], false],
       ["/administracao/auditoria", ["council_manager", "director", "purchasing_collaborator"], false], ["/administracao", [], true],
     ]);

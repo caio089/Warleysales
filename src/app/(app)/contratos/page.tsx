@@ -14,21 +14,23 @@ import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight";
 import { SimpleTable } from "@/shared/ui/simple-table";
+import { contractReceiptBalance } from "@/modules/contracts/domain/receipt-balance";
 
 export const metadata: Metadata = { title: "Contratos" };
 
 async function Content() {
   const result = await loadScreen(async (ctx) => {
-    const [contracts, lookups, processes] = await Promise.all([ctx.services.contracts.list(ctx.actor), loadLookups(ctx), ctx.services.processes.list(ctx.actor)]);
+    const [contracts, lookups, processes, receiptLines] = await Promise.all([ctx.services.contracts.list(ctx.actor), loadLookups(ctx), ctx.services.processes.list(ctx.actor), ctx.services.contracts.listReceiptLines(ctx.actor)]);
     if (!contracts.ok) return contracts;
     if (!lookups.ok) return lookups;
     if (!processes.ok) return processes;
+    if (!receiptLines.ok) return receiptLines;
     const processLabel = Object.fromEntries(processes.data.map((view) => [view.process.id, `${view.process.number} — ${view.process.title}`]));
-    return ok({ contracts: contracts.data, lookups: lookups.data, processLabel, canCreate: canInAnyCouncil(ctx.actor, "contract.create") });
+    return ok({ contracts: contracts.data, lookups: lookups.data, processLabel, receiptLines: receiptLines.data, canCreate: canInAnyCouncil(ctx.actor, "contract.create") });
   });
   return (
     <Screen result={result}>
-      {({ contracts, lookups, processLabel, canCreate }) => (
+      {({ contracts, lookups, processLabel, receiptLines, canCreate }) => (
         <>
         <PageHeader eyebrow="Acompanhamento · Compras" title="Contratos" description="Consulte vigências, valores e aditivos. Contratos vinculados a processos aparecem junto das respectivas atas." actions={canCreate ? <Link href="/contratos/novo" className={buttonVariants()}>Novo contrato</Link> : undefined} />
         <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumo dos contratos">
@@ -46,9 +48,13 @@ async function Content() {
         </Suspense>
         <SimpleTable
           caption="Contratos"
-          rows={contracts.map((c) => ({ id: c.contract.id, number: c.contract.number, council: lookups.councilLabel[c.contract.councilId] ?? "—", process: c.contract.processId ? (processLabel[c.contract.processId] ?? "Processo") : "—", object: c.contract.object, endDate: c.terms.endDate, remaining: c.remainingDays, elapsed: c.elapsedPercent, href: `/contratos/${c.contract.id}`, processHref: c.contract.processId ? `/processos/${c.contract.processId}` : "" }))}
+          rows={contracts.map((c) => {
+            const balance = contractReceiptBalance(c.contract.id, c.contract.ataItems, receiptLines);
+            return { id: c.contract.id, number: c.contract.number, council: lookups.councilLabel[c.contract.councilId] ?? "—", process: c.contract.processId ? (processLabel[c.contract.processId] ?? "Processo") : "—", object: c.contract.object, contracted: balance.registered ? balance.contracted : null, received: balance.registered ? balance.received : null, balance: balance.registered ? balance.remaining : null, endDate: c.terms.endDate, remaining: c.remainingDays, elapsed: c.elapsedPercent, href: `/contratos/${c.contract.id}`, processHref: c.contract.processId ? `/processos/${c.contract.processId}` : "" };
+          })}
           columns={[
             { key: "number", header: "Número", kind: "link", hrefKey: "href" }, { key: "council", header: "Órgão" }, { key: "process", header: "Processo", kind: "link", hrefKey: "processHref" }, { key: "object", header: "Objeto" },
+            { key: "contracted", header: "Qtd contratada", kind: "number" }, { key: "received", header: "Recebido", kind: "number" }, { key: "balance", header: "Saldo a receber", kind: "number" },
             { key: "endDate", header: "Vigência até", kind: "date" }, { key: "remaining", header: "Dias restantes", kind: "number" }, { key: "elapsed", header: "Vigência decorrida", kind: "progress" },
           ]}
           filterKeys={[{ key: "council", label: "Órgão" }]}

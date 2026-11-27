@@ -15,7 +15,7 @@ import { loadScreen } from "@/server/screen";
 import { ok } from "@/shared/lib/result";
 import { can } from "@/shared/lib/authz/policy";
 import { formatCurrency, formatNumber } from "@/shared/lib/format";
-import { formatDateOnly } from "@/shared/lib/time";
+import { formatDateOnly, toFortalezaDate } from "@/shared/lib/time";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { AtaStepButton } from "@/shared/ui/forms/link-process-form";
 import { PageHeader } from "@/shared/ui/page-header";
@@ -53,7 +53,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
           councilId, councilLabel: lookups.data.councilLabel[councilId] ?? "Órgão",
           processId: process.id, processLabel: `${process.number} — ${process.title}`, processNumber: process.number,
           defaultValue: process.estimatedValue, validityStartDate: process.validityStartDate ?? view.data.ata.startDate,
-          suggestedNumber: suggestContractNumber(process.number, contracts.data
+          suggestedNumber: suggestContractNumber(Number(toFortalezaDate(new Date()).slice(0, 4)), contracts.data
             .filter(({ contract }) => contract.councilId === councilId)
             .map(({ contract }) => contract.number)),
           atas: [{ id, supplierId, supplierName, number: view.data.ata.number, status: "Vigente", items: buildAtaBalanceRows(view.data, lookups.data.materialLabel) }],
@@ -63,6 +63,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
       view: view.data,
       lookups: lookups.data,
       supplierName,
+      processReference: process ? { id: process.id, label: `${process.number} — ${process.title}` } : null,
       contractDraft,
       contractSuppliers: supplierRows.filter((row) => row.active || row.id === supplierId).map((row) => ({ value: row.id, label: row.name, cnpj: row.cnpj })),
       canManage: can(actor, "ata.manage", councilId),
@@ -75,7 +76,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
 
   return (
     <Screen result={result}>
-      {({ view, lookups, supplierName, canManage, relatedContracts, contractDraft, contractSuppliers }) => {
+      {({ view, lookups, supplierName, processReference, canManage, relatedContracts, contractDraft, contractSuppliers }) => {
         const totalRegistered = view.items.reduce((sum, item) => sum + item.balance.registered, 0);
         const totalBalance = view.items.reduce((sum, item) => sum + item.balance.balance, 0);
         const totalValue = view.ata.items.reduce(
@@ -109,6 +110,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
               <span className="text-sm text-muted-foreground">
                 {lookups.councilLabel[view.ata.councilId] ?? "Órgão"}
               </span>
+              {processReference ? <Link href={`/solicitacoes/processos/${processReference.id}`} className="text-sm font-medium text-primary underline-offset-4 hover:underline">Processo {processReference.label}</Link> : null}
             </div>
 
             {/* Resumo geral */}

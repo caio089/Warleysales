@@ -10,11 +10,9 @@ import {
   ChevronRight,
   Inbox,
   ShoppingCart,
-  Truck,
 } from "lucide-react";
 import type { DashboardDeadline } from "@/modules/reports/service";
 import { formatDateTimeFortaleza } from "@/shared/lib/time";
-import { ProgressBar } from "@/shared/ui/progress-bar";
 import { StatusBadge } from "@/shared/ui/status-badge";
 import { presentationOf, PROCESS_STATUS, REQUEST_STATUS } from "@/shared/ui/status-presentation";
 import { cn } from "@/lib/utils";
@@ -442,48 +440,6 @@ export function UpcomingMeetingsPanel({
           ))}
         </div>
       )}
-    </section>
-  );
-}
-
-/** Mantido para compatibilidade */
-export function DeliveriesSummaryPanel({
-  delivered,
-  pending,
-}: {
-  delivered: number;
-  pending: number;
-}) {
-  const total = delivered + pending;
-  const progressPct = total > 0 ? Math.round((delivered / total) * 100) : 100;
-
-  return (
-    <section className="bg-white rounded-2xl border border-slate-200/80 shadow-xs flex flex-col p-5" aria-label="Resumo de entregas">
-      <div className="flex items-center gap-2.5 mb-4">
-        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700">
-          <Truck className="w-4 h-4" />
-        </div>
-        <h2 className="text-sm font-bold text-slate-900">Entregas & Atendimento</h2>
-      </div>
-      <div className="flex flex-1 flex-col justify-between gap-4">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-            <span className="text-[0.68rem] font-semibold tracking-wider text-emerald-800 uppercase">Realizadas</span>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-emerald-700">{delivered} un</p>
-          </div>
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-            <span className="text-[0.68rem] font-semibold tracking-wider text-amber-800 uppercase">Pendentes</span>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-amber-700">{pending} un</p>
-          </div>
-        </div>
-        <div>
-          <div className="mb-1.5 flex items-center justify-between text-xs text-slate-500">
-            <span>Taxa de conclusão de entregas</span>
-            <span className="font-semibold tabular-nums text-slate-700">{progressPct}%</span>
-          </div>
-          <ProgressBar value={progressPct} label="Taxa de entregas" showValue={false} />
-        </div>
-      </div>
     </section>
   );
 }

@@ -63,6 +63,7 @@ interface SimpleTableProps {
   filterKeys?: SimpleFilter[];
   pageSize?: number;
   queryKey?: string;
+  rowHrefKey?: string;
   emptyTitle?: string;
   emptyDescription?: string;
   emptyAction?: ReactNode;
@@ -102,7 +103,7 @@ function renderCell(column: SimpleColumn, row: SimpleRow) {
 }
 
 /** Tabela de leitura com busca/ordenação/paginação, configurada apenas por dados serializáveis. */
-export function SimpleTable({ caption, rows, columns, filterKeys = [], pageSize, queryKey, emptyTitle, emptyDescription, emptyAction }: SimpleTableProps) {
+export function SimpleTable({ caption, rows, columns, filterKeys = [], pageSize, queryKey, rowHrefKey, emptyTitle, emptyDescription, emptyAction }: SimpleTableProps) {
   const tableColumns: DataTableColumn<SimpleRow>[] = columns.map((c) => ({
     key: c.key,
     header: c.header,
@@ -124,5 +125,5 @@ export function SimpleTable({ caption, rows, columns, filterKeys = [], pageSize,
     };
   });
 
-  return <DataTable caption={caption} data={rows} columns={tableColumns} getRowId={(r) => r.id} filters={filters} pageSize={pageSize} queryKey={queryKey} emptyTitle={emptyTitle} emptyDescription={emptyDescription} emptyAction={emptyAction} />;
+  return <DataTable caption={caption} data={rows} columns={tableColumns} getRowId={(r) => r.id} getRowHref={rowHrefKey ? (r) => String(r[rowHrefKey] ?? "") || null : undefined} filters={filters} pageSize={pageSize} queryKey={queryKey} emptyTitle={emptyTitle} emptyDescription={emptyDescription} emptyAction={emptyAction} />;
 }

@@ -116,7 +116,6 @@ export async function receiveFormAction(_previous: ActionState, formData: FormDa
     revalidatePath(`/solicitacoes/${requestId}`);
     revalidatePath("/estoque");
     revalidatePath("/estoque/movimentacoes");
-    revalidatePath("/entregas");
   }
   return result.status === "success" ? { status: "success", message: result.message } : result;
 }

@@ -142,7 +142,7 @@ export async function CouncilContent({ params }: { params: Promise<{ id: string 
             />
             <KpiCard
               icon={<Truck className="size-4" aria-hidden />}
-              label="Entregas Pendentes"
+              label="Quantidade a receber"
               value={`${pendingDeliveryUnits} un`}
               accent={pendingDeliveryUnits > 0}
               hint="Unidades aguardando entrega"

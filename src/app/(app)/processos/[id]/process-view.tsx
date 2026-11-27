@@ -84,6 +84,7 @@ export interface ProcessViewProps {
     councilLabel: string;
     processLabel: string;
     processNumber: string;
+    suggestedNumber?: string;
     materials: { value: string; label: string }[];
     requestMaterials: { materialId: string; name: string; quantity: number }[];
     defaultValue?: number | null;
