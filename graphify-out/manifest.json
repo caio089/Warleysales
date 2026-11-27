@@ -258,9 +258,9 @@
     "semantic_hash": "0f2baf96252e6cd263db6c86757dfe22"
   },
   "src/app/(app)/atas/nova/ata-materials-values.tsx": {
-    "mtime": 1795789610.325397,
-    "seen": 1795789740.9916778,
-    "ast_hash": "7198662ddca94fc2b96518cc66c88eea",
+    "mtime": 1795790617.951846,
+    "seen": 1795790645.8887815,
+    "ast_hash": "354634cc077eb579c72966ec78a16c02",
     "semantic_hash": ""
   },
   "src/app/(app)/atas/nova/ata-validity-field.test.tsx": {
@@ -288,15 +288,15 @@
     "semantic_hash": ""
   },
   "src/app/(app)/atas/nova/new-ata-form.test.tsx": {
-    "mtime": 1795706385.1186876,
-    "seen": 1795707380.2407162,
-    "ast_hash": "c115a527289be40ada78842a112f346d",
-    "semantic_hash": "c115a527289be40ada78842a112f346d"
+    "mtime": 1795790617.956783,
+    "seen": 1795790645.8887923,
+    "ast_hash": "0090aa469d2837b5345e5a3c4218e431",
+    "semantic_hash": ""
   },
   "src/app/(app)/atas/nova/new-ata-form.tsx": {
-    "mtime": 1795787915.8504465,
-    "seen": 1795787996.1250284,
-    "ast_hash": "5db32dfede820e6bdeaa21b2a9c73911",
+    "mtime": 1795790617.951846,
+    "seen": 1795790645.888794,
+    "ast_hash": "3563f3f2e6ba6a4a9e7cbac498b7823f",
     "semantic_hash": ""
   },
   "src/app/(app)/atas/nova/page.tsx": {
@@ -504,9 +504,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/estoque/entry-sources.ts": {
-    "mtime": 1795789846.3406594,
-    "seen": 1795789873.9325087,
-    "ast_hash": "b0a96197318f848704598584316b473e",
+    "mtime": 1795790562.9092145,
+    "seen": 1795790645.8888812,
+    "ast_hash": "b2a70cdad4d01c02fac0c33d34039023",
     "semantic_hash": ""
   },
   "src/app/(app)/estoque/hold-rows.test.ts": {
@@ -804,15 +804,15 @@
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/tabs/contracting-tab.test.tsx": {
-    "mtime": 1795789700.4631412,
-    "seen": 1795789740.9919834,
-    "ast_hash": "14a7781546c29874efc79029152f01e0",
+    "mtime": 1795790617.956783,
+    "seen": 1795790645.8890076,
+    "ast_hash": "597b7ccaa22aeeefa6887214fa62d618",
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/tabs/contracting-tab.tsx": {
-    "mtime": 1795789700.4631412,
-    "seen": 1795789740.9919868,
-    "ast_hash": "66ace2ae20d0e60613995e4ad8283039",
+    "mtime": 1795790617.960255,
+    "seen": 1795790645.8890097,
+    "ast_hash": "e670fd53cef89fe5b009ae337c6aff75",
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/tabs/documentation-tab.test.tsx": {
@@ -1176,9 +1176,9 @@
     "semantic_hash": "320fe7ec3a40945ebd2928f41662b92e"
   },
   "src/modules/atas/actions.ts": {
-    "mtime": 1795789846.341652,
-    "seen": 1795789873.9328065,
-    "ast_hash": "d5fec6bab6856c2d932d187b3ab905b2",
+    "mtime": 1795790562.9092145,
+    "seen": 1795790645.8891687,
+    "ast_hash": "eb6bc58db17593309688bee7b0e00b0e",
     "semantic_hash": ""
   },
   "src/modules/atas/domain/atas.test.ts": {
@@ -3414,9 +3414,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/process-detail-page.tsx": {
-    "mtime": 1795789636.1829326,
-    "seen": 1795789740.9919527,
-    "ast_hash": "a0316b527ca490941e913aac17247e33",
+    "mtime": 1795790520.8575265,
+    "seen": 1795790645.888988,
+    "ast_hash": "b480fb0e2987149176d53bbafe62e9a1",
     "semantic_hash": ""
   },
   "src/app/(app)/solicitacoes/processos/[id]/page.tsx": {
@@ -3882,9 +3882,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/atas/ata-balance-panel.tsx": {
-    "mtime": 1795789700.46243,
-    "seen": 1795789740.9916723,
-    "ast_hash": "3101af825b851371d2812eb0bf61f895",
+    "mtime": 1795790520.8562317,
+    "seen": 1795790645.8887763,
+    "ast_hash": "27745815e47303163811bc5344fb1651",
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/savings-panel.tsx": {
