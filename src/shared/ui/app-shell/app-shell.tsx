@@ -78,7 +78,7 @@ export function AppShell({ navHrefs, topbarSlot, children }: AppShellProps) {
         />
         <div
           className={cn(
-            "relative flex h-[4.25rem] shrink-0 items-center border-b border-sidebar-border/60",
+            "relative flex h-[6.25rem] shrink-0 items-center border-b border-sidebar-border/60",
             collapsed ? "justify-center px-1" : "justify-between gap-2 px-3",
           )}
         >
@@ -127,7 +127,7 @@ export function AppShell({ navHrefs, topbarSlot, children }: AppShellProps) {
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="flex w-[16.5rem] flex-col border-transparent bg-sidebar p-0 text-sidebar-foreground">
           <SheetTitle className="sr-only">Navegação</SheetTitle>
-          <div className="flex h-[4.25rem] shrink-0 items-center border-b border-sidebar-border/60 px-4">
+          <div className="flex h-[6.25rem] shrink-0 items-center border-b border-sidebar-border/60 px-4">
             <BrandMark inverted />
           </div>
           <div className="sidebar-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 py-4">

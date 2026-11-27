@@ -13,7 +13,7 @@ const jakarta = Plus_Jakarta_Sans({
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: { default: "Warley — Central Operacional", template: "%s · Warley" },
+  title: { default: "Warley Sales — Central Operacional", template: "%s · Warley Sales" },
   description: "Central de gestão operacional com órgãos parceiros — solicitações, estoque e documentos.",
 };
 
