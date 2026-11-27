@@ -92,7 +92,7 @@ export class SupabasePurchaseRequestRepository implements PurchaseRequestReposit
   }
 
   async receiveAtomically(receipt: AtomicReceipt): Promise<Result<PurchaseRequest>> {
-    const outcome = await callRpc<RpcOutcome>(this.db, receipt.contractId ? "receive_purchase_request_for_contract" : "receive_purchase_request", {
+    const outcome = await callRpc<RpcOutcome>(this.db, receipt.contractId ? "receive_purchase_request_for_selected_contract" : "receive_purchase_request", {
       p_request: receipt.requestId,
       ...(receipt.contractId ? { p_contract: receipt.contractId } : {}),
       p_actor: receipt.actorId,

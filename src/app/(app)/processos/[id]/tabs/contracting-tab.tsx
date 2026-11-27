@@ -24,6 +24,8 @@ import type { ProcessFormalization } from "@/modules/formalizations/domain/forma
 export interface LinkedAtaItem {
   id: string;
   number: string;
+  supplierId?: string | null;
+  supplierName?: string | null;
   endDate: string | null;
   status: "Vigente" | "Vencida" | "Rascunho" | string;
   items?: AtaBalanceRow[];
@@ -206,7 +208,7 @@ export function ContractingTab({
             {canLink && existingAta && draft && (
               <Button type="button" variant="outline" aria-expanded={replacementOpen}
                 onClick={() => setReplacementFor(replacementOpen ? null : existingAta.id)}>
-                {replacementOpen ? "Cancelar nova ata" : "Criar nova ata com justificativa"}
+                {replacementOpen ? "Cancelar nova ata" : "Criar outra ata"}
               </Button>
             )}
             {canLink && (!existingAta || replacementOpen) ? (
@@ -235,6 +237,8 @@ export function ContractingTab({
                       defaultValue: draft.defaultValue,
                       validityStartDate: draft.validityStartDate,
                       requireReplacementJustification: replacementOpen,
+                      hasPriorAtas: linkedAtas.length > 0,
+                      assignedMaterialIds: linkedAtas.filter((ata) => ata.status !== "Cancelada").flatMap((ata) => ata.items?.map((item) => item.materialId).filter((id): id is string => Boolean(id)) ?? []),
                       existingAtaNumbers: linkedAtas.map((ata) => ata.number),
                     }}
                   />
@@ -308,7 +312,7 @@ export function ContractingTab({
                 </p>
               </div>
             )}
-            {canLink && linkedContracts.length === 0 ? (
+            {canLink ? (
               <div className="space-y-4 rounded-xl border border-border/70 bg-muted/10 p-4">
                 {availableContracts.length > 0 ? (
                   <LinkContractToProcessForm processId={processId} contracts={availableContracts} submitLabel="Anexar contrato" />
@@ -333,6 +337,8 @@ export function ContractingTab({
                       atas: linkedAtas.filter((ata) => ata.status !== "Cancelada").map((ata) => ({
                         id: ata.id,
                         number: ata.number,
+                        supplierId: ata.supplierId,
+                        supplierName: ata.supplierName,
                         status: ata.status,
                         items: ata.items ?? [],
                       })),

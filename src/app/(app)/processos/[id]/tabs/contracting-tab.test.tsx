@@ -153,14 +153,9 @@ describe("ContractingTab", () => {
     expect(html).toContain("ARP 099/2026");
     expect(html).toContain("Anexar contrato");
     expect(html).toContain("CT 099/2026");
-    expect(html).toContain("1. Empresa vencedora");
-    expect(html).toContain("Nome da empresa");
-    expect(html).toContain("2. Materiais e valores");
-    expect(html).toContain("Valor unitário");
-    expect(html).toContain("Papel A4");
-    expect(html).toContain("Número da ata");
+    expect(html).toContain("Houve mais de uma empresa vencedora nesta licitação?");
+    expect(html).not.toContain("Número da ata");
     expect(html).toContain("Registrar contrato");
-    expect(html).toContain("Puxada do Termo de Referência");
     expect(html).toContain("12/2027 — Material de expediente");
     expect(html.indexOf("1. Ata de registro de preços")).toBeLessThan(html.indexOf("2. Contrato"));
   });
@@ -173,7 +168,7 @@ describe("ContractingTab", () => {
         draft={{ councilLabel: "CRQ18", processLabel: "Processo", processNumber: "012/2026",
           materials: [], requestMaterials: [], suppliers: [] }} />,
     );
-    expect(html).toContain("Criar nova ata com justificativa");
+    expect(html).toContain("Criar outra ata");
     expect(html).toContain("ARP antiga");
     expect(html).toContain("Ata cancelada após o cadastro");
     expect(html).not.toContain("Número da ata");

@@ -122,6 +122,7 @@ export async function createAtaFormAction(_previous: ActionState, formData: Form
       number,
       startDate: formData.get("startDate"),
       replacementJustification: String(formData.get("replacementJustification") ?? "").trim() || undefined,
+      additionalWinner: formData.get("additionalWinner") === "true",
       processId,
       supplierId,
       items,

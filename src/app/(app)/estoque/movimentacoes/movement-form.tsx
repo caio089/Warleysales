@@ -62,6 +62,7 @@ export function MovementForm({
     presetCouncil || (councils.length === 1 ? councils[0]!.value : ""),
   );
   const [processId, setProcessId] = useState(presetProcess);
+  const [contractId, setContractId] = useState("");
   const [lines, setLines] = useState<Line[]>(() => [
     newLine(presetMaterial || (materials.length === 1 ? materials[0]!.value : "")),
   ]);
@@ -75,9 +76,9 @@ export function MovementForm({
   );
 
   const selectedSource = useMemo(() => {
-    const match = processesForCouncil.find((source) => source.processId === processId);
-    return match ?? processesForCouncil[0] ?? null;
-  }, [processId, processesForCouncil]);
+    const forProcess = processesForCouncil.filter((source) => source.processId === processId);
+    return forProcess.find((source) => source.contractId === contractId) ?? forProcess[0] ?? processesForCouncil[0] ?? null;
+  }, [contractId, processId, processesForCouncil]);
 
   const effectiveProcessId = selectedSource?.processId ?? "";
   const submitLabel =
@@ -117,16 +118,18 @@ export function MovementForm({
 
       {mode === "entry" ? (
         <EntryFromProcessForm
-          key={selectedSource?.requestId ?? "no-source"}
+          key={`${selectedSource?.requestId ?? "no-source"}:${selectedSource?.contractId ?? ""}`}
           councils={councils}
           councilId={councilId}
           onCouncilChange={(value) => {
             setCouncilId(value);
             setProcessId("");
+            setContractId("");
           }}
           processes={processesForCouncil}
           processId={effectiveProcessId}
-          onProcessChange={setProcessId}
+          onProcessChange={(value) => { setProcessId(value); setContractId(""); }}
+          onContractChange={setContractId}
           source={selectedSource}
           submitLabel={submitLabel}
         />
@@ -262,6 +265,7 @@ function EntryFromProcessForm({
   processes,
   processId,
   onProcessChange,
+  onContractChange,
   source,
   submitLabel,
 }: {
@@ -271,10 +275,12 @@ function EntryFromProcessForm({
   processes: StockEntrySource[];
   processId: string;
   onProcessChange: (value: string) => void;
+  onContractChange: (value: string) => void;
   source: StockEntrySource | null;
   submitLabel: string;
 }) {
-  const processOptions = processes.map((row) => ({ value: row.processId, label: row.label }));
+  const processOptions = [...new Map(processes.map((row) => [row.processId, { value: row.processId, label: row.label }])).values()];
+  const contractOptions = processes.filter((row) => row.processId === processId);
   const receivedQuantity = (item: StockEntrySource["items"][number]) =>
     item.suggested ?? item.pending;
   const totalValue = source?.items.reduce((sum, item) => {
@@ -311,7 +317,7 @@ function EntryFromProcessForm({
     >
       {(errors) => (
         <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <label className="block space-y-1.5 text-sm">
               <span className="font-medium text-foreground">
                 Órgão <span className="text-destructive">*</span>
@@ -348,6 +354,15 @@ function EntryFromProcessForm({
                 ))}
               </select>
               {errors.requestId?.[0] ? <p className="text-xs text-destructive">{errors.requestId[0]}</p> : null}
+            </label>
+            <label className="block space-y-1.5 text-sm">
+              <span className="font-medium text-foreground">Contrato <span className="text-destructive">*</span></span>
+              <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={source?.contractId ?? ""} onChange={(event) => onContractChange(event.target.value)} required>
+                {contractOptions.map((contract) => <option key={contract.contractId} value={contract.contractId}>
+                  {contract.contractLabel} · {contract.ataLabel}
+                </option>)}
+              </select>
             </label>
           </div>
 

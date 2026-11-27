@@ -8,7 +8,7 @@ export class InMemoryAtaRepository implements AtaRepository {
   private table = new MemoryTable<PriceRegistrationAta>();
   private events = new Map<string, CommitmentEvent[]>();
 
-  async insert(a: PriceRegistrationAta, replacementJustification?: string) {
+  async insert(a: PriceRegistrationAta, replacementJustification?: string, additionalWinner = false) {
     const duplicate = this.table.all(
       (row) =>
         row.councilId === a.councilId &&
@@ -22,11 +22,14 @@ export class InMemoryAtaRepository implements AtaRepository {
     const previous = a.processId ? this.table.all((ata) =>
       ata.councilId === a.councilId && ata.processId === a.processId && ata.status !== "cancelada",
     ) : [];
-    if (previous.length > 0 && !replacementJustification?.trim()) {
+    if (previous.length > 0 && !additionalWinner && !replacementJustification?.trim()) {
       return fail("VALIDATION", "Informe a justificativa para cadastrar outra ata neste processo.");
     }
     const saved = this.table.insert(a);
-    for (const ata of previous) this.table.insert({ ...ata, status: "cancelada" });
+    if (!additionalWinner) for (const ata of previous) {
+      const overlaps = ata.items.some((item) => a.items.some((next) => next.materialId && next.materialId === item.materialId));
+      if (ata.supplierId === a.supplierId || overlaps) this.table.insert({ ...ata, status: "cancelada" });
+    }
     return ok(saved);
   }
   async findById(id: string) { return this.table.get(id); }
