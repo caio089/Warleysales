@@ -726,10 +726,10 @@
     "semantic_hash": "faf65815a89f8ed02e21e82d7db64338"
   },
   "src/app/(app)/processos/[id]/formalization-card.tsx": {
-    "mtime": 1795540810.4980361,
-    "seen": 1795707380.2408278,
-    "ast_hash": "a57f9710bddaad31d3c41fe2ff60d200",
-    "semantic_hash": "a57f9710bddaad31d3c41fe2ff60d200"
+    "mtime": 1795788886.8778477,
+    "seen": 1795788944.7433057,
+    "ast_hash": "5231238cd4ebf9025c4e28650e44395e",
+    "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/page.test.tsx": {
     "mtime": 1795787123.2844057,
@@ -792,9 +792,9 @@
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/process-view.tsx": {
-    "mtime": 1795787460.2185893,
-    "seen": 1795787485.5015569,
-    "ast_hash": "4e4189fd620d2b7f4daaf156f2e41562",
+    "mtime": 1795788978.2178183,
+    "seen": 1795789006.7393346,
+    "ast_hash": "7ee2a277af4a3f823e3ca9b9a339e63f",
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/tabs/approvals-tab.tsx": {
@@ -804,15 +804,15 @@
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/tabs/contracting-tab.test.tsx": {
-    "mtime": 1795788443.1195402,
-    "seen": 1795788504.530379,
-    "ast_hash": "01889df4dbfe0b9207ae0425d40933c5",
+    "mtime": 1795788910.4453218,
+    "seen": 1795788944.7433596,
+    "ast_hash": "b046f4cc15b447b1fa4c271c270b0281",
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/tabs/contracting-tab.tsx": {
-    "mtime": 1795788468.9754424,
-    "seen": 1795788504.530381,
-    "ast_hash": "c30ef300ee9154b690a0400e39c3ac4c",
+    "mtime": 1795788910.4453218,
+    "seen": 1795788944.7433615,
+    "ast_hash": "dad88a5b4ae6d6877a9eac4e55711e75",
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/tabs/documentation-tab.test.tsx": {
@@ -1440,16 +1440,16 @@
     "semantic_hash": "a8932fa7f1ba98f66112fcf5d1e8eb07"
   },
   "src/modules/formalizations/service.test.ts": {
-    "mtime": 1794406499.2024143,
-    "seen": 1795707380.2409916,
-    "ast_hash": "a7f973100e8382f567cf5b7b00a14e70",
-    "semantic_hash": "a7f973100e8382f567cf5b7b00a14e70"
+    "mtime": 1795788996.3203943,
+    "seen": 1795789006.7395964,
+    "ast_hash": "dc36051e3ae11d6768f18884de929e3f",
+    "semantic_hash": ""
   },
   "src/modules/formalizations/service.ts": {
-    "mtime": 1795103300.9324076,
-    "seen": 1795707380.2409928,
-    "ast_hash": "556784bde108921e2111239741878c71",
-    "semantic_hash": "556784bde108921e2111239741878c71"
+    "mtime": 1795788996.3277013,
+    "seen": 1795789006.739598,
+    "ast_hash": "27b31fff5dc19241c6eece7fe4262f38",
+    "semantic_hash": ""
   },
   "src/modules/identity/actions.ts": {
     "mtime": 1795013830.9970958,
@@ -2262,9 +2262,9 @@
     "semantic_hash": "bd558be5228e14b6495cb130f0ce419b"
   },
   "src/server/container.ts": {
-    "mtime": 1795740297.1992514,
-    "seen": 1795742863.4348235,
-    "ast_hash": "7b95fbfcc5f5ce97aa6e711dfd7d5d76",
+    "mtime": 1795788996.3287117,
+    "seen": 1795789006.739898,
+    "ast_hash": "6fdeb6ed6a6d4c1d284c7163606afef6",
     "semantic_hash": ""
   },
   "src/server/cron/cron-auth.ts": {
@@ -3885,6 +3885,12 @@
     "mtime": 1795788468.974702,
     "seen": 1795788504.5301588,
     "ast_hash": "fde4bcd59fe945ad7526421c75f8af6a",
+    "semantic_hash": ""
+  },
+  "src/app/(app)/processos/[id]/savings-panel.tsx": {
+    "mtime": 1795788886.8704562,
+    "seen": 1795788944.7433546,
+    "ast_hash": "116de533a01ab65ba104f186ae9d5683",
     "semantic_hash": ""
   },
   "package-lock.json": {
