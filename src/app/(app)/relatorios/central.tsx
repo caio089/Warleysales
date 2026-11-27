@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SelectControl } from "@/shared/ui/form-field";
+import { canReportOnPerson } from "@/shared/lib/authz/policy";
 import { Screen } from "@/shared/ui/screen";
 
 const kinds: [DetailedKind, string][] = [["colaborador", "Colaborador"], ["estagiarios", "Estagiários"], ["processos", "Processos"], ["atas", "Atas"], ["contratos", "Contratos"], ["estoque", "Estoque"]];
@@ -13,9 +14,16 @@ export async function ReportCentral({ raw }: { raw: Record<string, string | stri
   const filter = parseDetailedFilter(raw);
   const [result, directory] = await Promise.all([
     loadScreen(async ({ services, actor }) => buildDetailedReport(services, actor, filter)),
-    loadScreen(({ services, actor }) => services.memberships.reportDirectory(actor)),
+    loadScreen(async ({ services, actor }) => {
+      const people = await services.memberships.reportDirectory(actor, filter.councilId);
+      return people.ok ? { ok: true, data: {
+        all: people.data,
+        eligible: people.data.filter((person) => canReportOnPerson(actor, person.id)),
+      } } : people;
+    }),
   ]);
-  const people = directory.kind === "ok" ? directory.data : [];
+  const people = directory.kind === "ok" ? directory.data.all : [];
+  const eligiblePeople = directory.kind === "ok" ? directory.data.eligible : [];
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(filter)) if (value) query.set(key, value);
   return <div className="space-y-6">
@@ -27,7 +35,7 @@ export async function ReportCentral({ raw }: { raw: Record<string, string | stri
         <label className="text-sm">Início<Input type="date" name="start" defaultValue={filter.start} className="mt-1" /></label>
         <label className="text-sm">Fim<Input type="date" name="end" defaultValue={filter.end} className="mt-1" /></label>
         <label className="text-sm">Mês (processos ou estagiários)<Input type="month" name="month" defaultValue={typeof raw.month === "string" ? raw.month : undefined} className="mt-1" /></label>
-        <label className="text-sm">Colaborador<SelectControl name="actorId" defaultValue={filter.actorId ?? ""} className="mt-1"><option value="">Selecione</option>{people.map((p) => <option key={p.id} value={p.id}>{p.fullName || p.id.slice(0, 8)}</option>)}</SelectControl></label>
+        <label className="text-sm">Colaborador<SelectControl name="actorId" defaultValue={filter.actorId ?? ""} className="mt-1"><option value="">Selecione</option>{eligiblePeople.map((p) => <option key={p.id} value={p.id}>{p.fullName || p.id.slice(0, 8)}</option>)}</SelectControl></label>
         <label className="text-sm">Responsável<SelectControl name="responsibleId" defaultValue={filter.responsibleId ?? ""} className="mt-1"><option value="">Todos</option>{people.map((p) => <option key={p.id} value={p.id}>{p.fullName || p.id.slice(0, 8)}</option>)}</SelectControl></label>
         <label className="text-sm">Empresa (ID)<Input name="supplierId" defaultValue={filter.supplierId} className="mt-1" /></label>
         <label className="text-sm">Produto (ID)<Input name="materialId" defaultValue={filter.materialId} className="mt-1" /></label>

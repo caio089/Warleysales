@@ -7,6 +7,7 @@ import { signOutAction } from "@/modules/identity/actions";
 import { getServices } from "@/server/runtime";
 import { getSession } from "@/server/session";
 import { filterNavigation, NAV_ITEMS, type AccessContext } from "@/shared/lib/authz/navigation";
+import { isRequestOnly } from "@/shared/lib/authz/policy";
 import { AppShell } from "@/shared/ui/app-shell/app-shell";
 
 /** Layout autenticado: valida sessão no servidor e entrega ao AppShell apenas as rotas permitidas. */
@@ -23,8 +24,9 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
       };
   const navHrefs = filterNavigation(access, NAV_ITEMS).map((item) => item.href);
   const displayName = session.status === "authenticated" ? session.displayName : "";
+  const requestOnly = session.status === "authenticated" && isRequestOnly(session.actor);
   let unreadAlerts = 0;
-  if (session.status === "authenticated") {
+  if (session.status === "authenticated" && !requestOnly) {
     const services = getServices();
     if (services) {
       const listed = await services.notifications.listMine(session.actor);
@@ -52,7 +54,7 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
               Banco configurado
             </span>
           ) : null}
-          <Link
+          {!requestOnly && <Link
             href="/alertas"
             aria-label={unreadAlerts > 0 ? `Alertas e notificações, ${unreadAlerts} não lida(s)` : "Alertas e notificações"}
             className="relative rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
@@ -63,7 +65,7 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
                 {unreadAlerts > 9 ? "9+" : unreadAlerts}
               </span>
             ) : null}
-          </Link>
+          </Link>}
           {session.status === "authenticated" ? (
             <>
               <span className="hidden items-center gap-2 rounded-full border border-border/80 bg-card py-1 pr-3 pl-1 text-sm font-medium text-primary sm:inline-flex">
@@ -72,6 +74,7 @@ export async function AuthenticatedShell({ children }: { children: ReactNode }) 
                 </span>
                 {displayName}
               </span>
+              {session.actor.isSpecialDeleter && <Link href="/perfil" className="text-sm text-muted-foreground hover:underline">Meu perfil</Link>}
               <Link href="/redefinir-senha" className="text-sm text-muted-foreground hover:underline">
                 Alterar senha
               </Link>

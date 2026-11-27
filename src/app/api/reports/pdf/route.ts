@@ -3,6 +3,7 @@ import { auditReportPdf, operationalReportPdf } from "@/modules/reports/pdf";
 import { demoCouncilIds, hasOperationalData, savingsForExport } from "@/modules/reports/export-data";
 import { getServices } from "@/server/runtime";
 import { getSession } from "@/server/session";
+import { canReportOnPerson } from "@/shared/lib/authz/policy";
 import { toFortalezaDate } from "@/shared/lib/time";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -71,7 +72,12 @@ export async function GET(request: Request) {
   if (councilId) filter.councilId = councilId;
   if (entity) filter.entity = entity.slice(0, 100);
   if (action) filter.action = action.slice(0, 100);
-  if (actorId && UUID.test(actorId)) filter.actorId = actorId;
+  if (actorId && UUID.test(actorId)) {
+    if (!canReportOnPerson(session.actor, actorId)) {
+      return Response.json({ error: "Você não pode emitir um relatório individual sobre sua própria atuação." }, { status: 403 });
+    }
+    filter.actorId = actorId;
+  }
   if (result === "success" || result === "denied" || result === "error") filter.result = result;
   if (period === "hoje") filter.startDate = toFortalezaDate(new Date());
   else if (period === "7d" || period === "30d") filter.startDate = new Date(Date.now() - (period === "7d" ? 7 : 30) * 86_400_000).toISOString();

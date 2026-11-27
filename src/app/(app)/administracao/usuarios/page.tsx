@@ -1,3 +1,4 @@
+import { STAFF_CATEGORY_LABELS } from "@/modules/identity/schemas";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Building2, Link2, UsersRound } from "lucide-react";
@@ -7,12 +8,15 @@ import { KpiCard } from "@/shared/ui/kpi-card";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
 import { SimpleTable } from "@/shared/ui/simple-table";
-import { MembershipForms, ProvisionCouncilForm, StaffCategoryForm } from "./membership-forms";
+import { MembershipForms, StaffCategoryForm } from "./membership-forms";
 
 export const metadata: Metadata = { title: "Usuários e vínculos" };
 
 async function Content() {
-  const result = await loadScreen(({ services, actor }) => services.memberships.directory(actor));
+  const result = await loadScreen(async ({ services, actor }) => {
+    const directory = await services.memberships.directory(actor);
+    return directory.ok ? { ok: true, data: { ...directory.data, canCreate: actor.isSpecialDeleter } } : directory;
+  });
   return (
     <Screen result={result}>
       {(dir) => (
@@ -22,7 +26,6 @@ async function Content() {
             <KpiCard icon={<Building2 className="size-4" aria-hidden />} label="Órgãos e empresas" value={dir.councils.length} />
             <KpiCard icon={<Link2 className="size-4" aria-hidden />} label="Vínculos ativos" value={dir.memberships.length} />
           </div>
-          <ProvisionCouncilForm councils={dir.councils.filter((c) => c.active).map((c) => ({ value: c.id, label: c.acronym }))} />
           <SimpleTable
             caption="Vínculos de conselho"
             rows={dir.memberships.map((m) => ({
@@ -37,6 +40,7 @@ async function Content() {
             emptyDescription="Sem vínculo, o usuário autenticado não opera nenhum órgão ou empresa."
           />
           <MembershipForms
+            creationCouncils={dir.canCreate ? dir.councils.filter((c) => c.active).map((c) => ({ value: c.id, label: c.acronym })) : undefined}
             users={dir.profiles.map((p) => ({ value: p.id, label: p.fullName || p.id.slice(0, 8) }))}
             councils={dir.councils.map((c) => ({ value: c.id, label: c.acronym }))}
             roles={dir.roles}
@@ -45,7 +49,7 @@ async function Content() {
               label: `${m.userName} · ${m.councilLabel} · ${dir.roles.find((r) => r.value === m.role)?.label ?? m.role}`,
             }))}
           />
-          <StaffCategoryForm users={dir.profiles.map((p) => ({ value: p.id, label: `${p.fullName || p.id.slice(0, 8)} · ${p.staffCategory === "intern" ? "Estagiário" : p.staffCategory === "collaborator" ? "Colaborador" : "Não classificado"}` }))} />
+          <StaffCategoryForm users={dir.profiles.map((p) => ({ value: p.id, label: `${p.fullName || p.id.slice(0, 8)} · ${STAFF_CATEGORY_LABELS[p.staffCategory ?? "unclassified"]}` }))} />
         </div>
       )}
     </Screen>

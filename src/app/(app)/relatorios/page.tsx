@@ -8,8 +8,9 @@ import { auditSources, operationalSources } from "@/modules/reports/analysis";
 import { demoCouncilIds, hasOperationalData, savingsForExport } from "@/modules/reports/export-data";
 import { loadLookups } from "@/server/lookups";
 import { loadScreen } from "@/server/screen";
+import { canReportOnPerson } from "@/shared/lib/authz/policy";
 import { formatCurrency, formatPercent } from "@/shared/lib/format";
-import { ok } from "@/shared/lib/result";
+import { fail, ok } from "@/shared/lib/result";
 import { toFortalezaDate } from "@/shared/lib/time";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { KpiCard } from "@/shared/ui/kpi-card";
@@ -155,6 +156,9 @@ async function AuditContent({ rawParams }: { rawParams: Record<string, string | 
   }
 
   const result = await loadScreen(async (ctx) => {
+    if (filter.actorId && !canReportOnPerson(ctx.actor, filter.actorId)) {
+      return fail("FORBIDDEN", "Você não pode emitir um relatório individual sobre sua própria atuação.");
+    }
     const [entriesRes, lookupsRes] = await Promise.all([
       ctx.services.audit.list(ctx.actor, filter),
       loadLookups(ctx),

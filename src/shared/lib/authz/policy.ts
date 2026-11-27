@@ -7,6 +7,7 @@ import type { CouncilRole } from "./navigation";
  */
 export type PermissionAction =
   | "council.read"
+  | "request.read"
   | "council.manage"
   | "user.manage"
   | "process.create"
@@ -44,19 +45,20 @@ export interface Actor {
 }
 
 type RoleSet = readonly CouncilRole[];
-const MANAGER: RoleSet = ["council_manager"];
-const MANAGER_OPERATOR: RoleSet = ["council_manager", "council_operator"];
-const ANY_MEMBER: RoleSet = ["council_manager", "council_operator", "viewer"];
+const MANAGER: RoleSet = ["council_manager", "director", "purchasing_collaborator"];
+const MANAGER_OPERATOR: RoleSet = [...MANAGER, "council_operator"];
+const ANY_MEMBER: RoleSet = [...MANAGER_OPERATOR, "viewer"];
 
 /** Papéis de conselho que executam cada ação; `null` = ação restrita a admin central. */
 const ROLES_BY_ACTION: Record<Exclude<PermissionAction, "data.delete_manual">, RoleSet | null> = {
   "council.read": ANY_MEMBER,
+  "request.read": [...ANY_MEMBER, "request_collaborator"],
   "council.manage": null,
   "user.manage": null,
   "process.create": MANAGER_OPERATOR,
   "document.attach": MANAGER_OPERATOR,
   "document.unlink": MANAGER,
-  "request.create": MANAGER_OPERATOR,
+  "request.create": [...MANAGER_OPERATOR, "request_collaborator"],
   /** Exclusivo do Warley (`isSpecialDeleter`) — o órgão cria/envia; Maria Luiza e demais não decidem. */
   "request.decide": null,
   "stock.move": MANAGER_OPERATOR,
@@ -66,7 +68,7 @@ const ROLES_BY_ACTION: Record<Exclude<PermissionAction, "data.delete_manual">, R
   "ata.manage": MANAGER,
   "contract.manage": MANAGER,
   "meeting.manage": MANAGER_OPERATOR,
-  "report.view": ["council_manager", "viewer"],
+  "report.view": [...MANAGER, "viewer"],
   "audit.view": MANAGER,
   "retention.manage": null,
   "formalization.submit": MANAGER_OPERATOR,
@@ -95,8 +97,20 @@ export function authorize(actor: Actor, action: PermissionAction, councilId?: st
 }
 
 /** Conselhos que o ator pode consultar; `"all"` para admin central. */
-export function readableCouncilIds(actor: Actor): readonly string[] | "all" {
-  return actor.isCentralAdmin ? "all" : actor.memberships.map((m) => m.councilId);
+export function readableCouncilIds(actor: Actor, permission: "council.read" | "request.read" = "council.read"): readonly string[] | "all" {
+  return actor.isCentralAdmin ? "all" : actor.memberships
+    .filter((m) => can(actor, permission, m.councilId))
+    .map((m) => m.councilId);
+}
+
+export function isRequestOnly(actor: Actor): boolean {
+  return !actor.isCentralAdmin && actor.memberships.length > 0 &&
+    actor.memberships.every((m) => m.role === "request_collaborator");
+}
+
+export function canReportOnPerson(actor: Actor, userId: string): boolean {
+  return actor.isCentralAdmin || actor.userId.toLowerCase() !== userId.toLowerCase() ||
+    !actor.memberships.some((m) => m.role === "purchasing_collaborator");
 }
 
 /**
@@ -106,5 +120,8 @@ export function readableCouncilIds(actor: Actor): readonly string[] | "all" {
 export function canInAnyCouncil(actor: Actor, action: PermissionAction): boolean {
   if (action === "data.delete_manual" || action === "request.decide") return actor.isSpecialDeleter;
   if (actor.isCentralAdmin) return true;
-  return actor.memberships.some((m) => can(actor, action, m.councilId));
+  return actor.memberships.some((m) =>
+    (m.role !== "purchasing_collaborator" || (action !== "material.manage" && action !== "supplier.manage")) &&
+    can(actor, action, m.councilId),
+  );
 }

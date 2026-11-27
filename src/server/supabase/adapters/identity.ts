@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CouncilRepository, MembershipRepository } from "@/modules/identity/repository";
-import type { Council, MembershipRecord, ProfileSummary } from "@/modules/identity/schemas";
+import type { Council, MembershipRecord, StaffCategory, ProfileSummary } from "@/modules/identity/schemas";
 import type { CouncilRole } from "@/shared/lib/authz/navigation";
 import { fail, ok } from "@/shared/lib/result";
 import { isUniqueViolation, selectAll, unwrap } from "../db";
@@ -83,6 +83,11 @@ export class SupabaseMembershipRepository implements MembershipRepository {
     return rows.map((r) => ({ userId: r.user_id, councilId: r.council_id, role: r.role }));
   }
 
+  async listByUser(userId: string): Promise<MembershipRecord[]> {
+    const rows = unwrap("memberships.listByUser", await this.db.from("council_memberships").select("user_id, council_id, role").eq("user_id", userId).returns<MembershipRow[]>());
+    return rows.map((r) => ({ userId: r.user_id, councilId: r.council_id, role: r.role }));
+  }
+
   async listAll(): Promise<MembershipRecord[]> {
     const rows = unwrap("memberships.listAll", await this.db.from("council_memberships").select("user_id, council_id, role").returns<MembershipRow[]>());
     return rows.map((r) => ({ userId: r.user_id, councilId: r.council_id, role: r.role }));
@@ -91,12 +96,12 @@ export class SupabaseMembershipRepository implements MembershipRepository {
   async listProfiles(): Promise<ProfileSummary[]> {
     const rows = unwrap(
       "memberships.profiles",
-      await this.db.from("profiles").select("id, full_name, active, staff_category").order("full_name").returns<{ id: string; full_name: string; active: boolean; staff_category: "unclassified" | "collaborator" | "intern" }[]>(),
+      await this.db.from("profiles").select("id, full_name, active, staff_category").order("full_name").returns<{ id: string; full_name: string; active: boolean; staff_category: StaffCategory }[]>(),
     );
     return rows.map((r) => ({ id: r.id, fullName: r.full_name, active: r.active, staffCategory: r.staff_category }));
   }
 
-  async setStaffCategory(userId: string, category: "unclassified" | "collaborator" | "intern"): Promise<boolean> {
+  async setStaffCategory(userId: string, category: StaffCategory): Promise<boolean> {
     const rows = unwrap("memberships.setStaffCategory", await this.db.from("profiles").update({ staff_category: category }).eq("id", userId).select("id").returns<{ id: string }[]>());
     return rows.length > 0;
   }
@@ -120,7 +125,7 @@ export class SupabaseMembershipRepository implements MembershipRepository {
     // Apenas perfis ativos recebem alertas.
     const rows = unwrap(
       "memberships.managers",
-      await this.db.from("council_memberships").select("user_id, profiles!inner(active)").eq("council_id", councilId).eq("role", "council_manager").eq("profiles.active", true).returns<{ user_id: string }[]>(),
+      await this.db.from("council_memberships").select("user_id, profiles!inner(active)").eq("council_id", councilId).in("role", ["council_manager", "director"]).eq("profiles.active", true).returns<{ user_id: string }[]>(),
     );
     return rows.map((r) => r.user_id);
   }

@@ -86,6 +86,20 @@ beforeEach(() => {
 });
 
 describe("PurchaseRequestService", () => {
+  it("delimita solicitações ao órgão e mantém a aprovação exclusiva do Warley", async () => {
+    const normal = { ...operatorOf(COUNCIL_A), memberships: [{ councilId: COUNCIL_A, role: "request_collaborator" as const }] };
+    const purchasing = { ...operatorOf(COUNCIL_A), memberships: [{ councilId: COUNCIL_A, role: "purchasing_collaborator" as const }] };
+    const requestId = await submitted([{ quantity: 1 }]);
+    expect(await ctx.service.get(normal, requestId)).toMatchObject({ ok: true });
+    expect(await ctx.service.approve(purchasing, { requestId })).toMatchObject({ code: "FORBIDDEN" });
+    const created = await ctx.service.create(normal, { councilId: COUNCIL_A, title: "Compra de papel", createProcess: true, items: [{ materialId: MATERIAL, quantity: 1 }] });
+    expect(created).toMatchObject({ ok: true, data: { processId: expect.any(String) } });
+    if (created.ok) {
+      expect(await ctx.processes.get(normal, created.data.processId!)).toMatchObject({ code: "NOT_FOUND" });
+      expect(await ctx.service.get(managerOf(COUNCIL_B), created.data.id)).toMatchObject({ code: "NOT_FOUND" });
+    }
+    expect(await ctx.service.approve(approver(), { requestId })).toMatchObject({ ok: true });
+  });
   it("fluxo até aprovação NÃO altera estoque (R11)", async () => {
     const id = await submitted([{ quantity: 10 }]);
     const r = await ctx.service.approve(approver(), { requestId: id });

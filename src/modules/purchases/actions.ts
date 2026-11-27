@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { can } from "@/shared/lib/authz/policy";
+import { ok } from "@/shared/lib/result";
 import { runAction } from "@/server/action-runner";
 import { parseQuantityInput } from "@/shared/lib/quantity-input";
 import type { ActionState } from "@/shared/ui/forms/action-state";
@@ -27,7 +29,8 @@ export async function createRequestFormAction(_previous: ActionState, formData: 
       if (!created.ok) return created;
       // Órgão salva → já entra na fila exclusiva do Warley (enviada para aprovação).
       const submitted = await services.purchases.submit(actor, { requestId: created.data.id });
-      return submitted.ok ? submitted : created;
+      const request = submitted.ok ? submitted.data : created.data;
+      return ok({ request, canOpenProcess: can(actor, "council.read", request.councilId) });
     },
     "Solicitação enviada para aprovação.",
   );
@@ -35,11 +38,12 @@ export async function createRequestFormAction(_previous: ActionState, formData: 
   revalidatePath("/solicitacoes");
   revalidatePath("/processos");
   revalidatePath("/dashboard");
-  const processId = result.data.processId;
-  if (processId) {
+  const { request, canOpenProcess } = result.data;
+  const processId = request.processId;
+  if (processId && canOpenProcess) {
     redirect(`/processos/${processId}?aba=aprovacoes`);
   }
-  redirect(`/solicitacoes/${result.data.id}`);
+  redirect(`/solicitacoes/${request.id}`);
 }
 
 type Step = "submit" | "startReview" | "requestCorrection" | "resubmitAfterCorrection" | "approve" | "reject" | "cancel" | "reopen";

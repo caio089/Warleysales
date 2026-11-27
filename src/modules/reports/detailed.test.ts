@@ -15,6 +15,14 @@ const services = {
 } as unknown as Services;
 
 describe("central de relatórios detalhados", () => {
+  it("bloqueia relatório individual próprio de Compras e permite os relatórios do órgão", async () => {
+    const actor = { ...managerOf(COUNCIL_A), memberships: [{ councilId: COUNCIL_A, role: "purchasing_collaborator" as const }] };
+    const colleague = "11111111-1111-4111-8111-111111111111";
+    expect(await buildDetailedReport(services, actor, { kind: "colaborador", actorId: actor.userId })).toMatchObject({ code: "FORBIDDEN" });
+    expect(await buildDetailedReport(services, actor, { kind: "colaborador", actorId: colleague })).toMatchObject({ ok: true });
+    expect(await buildDetailedReport(services, actor, { kind: "processos", councilId: COUNCIL_A })).toMatchObject({ ok: true });
+    expect(await buildDetailedReport(services, actor, { kind: "processos", councilId: COUNCIL_B })).toMatchObject({ code: "FORBIDDEN" });
+  });
   it("filtra processos por empresa e pelas três bases de data", async () => {
     const id = crypto.randomUUID();
     const supplierId = crypto.randomUUID();

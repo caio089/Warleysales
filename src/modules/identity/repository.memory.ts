@@ -1,6 +1,6 @@
 import { fail, ok, type Result } from "@/shared/lib/result";
 import type { CouncilRepository, MembershipRepository } from "./repository";
-import type { Council, MembershipRecord } from "./schemas";
+import type { Council, MembershipRecord, StaffCategory } from "./schemas";
 
 export class InMemoryCouncilRepository implements CouncilRepository {
   private rows = new Map<string, Council>();
@@ -15,11 +15,12 @@ export class InMemoryCouncilRepository implements CouncilRepository {
 }
 
 export class InMemoryMembershipRepository implements MembershipRepository {
-  constructor(private readonly records: MembershipRecord[] = [], private readonly profiles: { id: string; fullName: string; active: boolean; staffCategory?: "unclassified" | "collaborator" | "intern" }[] = []) {}
+  constructor(private readonly records: MembershipRecord[] = [], private readonly profiles: { id: string; fullName: string; active: boolean; staffCategory?: StaffCategory }[] = []) {}
   async listByCouncil(councilId: string) { return this.records.filter((r) => r.councilId === councilId); }
+  async listByUser(userId: string) { return this.records.filter((r) => r.userId === userId); }
   async listAll() { return [...this.records]; }
   async listProfiles() { return [...this.profiles]; }
-  async setStaffCategory(userId: string, category: "unclassified" | "collaborator" | "intern") {
+  async setStaffCategory(userId: string, category: StaffCategory) {
     const profile = this.profiles.find((p) => p.id === userId);
     if (!profile) return false;
     profile.staffCategory = category;
@@ -36,5 +37,5 @@ export class InMemoryMembershipRepository implements MembershipRepository {
     this.records.splice(i, 1);
     return true;
   }
-  async managerIds(councilId: string) { return this.records.filter((r) => r.councilId === councilId && r.role === "council_manager").map((r) => r.userId); }
+  async managerIds(councilId: string) { return this.records.filter((r) => r.councilId === councilId && (r.role === "council_manager" || r.role === "director")).map((r) => r.userId); }
 }

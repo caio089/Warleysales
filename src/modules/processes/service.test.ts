@@ -46,6 +46,15 @@ let ctx: Ctx;
 beforeEach(() => { ctx = setup(); });
 
 describe("ProcessService", () => {
+  it("salva somente datas válidas e respeita o órgão do processo", async () => {
+    const { id: processId } = await newProcess(ctx);
+    const publicSessionDate = "2026-12-07";
+    const update = { processId, publicSessionDate };
+    expect(await ctx.processes.setPublicSessionDate(managerOf(COUNCIL_B), update)).toMatchObject({ code: "FORBIDDEN" });
+    expect(await ctx.processes.setPublicSessionDate(managerOf(COUNCIL_A), { ...update, publicSessionDate: "2026-02-30" })).toMatchObject({ code: "VALIDATION" });
+    expect(await ctx.processes.setPublicSessionDate(managerOf(COUNCIL_A), update)).toMatchObject({ ok: true });
+    expect(await ctx.processes.get(viewerOf(COUNCIL_A), processId)).toMatchObject({ data: { process: { publicSessionDate } } });
+  });
   it("mantém criador separado de responsável e audita a edição do tipo", async () => {
     const creator = managerOf(COUNCIL_A);
     const assigned = crypto.randomUUID();

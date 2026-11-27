@@ -38,6 +38,19 @@ export async function classifyProcessFormAction(_previous: ActionState, formData
   return result.status === "success" ? { status: "success", message: result.message } : result;
 }
 
+export async function savePublicSessionDateFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  const processId = String(formData.get("processId") ?? "");
+  const result = await runAction(
+    ({ services, actor }) => services.processes.setPublicSessionDate(actor, {
+      processId,
+      publicSessionDate: formData.get("publicSessionDate") || null,
+    }),
+    "Data da sessão pública atualizada.",
+  );
+  if (result.status === "success") revalidatePath(`/solicitacoes/processos/${processId}`);
+  return result.status === "success" ? { status: "success", message: result.message } : result;
+}
+
 export async function changeProcessStatusFormAction(_previous: ActionState, formData: FormData): Promise<ActionState> {
   const result = await runAction(
     ({ services, actor }) => services.processes.changeStatus(actor, { processId: formData.get("processId"), status: formData.get("status") }),

@@ -39,13 +39,7 @@ export class PurchaseRequestService {
     const now = this.runtime.now();
     let processId: string | null = null;
     if (d.createProcess) {
-      const currentYear = new Date(now).getFullYear();
-      const processNumber = await this.processes.getNextNumber(d.councilId, currentYear);
-      const createdProc = await this.processes.create(actor, {
-        councilId: d.councilId,
-        number: processNumber,
-        title: d.title,
-      });
+      const createdProc = await this.processes.createForRequest(actor, d.councilId, d.title, now.getFullYear());
       if (!createdProc.ok) return createdProc;
       processId = createdProc.data.id;
     }
@@ -302,14 +296,14 @@ export class PurchaseRequestService {
   }
 
   async list(actor: Actor): Promise<Result<PurchaseRequest[]>> {
-    const scope = readableCouncilIds(actor);
+    const scope = readableCouncilIds(actor, "request.read");
     if (scope !== "all" && scope.length === 0) return ok([]);
     return ok(await this.repository.listByCouncils(scope));
   }
 
   async get(actor: Actor, id: string): Promise<Result<PurchaseRequest>> {
     const request = await this.repository.findById(id);
-    if (!request || !can(actor, "council.read", request.councilId)) return fail("NOT_FOUND", "Solicitação não encontrada.");
+    if (!request || !can(actor, "request.read", request.councilId)) return fail("NOT_FOUND", "Solicitação não encontrada.");
     return ok(request);
   }
 

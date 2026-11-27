@@ -17,6 +17,10 @@ describe("classificação de equipe para relatórios", () => {
     expect((await service.setStaffCategory(centralAdmin(), { userId: id, category: "intern" })).ok).toBe(true);
     const after = await service.reportDirectory(managerOf(COUNCIL_A));
     expect(after.ok && after.data[0]?.staffCategory).toBe("intern");
+    expect((await service.setStaffCategory(centralAdmin(), { userId: id, category: "director" })).ok).toBe(true);
+    const classified = await service.directory(centralAdmin());
+    expect(classified.ok && classified.data.profiles[0]?.staffCategory).toBe("director");
+    expect(classified.ok && classified.data.memberships[0]?.role).toBe("council_operator");
     const outsider = await service.reportDirectory(managerOf(COUNCIL_B));
     expect(outsider.ok && outsider.data).toEqual([]);
   });
