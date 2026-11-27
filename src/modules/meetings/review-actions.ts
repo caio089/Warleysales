@@ -28,8 +28,11 @@ export async function meetingReviewAction(_state: ActionState, form: FormData): 
       if (op === "transcript" ? !m.audioPath || !!m.transcript : m.status !== "realizada" || !m.transcript || !!m.minutes) {
         return fail("INVALID_STATE", "A reunião ainda não atende aos requisitos ou já possui um resultado.");
       }
-      const query = db.from("meetings").update({ ai_stage: op, ai_state: "queued", ai_attempts: 0, ai_claim: null, ai_lease_until: null })
-        .eq("id", m.id).or("ai_state.is.null,ai_state.in.(failed,done)");
+      const query = db.from("meetings").update({
+        ai_stage: op, ai_state: "queued", ai_attempts: 0, ai_claim: null, ai_lease_until: null,
+        ai_consent_by: actor.userId, ai_consent_at: new Date().toISOString(),
+      }).eq("id", m.id).eq("council_id", m.councilId).eq("status", m.status)
+        .or("ai_state.is.null,ai_state.in.(failed,done)");
       const { data, error } = await (op === "transcript" ? query.is("transcript_text", null) : query.is("minutes_text", null).is("minutes_draft", null)).select("id").maybeSingle();
       if (error || !data) return fail("CONFLICT", "Já existe uma solicitação ou resultado para esta reunião.");
     } else if (op === "review" || op === "approve") {
@@ -66,7 +69,8 @@ export async function meetingReviewAction(_state: ActionState, form: FormData): 
       }
     } else return fail("VALIDATION", "Operação inválida.");
     await services.audit.record({ actorId: actor.userId, action: `meeting.minutes.${op}`, entity: "meeting",
-      entityId: m.id, councilId: m.councilId, result: "success", details: {} });
+      entityId: m.id, councilId: m.councilId, result: "success",
+      details: op === "transcript" || op === "draft" ? { externalConsent: true, provider: "groq" } : {} });
     return ok(true);
   }, form.get("operation") === "approve" ? "Ata aprovada." : "Solicitação registrada.");
   if (result.status === "success") {

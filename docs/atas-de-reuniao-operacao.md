@@ -16,8 +16,13 @@ após falha. Um trabalho interrompido após o envio ao provedor pode gerar nova
 cobrança na recuperação. A reserva impede que um worker atrasado publique o
 resultado de um trabalho que já foi reassumido.
 
-Aplique a migration `20261127000001` antes de disponibilizar as novas ações no
-ambiente de destino. O limite do arquivo é 25 MB e uma transcrição com mais de
+Aplique as migrations `20261127000001` e `20261127000002` em ordem antes de
+disponibilizar as novas ações. Durante uma atualização, desabilite a integração
+e aguarde a conclusão do worker anterior antes de alterar o banco. Solicitações
+pendentes antigas passam para falha e exigem novo consentimento. A fila registra
+quem consentiu e quando, e a reserva revalida a permissão dessa pessoa no órgão.
+
+O limite do arquivo é 25 MB e uma transcrição com mais de
 20.000 caracteres entra em falha, sem substituir a gravação ou gravar texto
 truncado. Atas históricas continuam disponíveis com identificação de registro
 manual. Uma minuta sem aprovação não é exportada como ata.

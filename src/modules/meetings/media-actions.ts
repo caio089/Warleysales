@@ -1,7 +1,5 @@
 "use server";
 
-import { generateText } from "ai";
-import { groq } from "@ai-sdk/groq";
 import { revalidatePath } from "next/cache";
 import { can } from "@/shared/lib/authz/policy";
 import { fail, ok, type Result } from "@/shared/lib/result";
@@ -75,25 +73,4 @@ export async function meetingAudioUrlAction(meetingId: string): Promise<Result<s
     return error || !data ? fail("UNAVAILABLE", "Não foi possível abrir o áudio.") : ok(data.signedUrl);
   }, "Áudio disponível.");
   return state.status === "success" && state.data ? ok(state.data) : fail("NOT_FOUND", state.status === "error" ? state.message : "Não foi possível abrir o áudio.");
-}
-
-export async function draftMeetingMinutesAction(meetingId: string): Promise<Result<string>> {
-  if (!idSchema.safeParse(meetingId).success) return fail("VALIDATION", "Reunião inválida.");
-  if (process.env.MEETING_EXTERNAL_AI !== "enabled" || !process.env.GROQ_API_KEY?.trim()) return fail("UNAVAILABLE", "IA não configurada.");
-  const state = await runAction(async ({ services, actor }) => {
-    const meeting = await managedMeeting(meetingId, actor, services);
-    if (!meeting.ok) return meeting;
-    if (meeting.data.status !== "realizada") return fail("INVALID_STATE", "Marque a reunião como realizada antes de preparar a ata.");
-    const transcript = meeting.data.transcript?.trim() ?? "";
-    if (transcript.length < 20 || transcript.length > 20000) return fail("VALIDATION", "A transcrição registrada precisa ter entre 20 e 20.000 caracteres.");
-    const result = await generateText({
-      model: groq("openai/gpt-oss-20b"), temperature: 0, abortSignal: AbortSignal.timeout(15_000),
-      providerOptions: { groq: { reasoningFormat: "hidden", reasoningEffort: "low" } },
-      system: "Redija uma PROPOSTA de ata de reunião em português do Brasil. Use apenas a transcrição fornecida. Não invente participantes, deliberações, datas ou decisões. Indique pontos inaudíveis como [revisar]. O texto será revisado por uma pessoa antes de salvar. Responda só com o texto da ata.",
-      prompt: `Reunião: ${meeting.data.title}\nTranscrição:\n${transcript.trim()}`,
-    });
-    const draft = result.text.trim().slice(0, 20000);
-    return draft.length >= 5 ? ok(draft) : fail("UNAVAILABLE", "A IA não retornou uma proposta válida.");
-  }, "Proposta gerada para revisão.");
-  return state.status === "success" && state.data ? ok(state.data) : fail("UNAVAILABLE", state.status === "error" ? state.message : "Não foi possível gerar a proposta.");
 }
