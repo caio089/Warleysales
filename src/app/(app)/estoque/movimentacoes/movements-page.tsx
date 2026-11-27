@@ -55,6 +55,8 @@ export async function Content() {
         atas: atas.data,
         materialLabel: lookups.data.materialLabel,
         contracts: contracts.data.map((view) => ({
+          id: view.contract.id,
+          number: view.contract.number,
           processId: view.contract.processId ?? null,
           ataId: view.contract.ataId ?? null,
           ataItems: (view.contract.ataItems ?? []).map((item) => ({

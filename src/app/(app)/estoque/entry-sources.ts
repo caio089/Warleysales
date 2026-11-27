@@ -14,7 +14,8 @@ export type StockEntryItem = {
   itemId: string;
   materialId: string;
   materialLabel: string;
-  ordered: number;
+  ataQuantity: number;
+  contractQuantity: number;
   pending: number;
   suggested?: number;
   unitPrice: number | null;
@@ -30,6 +31,9 @@ export type StockEntrySource = {
   processTitle: string;
   label: string;
   estimatedValue: number | null;
+  contractId: string;
+  contractLabel: string;
+  ataLabel: string;
   items: StockEntryItem[];
 };
 
@@ -48,9 +52,13 @@ export function buildStockEntrySources(input: {
 }): StockEntrySource[] {
   const processById = new Map(input.processes.map((view) => [view.process.id, view]));
   const ataUnitByItemId = new Map<string, number>();
+  const ataQuantityByItemId = new Map<string, number>();
+  const ataLabelById = new Map<string, string>();
   for (const ata of input.atas) {
+    ataLabelById.set(ata.ata.id, ata.ata.number);
     for (const item of ata.ata.items) {
       ataUnitByItemId.set(item.id, item.unitPrice);
+      ataQuantityByItemId.set(item.id, item.registeredQuantity);
     }
   }
   const allContracts = input.contracts ?? [];
@@ -73,7 +81,12 @@ export function buildStockEntrySources(input: {
     });
     if (!gate.ok) continue;
 
-    const contractedByAtaItem = contractedQuantityByAtaItem(processContracts, request.processId);
+    const selectedContract = processContracts.find((contract) =>
+      contract.ataItems.some((line) => request.items.some((item) => item.ataItemId === line.ataItemId)),
+    ) ?? processContracts[0];
+    if (!selectedContract?.id) continue;
+
+    const contractedByAtaItem = contractedQuantityByAtaItem([selectedContract], request.processId);
     const receivedByAtaItem = receivedByProcess.get(request.processId);
     const eligibleItems = request.items.filter((item) => Boolean(item.materialId));
     const defaults = receiptDefaults(eligibleItems, contractedByAtaItem, receivedByAtaItem);
@@ -100,13 +113,23 @@ export function buildStockEntrySources(input: {
       processTitle: process.process.title,
       label: `${process.process.number} — ${process.process.title}`,
       estimatedValue: estimated,
+      contractId: selectedContract.id,
+      contractLabel: selectedContract.number ? `Contrato ${selectedContract.number}` : "Contrato",
+      ataLabel: selectedContract.ataId
+        ? `Ata ${ataLabelById.get(selectedContract.ataId) ?? "vinculada"}`
+        : "Solicitação",
       items: pendingItems.map(({ item, pending, unitFromAta }) => {
         const unitPrice = unitFromAta ?? fallbackUnit;
         return {
           itemId: item.id,
           materialId: item.materialId,
           materialLabel: input.materialLabel[item.materialId] ?? "Material",
-          ordered: item.quantity,
+          ataQuantity: item.ataItemId
+            ? (ataQuantityByItemId.get(item.ataItemId) ?? item.quantity)
+            : item.quantity,
+          contractQuantity: item.ataItemId
+            ? (contractedByAtaItem.get(item.ataItemId) ?? pending)
+            : pending,
           pending,
           suggested: defaults.get(item.id),
           unitPrice,
