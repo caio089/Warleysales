@@ -66,7 +66,7 @@ export function buildStockEntrySources(input: {
   const latestAtaByProcess = new Map<string, AtaView>();
   for (const ata of input.atas) {
     const processId = ata.ata.processId;
-    if (!processId) continue;
+    if (!processId || ata.ata.status === "cancelada") continue;
     const current = latestAtaByProcess.get(processId);
     if (!current || ata.ata.createdAt > current.ata.createdAt ||
       (ata.ata.createdAt.getTime() === current.ata.createdAt.getTime() && ata.ata.id > current.ata.id)) {

@@ -1,3 +1,4 @@
+import { NewContractForm } from "@/app/(app)/contratos/novo/new-contract-form";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -41,18 +42,28 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
     const councilId = view.data.ata.councilId;
     const processId = view.data.ata.processId ?? null;
     const supplierId = view.data.ata.supplierId;
-    let supplierName: string | null = null;
-    if (supplierId) {
-      const suppliers = await services.suppliers.list(actor);
-      if (suppliers.ok) {
-        supplierName = suppliers.data.find((row) => row.id === supplierId)?.name ?? null;
-      }
-    }
+    const suppliers = await services.suppliers.list(actor);
+    const supplierRows = suppliers.ok ? suppliers.data : [];
+    const supplierName = supplierRows.find((row) => row.id === supplierId)?.name ?? null;
+    const process = processes.data.find((item) => item.process.id === processId)?.process;
+    const request = process ? await services.purchases.findLinkedByProcess(actor, process.id) : null;
+    const requestStatus = request?.ok ? request.data?.status : undefined;
+    const contractDraft = process && request?.ok &&
+      (!requestStatus || ["aprovada", "em_atendimento", "parcialmente_atendida", "atendida"].includes(requestStatus)) &&
+      can(actor, "contract.manage", councilId) && view.data.ata.status === "vigente" && view.data.validity === "vigente"
+      ? {
+          councilId, councilLabel: lookups.data.councilLabel[councilId] ?? "Órgão",
+          processId: process.id, processLabel: `${process.number} — ${process.title}`, processNumber: process.number,
+          defaultValue: process.estimatedValue, validityStartDate: process.validityStartDate ?? view.data.ata.startDate,
+          atas: [{ id, number: view.data.ata.number, status: "Vigente", items: buildAtaBalanceRows(view.data, lookups.data.materialLabel) }],
+        } : undefined;
 
     return ok({
       view: view.data,
       lookups: lookups.data,
       supplierName,
+      contractDraft,
+      contractSuppliers: supplierRows.filter((row) => row.active).map((row) => ({ value: row.id, label: row.name, cnpj: row.cnpj })),
       canManage: can(actor, "ata.manage", councilId),
       processes: processes.data
         .filter((item) => item.process.councilId === councilId)
@@ -61,18 +72,18 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
       processLabel: processes.data.find((item) => item.process.id === processId)?.process.number ?? null,
       relatedContracts: processId
         ? contracts.data
-            .filter((item) => item.contract.processId === processId)
+            .filter(({ contract }) => contract.councilId === councilId && (contract.ataId === id || (!contract.ataId && contract.processId === processId && view.data.ata.status !== "cancelada")))
             .map((item) => ({ id: item.contract.id, label: `${item.contract.number} — ${item.contract.object}` }))
         : [],
       councilContracts: contracts.data
-        .filter((item) => item.contract.councilId === councilId)
+        .filter(({ contract }) => contract.councilId === councilId && !contract.processId && !contract.ataId)
         .map((item) => ({ value: item.contract.id, label: `${item.contract.number} — ${item.contract.object}` })),
     });
   });
 
   return (
     <Screen result={result}>
-      {({ view, lookups, supplierName, canManage, processes, processHref, processLabel, relatedContracts, councilContracts }) => {
+      {({ view, lookups, supplierName, canManage, processes, processHref, processLabel, relatedContracts, councilContracts, contractDraft, contractSuppliers }) => {
         const totalRegistered = view.items.reduce((sum, item) => sum + item.balance.registered, 0);
         const totalBalance = view.items.reduce((sum, item) => sum + item.balance.balance, 0);
         const totalValue = view.ata.items.reduce(
@@ -180,7 +191,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
               </section>
             ) : null}
 
-            <section aria-label="Processo e contratos" className="surface-card mb-8 max-w-2xl space-y-4 p-6">
+            <section aria-label="Processo e contratos" className="surface-card mb-8 space-y-4 p-6">
               <div>
                 <h2 className="font-heading text-lg font-medium tracking-tight text-primary">Processo e contratos</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
@@ -214,19 +225,14 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
                   current={view.ata.processId ?? null}
                 />
               ) : null}
-              {canManage && !isCancelled && view.ata.processId ? (
+              {contractDraft && relatedContracts.length === 0 ? (
                 <div className="space-y-3 border-t border-border/70 pt-4">
                   <h3 className="text-sm font-medium">Vincular um contrato a este processo</h3>
-                  {councilContracts.length > 0 ? (
-                    <LinkContractToProcessForm processId={view.ata.processId} contracts={councilContracts} />
-                  ) : (
-                    <Link
-                      href={`/contratos/novo?processId=${view.ata.processId}`}
-                      className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-                    >
-                      Cadastrar o primeiro contrato deste processo
-                    </Link>
+                  {councilContracts.length > 0 && (
+                    <LinkContractToProcessForm processId={contractDraft.processId} contracts={councilContracts} />
                   )}
+                  <NewContractForm councils={[]} processes={[]} suppliers={contractSuppliers}
+                    lockedProcess={{ ...contractDraft, returnToAtaId: view.ata.id }} />
                 </div>
               ) : null}
             </section>

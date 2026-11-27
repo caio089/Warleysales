@@ -22,7 +22,7 @@ const optionalId = (value: FormDataEntryValue | null) => {
 function processReturnPath(formData: FormData): string | null {
   const raw = String(formData.get("returnTo") ?? "").trim();
   if (!/^\/processos\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) return null;
-  return `${raw}?aba=contratacao`;
+  return `/solicitacoes${raw}?aba=contratacao`;
 }
 
 function readProcessItems(formData: FormData): {
@@ -132,6 +132,9 @@ export async function createAtaFormAction(_previous: ActionState, formData: Form
   revalidatePath("/estoque");
   revalidatePath("/estoque/movimentacoes");
   revalidatePath("/fornecedores");
+  if (processId) {
+    for (const path of [`/solicitacoes/processos/${processId}`, "/processos", "/contratos", "/dashboard", "/meu-conselho", "/calendario", "/relatorios"]) revalidatePath(path);
+  }
   const backToProcess = processReturnPath(formData);
   if (backToProcess) {
     revalidatePath(backToProcess.split("?")[0] ?? backToProcess);

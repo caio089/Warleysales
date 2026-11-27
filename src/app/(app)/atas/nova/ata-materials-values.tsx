@@ -44,6 +44,7 @@ export function AtaMaterialsValues({
   processLabel,
   defaultTotal,
   defaultLineTotals,
+  editableItems = false,
   errors = {},
 }: {
   lines: AtaMaterialLine[];
@@ -52,21 +53,26 @@ export function AtaMaterialsValues({
   defaultTotal?: number | null;
   /** Totais por linha (ex.: lidos do PDF). Tem prioridade sobre rateio do defaultTotal. */
   defaultLineTotals?: Array<number | null | undefined>;
+  editableItems?: boolean;
   errors?: Record<string, string[]>;
 }) {
   const [drafts, setDrafts] = useState(() => buildDrafts(lines, defaultTotal, defaultLineTotals));
+
+  const [quantities, setQuantities] = useState(() => lines.map((line) => String(line.quantity).replace(".", ",")));
 
   const computed = useMemo(
     () =>
       lines.map((line, index) => {
         const lineTotal = parseMoney(drafts[index] ?? "");
-        const unit = line.quantity > 0 ? lineTotal / line.quantity : 0;
+        const quantity = editableItems ? Number((quantities[index] ?? "").replace(",", ".")) : line.quantity;
+        const unit = quantity > 0 ? lineTotal / quantity : 0;
         return {
           lineTotal,
+          quantity,
           unit: Math.round(unit * 100) / 100,
         };
       }),
-    [drafts, lines],
+    [drafts, lines, editableItems, quantities],
   );
 
   const grandTotal = Math.round(computed.reduce((sum, row) => sum + row.lineTotal, 0) * 100) / 100;
@@ -94,11 +100,24 @@ export function AtaMaterialsValues({
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 px-3.5 py-2.5">
                 <p className="min-w-0 text-sm font-medium text-foreground">{line.name}</p>
                 <span className="inline-flex items-center rounded-full bg-background px-2.5 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground ring-1 ring-border/70">
-                  Qtd {line.quantity}
+                  Qtd {row.quantity || "—"}
                 </span>
               </div>
 
               <div className="grid gap-3 p-3.5 sm:grid-cols-2">
+                {editableItems && <>
+                  <FormField label="Descrição do item" required errors={errors[`items.${index}.description`]}>
+                    {(props) => <Input {...props} name={`items.${index}.description`} defaultValue={line.name} required />}
+                  </FormField>
+                  <FormField label="Quantidade registrada" required errors={errors[`items.${index}.registeredQuantity`]}>
+                    {(props) => <Input {...props} name={`items.${index}.registeredQuantity`} inputMode="decimal" required
+                      value={quantities[index] ?? ""}
+                      onChange={(event) => {
+                        const next = event.currentTarget.value;
+                        setQuantities((previous) => previous.map((quantity, rowIndex) => rowIndex === index ? next : quantity));
+                      }} />}
+                  </FormField>
+                </>}
                 <FormField
                   label="Valor total do item"
                   required
@@ -133,7 +152,7 @@ export function AtaMaterialsValues({
                     {formatCurrency(row.unit)}
                   </p>
                   <p className="text-[0.7rem] text-muted-foreground">
-                    {formatCurrency(row.lineTotal)} ÷ {line.quantity}
+                    {formatCurrency(row.lineTotal)} ÷ {row.quantity || "—"}
                   </p>
                 </div>
               </div>

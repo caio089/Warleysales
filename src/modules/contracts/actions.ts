@@ -88,6 +88,8 @@ export async function createContractFormAction(_previous: ActionState, formData:
   revalidatePath("/estoque");
   revalidatePath("/estoque/movimentacoes");
   if (input.ataId) revalidatePath(`/atas/${String(input.ataId)}`);
+  const ataReturnPath = input.ataId ? `/atas/${input.ataId}` : null;
+  if (ataReturnPath && formData.get("returnTo") === ataReturnPath) redirect(ataReturnPath);
   const backToProcess = processReturnPath(formData);
   if (backToProcess) {
     revalidatePath(backToProcess.split("?")[0] ?? backToProcess);

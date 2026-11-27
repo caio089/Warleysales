@@ -4,6 +4,7 @@ import { formatCurrency, formatNumber } from "@/shared/lib/format";
 export interface AtaBalanceRow {
   itemId: string;
   description: string;
+  materialId?: string | null;
   materialLabel: string;
   registered: number;
   committed: number;
@@ -16,6 +17,7 @@ export function buildAtaBalanceRows(view: AtaView, materialLabels: Record<string
   return view.items.map((row) => ({
     itemId: row.itemId,
     description: row.description,
+    materialId: row.materialId,
     materialLabel: row.materialId ? materialLabels[row.materialId] ?? "—" : "—",
     registered: row.balance.registered,
     committed: row.balance.committed,

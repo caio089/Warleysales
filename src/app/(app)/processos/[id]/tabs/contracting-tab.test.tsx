@@ -115,15 +115,15 @@ describe("ContractingTab", () => {
     );
 
     expect(html).toContain("Nenhuma ata de registro de preços vinculada");
-    expect(html).toContain("Nenhum contrato administrativo vinculado");
+    expect(html).not.toContain("Nenhum contrato administrativo vinculado");
     const ataStep = html.indexOf("1. Ata de registro de preços");
     const contractStep = html.indexOf("2. Contrato");
     expect(ataStep).toBeGreaterThan(-1);
-    expect(contractStep).toBeGreaterThan(ataStep);
+    expect(contractStep).toBe(-1);
     expect(html).toContain("Primeiro anexe ou crie a ata. Depois anexe ou crie o contrato.");
   });
 
-  it("permite vincular ata e contrato livres ou criar um novo já neste processo", () => {
+  it("permite cadastrar a ata e reserva o contrato para a ficha da ata", () => {
     const html = renderToStaticMarkup(
       <ContractingTab
         processId="proc-1"
@@ -151,18 +151,17 @@ describe("ContractingTab", () => {
 
     expect(html).toContain("Vincular ata existente");
     expect(html).toContain("ARP 099/2026");
-    expect(html).toContain("Anexar contrato");
-    expect(html).toContain("CT 099/2026");
+    expect(html).not.toContain("Anexar contrato");
+    expect(html).not.toContain("CT 099/2026");
     expect(html).toContain("1. Empresa vencedora");
     expect(html).toContain("Nome da empresa");
     expect(html).toContain("2. Materiais e valores");
     expect(html).toContain("Valor unitário");
     expect(html).toContain("Papel A4");
     expect(html).toContain("Número da ata");
-    expect(html).toContain("Registrar contrato");
+    expect(html).not.toContain("Registrar contrato");
     expect(html).toContain("Puxada do Termo de Referência");
     expect(html).toContain("12/2027 — Material de expediente");
-    expect(html.indexOf("1. Ata de registro de preços")).toBeLessThan(html.indexOf("2. Contrato"));
   });
 
   it("oculta os campos de cadastro de ata quando já existe uma vinculada", () => {
@@ -173,9 +172,9 @@ describe("ContractingTab", () => {
         draft={{ councilLabel: "CRQ18", processLabel: "Processo", processNumber: "012/2026",
           materials: [], requestMaterials: [], suppliers: [] }} />,
     );
-    expect(html).toContain("Criar nova ata com justificativa");
-    expect(html).toContain("ARP antiga");
-    expect(html).toContain("Ata cancelada após o cadastro");
+    expect(html).toContain("Editar ata");
+    expect(html).toContain("Atas anteriores");
+    expect(html).not.toContain("ARP antiga");
     expect(html).not.toContain("Número da ata");
     expect(html).not.toContain("Ler ata em PDF para preencher");
   });
@@ -209,7 +208,7 @@ describe("ContractingTab", () => {
     expect(html).not.toContain("Valor da ata");
   });
 
-  it("renderiza cards elegantes com links, vigência e valores para atas e contratos vinculados", () => {
+  it("renderiza o saldo e o link da ata sem listar o contrato no processo", () => {
     const html = renderToStaticMarkup(
       <ContractingTab
         processId="proc-1"
@@ -234,13 +233,7 @@ describe("ContractingTab", () => {
     expect(html).toContain("15.000,00");
     expect(html).toContain(">75<");
 
-    // Contract card
-    expect(html).toContain("CTR 045/2026");
-    expect(html).toContain("Fornecimento de papel A4 para as unidades");
-    expect(html).toContain("R$");
-    expect(html).toContain("82.000,00");
-    expect(html).toContain("30/06/2027");
-    expect(html).toContain("/contratos/contract-1");
+    expect(html).not.toContain("/contratos/contract-1");
   });
 
   it("incorpora a seção principal com o FormalizationCard e aviso de espera se documentos < 100%", () => {

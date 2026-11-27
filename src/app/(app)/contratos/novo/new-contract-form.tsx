@@ -43,6 +43,7 @@ export function NewContractForm({
   defaultProcessId?: string;
   /** Dentro do processo: puxa materiais, vigência do TR e valor do PP. */
   lockedProcess?: {
+    returnToAtaId?: string;
     councilId: string;
     councilLabel: string;
     processId: string;
@@ -174,7 +175,7 @@ export function NewContractForm({
             processId: lockedProcess.processId,
             number: (extracted?.number?.trim() || suggestedNumber).slice(0, 40),
             object: extracted?.object?.trim() || object,
-            returnTo: `/processos/${lockedProcess.processId}`,
+            returnTo: lockedProcess.returnToAtaId ? `/atas/${lockedProcess.returnToAtaId}` : `/processos/${lockedProcess.processId}`,
             ...(valueFromQuantities ? { value: String(computedContractValue) } : {}),
           }}
         >

@@ -20,11 +20,13 @@ export function suggestAtaNumber(preferred: string, existingNumbers: string[]): 
   const used = new Set(existingNumbers.map((number) => number.trim().toLocaleLowerCase("pt-BR")));
   const base = preferred.trim().slice(0, 40) || "ARP";
   if (!used.has(base.toLocaleLowerCase("pt-BR"))) return base;
-  for (let index = 2; index < 100; index += 1) {
-    const candidate = `${base} (${index})`.slice(0, 40);
+  let index = 2;
+  while (true) {
+    const suffix = ` (${index})`;
+    const candidate = base.slice(0, 40 - suffix.length) + suffix;
     if (!used.has(candidate.toLocaleLowerCase("pt-BR"))) return candidate;
+    index += 1;
   }
-  return `${base.slice(0, 32)}-${Date.now().toString(36)}`.slice(0, 40);
 }
 
 export function NewAtaForm({
@@ -52,6 +54,7 @@ export function NewAtaForm({
     /** Números já usados no órgão/processo — evita colidir com a unique (council, number). */
     existingAtaNumbers?: string[];
     requireReplacementJustification?: boolean;
+    replacement?: { number: string; supplierName?: string | null; lineTotals: number[] };
   };
 }) {
   const initial = processes.find((process) => process.value === defaultProcessId);
@@ -136,9 +139,9 @@ export function NewAtaForm({
       : [];
     const defaultLineTotals = extracted?.items?.length
       ? lines.map((_, index) => matches[index] == null ? null : extracted.items[matches[index]!]!.lineTotal)
-      : undefined;
+      : lockedProcess.replacement?.lineTotals;
     const suggestedNumber = suggestAtaNumber(
-      extracted?.number?.trim() || `ARP ${lockedProcess.processNumber || "sem-número"}`,
+      extracted?.number?.trim() || lockedProcess.replacement?.number || `ARP ${lockedProcess.processNumber || "sem-número"}`,
       lockedProcess.existingAtaNumbers ?? [],
     );
     const startDate = extracted?.startDate ?? lockedProcess.validityStartDate ?? undefined;
@@ -171,7 +174,7 @@ export function NewAtaForm({
         <ActionForm
           key={`ata-form-${suggestedNumber}-${pdfVersion}`}
           action={createAtaFormAction}
-          submitLabel={lockedProcess.requireReplacementJustification ? "Registrar nova ata" : "Registrar ata"}
+          submitLabel={lockedProcess.requireReplacementJustification ? "Salvar edição e substituir ata" : "Registrar ata"}
           hiddenFields={{
             councilId: lockedProcess.councilId,
             processId: lockedProcess.processId,
@@ -180,9 +183,11 @@ export function NewAtaForm({
             returnTo: `/processos/${lockedProcess.processId}`,
             ...Object.fromEntries(
               lines.flatMap((line, index) => [
-                [`items.${index}.description`, line.name],
                 [`items.${index}.materialId`, line.materialId],
-                [`items.${index}.registeredQuantity`, String(line.quantity)],
+                ...(lockedProcess.replacement ? [] : [
+                  [`items.${index}.description`, line.name],
+                  [`items.${index}.registeredQuantity`, String(line.quantity)],
+                ]),
               ]),
             ),
           }}
@@ -214,7 +219,7 @@ export function NewAtaForm({
                   label="Nome da empresa"
                   required
                   placeholder="Ex.: Fornecedor Alfa Ltda"
-                  defaultValue={extracted?.supplierName ?? ""}
+                  defaultValue={extracted?.supplierName ?? lockedProcess.replacement?.supplierName ?? ""}
                   errors={e.supplierName ?? e.supplierId}
                 />
                 {lockedProcess.suppliers.length > 0 ? (
@@ -242,6 +247,7 @@ export function NewAtaForm({
                 processLabel={lockedProcess.processLabel}
                 defaultTotal={matches.some((match) => match === null) ? lockedProcess.defaultValue : (extracted?.totalValue ?? lockedProcess.defaultValue)}
                 defaultLineTotals={defaultLineTotals}
+                editableItems={Boolean(lockedProcess.replacement)}
                 errors={e}
               />
               {extracted?.items?.length && matches.some((match) => match === null) ? (
@@ -254,6 +260,7 @@ export function NewAtaForm({
                 hint={
                   extracted?.startDate
                     ? "Puxada do PDF da ata. Ajuste só se necessário."
+                    : lockedProcess.replacement ? "Data de início da ata anterior."
                     : lockedProcess.validityStartDate
                       ? "Puxada do Termo de Referência. Ajuste só se necessário."
                       : "Se ainda não preencheu no TR, informe aqui."
