@@ -56,6 +56,7 @@ export class MeetingService {
     const allowed = await guard(this.audit, actor, "meeting.manage", meeting.councilId, "meeting", meeting.id);
     if (!allowed.ok) return allowed;
     if (meeting.status !== "realizada") return fail("INVALID_STATE", "A ata só pode ser registrada após a reunião ser realizada.");
+    if (meeting.minutesApprovedAt) return fail("INVALID_STATE", "A ata aprovada está protegida.");
     const saved = await this.repository.save({ ...meeting, minutes: { text: parsed.data.text, registeredBy: actor.userId, registeredAt: this.runtime.now() } });
     await this.audit.record({ actorId: actor.userId, action: "meeting.minutes", entity: "meeting", entityId: meeting.id, councilId: meeting.councilId, result: "success", details: {} });
     return ok(saved);

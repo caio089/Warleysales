@@ -53,7 +53,7 @@ export async function confirmMeetingAudioAction(meetingId: string, path: string,
     const db = getServiceClient();
     const { data, error: updateError } = await db.from("meetings").update({
       audio_path: path, transcript_text: transcript.trim() || null,
-    }).eq("id", meetingId).is("audio_path", null).select("id").maybeSingle<{ id: string }>();
+    }).eq("id", meetingId).neq("status", "cancelada").is("audio_path", null).select("id").maybeSingle<{ id: string }>();
     if (updateError || !data) return fail("CONFLICT", "Não foi possível registrar o áudio.");
     await services.audit.record({
       actorId: actor.userId, action: "meeting.audio", entity: "meeting", entityId: meetingId,
@@ -79,7 +79,7 @@ export async function meetingAudioUrlAction(meetingId: string): Promise<Result<s
 
 export async function draftMeetingMinutesAction(meetingId: string): Promise<Result<string>> {
   if (!idSchema.safeParse(meetingId).success) return fail("VALIDATION", "Reunião inválida.");
-  if (!process.env.GROQ_API_KEY?.trim()) return fail("UNAVAILABLE", "IA não configurada.");
+  if (process.env.MEETING_EXTERNAL_AI !== "enabled" || !process.env.GROQ_API_KEY?.trim()) return fail("UNAVAILABLE", "IA não configurada.");
   const state = await runAction(async ({ services, actor }) => {
     const meeting = await managedMeeting(meetingId, actor, services);
     if (!meeting.ok) return meeting;

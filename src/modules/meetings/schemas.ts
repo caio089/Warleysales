@@ -29,6 +29,12 @@ export interface Meeting {
   transcript: string | null;
   actionItems: ActionItem[];
   createdBy: string;
+  minutesDraft?: string | null;
+  minutesApprovedAt?: string | null;
+  minutesReviewedAt?: string | null;
+  minutesSuggestions?: string[];
+  aiState?: string | null;
+  aiStage?: string | null;
   responsibleId?: string | null;
   agenda?: string | null;
   decisions?: string | null;

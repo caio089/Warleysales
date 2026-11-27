@@ -21,6 +21,9 @@ import { MEETING_STATUS, presentationOf } from "@/shared/ui/status-presentation"
 import { MeetingEvidenceForm, NewMeetingForm } from "./meeting-forms";
 import { MeetingDetailsEditor, MeetingFile, MeetingMinutesEditor, MeetingStatusEditor, MeetingTaskEditor } from "./meeting-detail-controls";
 
+import { MeetingMediaPanel } from "./meeting-media-panel";
+import { MeetingReview } from "./meeting-review";
+
 export const metadata: Metadata = { title: "Reuniões" };
 
 type Query = { reuniao?: string; busca?: string; situacao?: string };
@@ -148,7 +151,7 @@ function MeetingDetail({ meeting, council, names, people, attendanceOptions, doc
         <h3 id="ata-titulo" className="text-lg font-semibold">Ata da reunião</h3>
         <TextOrEmpty value={meeting.minutes?.text} empty="Nenhuma ata registrada." />
         {meeting.minutes && <p className="text-sm text-muted-foreground">Registrada por {name(meeting.minutes.registeredBy)} em {formatDateTimeFortaleza(meeting.minutes.registeredAt)}.</p>}
-        {manage && meeting.status === "realizada" && <MeetingMinutesEditor key={meeting.id} id={meeting.id} text={meeting.minutes?.text} />}
+        {manage && meeting.status === "realizada" && meeting.minutes && !meeting.minutesApprovedAt && <MeetingMinutesEditor key={meeting.id} id={meeting.id} text={meeting.minutes?.text} />}
       </section>
       <section className="surface-card min-w-0 space-y-3 p-4 sm:p-5" aria-labelledby="materiais-reuniao">
         <h3 id="materiais-reuniao" className="text-lg font-semibold">Anexos</h3>
@@ -158,13 +161,17 @@ function MeetingDetail({ meeting, council, names, people, attendanceOptions, doc
           {doc.fileName && <MeetingFile attachmentId={doc.id} />}
         </li>)}</ul>
         <h3 className="border-t pt-3 text-lg font-semibold">Gravação e transcrição</h3>
-        {meeting.audioPath ? <MeetingFile meetingId={meeting.id} /> : <p className="text-sm text-muted-foreground">Nenhuma gravação disponível.</p>}
+        <MeetingMediaPanel key={meeting.id} meetings={[meeting]} manageableMeetingIds={manage ? [meeting.id] : []} />
         {meeting.transcript ? <details className="rounded-lg border p-3">
           <summary className="cursor-pointer rounded font-medium focus-visible:outline-2 focus-visible:outline-ring">Ler transcrição registrada</summary>
           <div className="pt-2"><TextOrEmpty value={meeting.transcript} empty="" /></div>
         </details> : <p className="text-sm text-muted-foreground">Nenhuma transcrição registrada.</p>}
       </section>
     </div>
+    <MeetingReview id={meeting.id} canManage={manage && meeting.status !== "cancelada"} realized={meeting.status === "realizada"}
+      hasAudio={Boolean(meeting.audioPath)} hasTranscript={Boolean(meeting.transcript)} hasMinutes={Boolean(meeting.minutes)}
+      approved={Boolean(meeting.minutesApprovedAt)} draft={meeting.minutesDraft} reviewed={Boolean(meeting.minutesReviewedAt)}
+      suggestions={meeting.minutesSuggestions ?? []} people={people} state={meeting.aiState} stage={meeting.aiStage} />
   </section>;
 }
 

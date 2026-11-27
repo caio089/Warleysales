@@ -918,15 +918,15 @@
     "semantic_hash": ""
   },
   "src/app/(app)/reunioes/meeting-media-panel.tsx": {
-    "mtime": 1794846783.5051334,
-    "seen": 1795707380.240869,
-    "ast_hash": "f12045e90e870e1c622a074dab562940",
+    "mtime": 1795748761.9679239,
+    "seen": 1795748877.446218,
+    "ast_hash": "a0f3fdb41670ca79451f72dedbbf66f9",
     "semantic_hash": ""
   },
   "src/app/(app)/reunioes/page.tsx": {
-    "mtime": 1795746818.3343976,
-    "seen": 1795746950.6167796,
-    "ast_hash": "679274a1e68281c1eaf0bd1d057386b8",
+    "mtime": 1795748725.5850122,
+    "seen": 1795748877.4462297,
+    "ast_hash": "f1947552be4b65fb63fef7a1c342d934",
     "semantic_hash": ""
   },
   "src/app/(app)/solicitacoes/[id]/correction-form.tsx": {
@@ -1620,9 +1620,9 @@
     "semantic_hash": "2b23c816380fa7febf52c21f2cdf5cda"
   },
   "src/modules/meetings/media-actions.ts": {
-    "mtime": 1794846808.993891,
-    "seen": 1795707380.2410314,
-    "ast_hash": "f3efe8735a8bc67f4c2dc1f8e448ca74",
+    "mtime": 1795748685.680302,
+    "seen": 1795748877.4468424,
+    "ast_hash": "c4bbffc6b2530bf1179ce967b4e327b7",
     "semantic_hash": ""
   },
   "src/modules/meetings/media-validation.test.ts": {
@@ -1650,9 +1650,9 @@
     "semantic_hash": ""
   },
   "src/modules/meetings/schemas.ts": {
-    "mtime": 1795746047.2359228,
-    "seen": 1795746737.5441382,
-    "ast_hash": "6a7813d731c8bb01eed40f83f54e8248",
+    "mtime": 1795748685.6639307,
+    "seen": 1795748877.44687,
+    "ast_hash": "967bf5d4f16e40f9565a195e91350d64",
     "semantic_hash": ""
   },
   "src/modules/meetings/service.test.ts": {
@@ -1662,9 +1662,9 @@
     "semantic_hash": ""
   },
   "src/modules/meetings/service.ts": {
-    "mtime": 1795746047.2444515,
-    "seen": 1795746737.5441477,
-    "ast_hash": "691e399fbe9255bf79d36ba25aa8c2c8",
+    "mtime": 1795748761.9669216,
+    "seen": 1795748877.446879,
+    "ast_hash": "c8342085aa7b6e63ae7946c2c8cf57b7",
     "semantic_hash": ""
   },
   "src/modules/notifications/actions.ts": {
@@ -2382,9 +2382,9 @@
     "semantic_hash": "7a080d03376db970527a1124be10a84f"
   },
   "src/server/supabase/adapters/meetings.ts": {
-    "mtime": 1795746047.2394335,
-    "seen": 1795746737.5495677,
-    "ast_hash": "ab7ac4eafe1bfdbb9e96bc229450ed50",
+    "mtime": 1795748685.680302,
+    "seen": 1795748877.4474788,
+    "ast_hash": "290a078cc7c8e05c88fb0c98ecc935f2",
     "semantic_hash": ""
   },
   "src/server/supabase/adapters/notifications.ts": {
@@ -2886,9 +2886,9 @@
     "semantic_hash": "15f8535c07ffa727a7e80cf4c5296f42"
   },
   "supabase/apply_all.sql": {
-    "mtime": 1795746237.8840256,
-    "seen": 1795746737.5499377,
-    "ast_hash": "b64cc7707f17e96fc5ed7b3f78719de5",
+    "mtime": 1795748791.0902207,
+    "seen": 1795748877.4478667,
+    "ast_hash": "85601fa9a97c0fe7648f43fe7f2f234b",
     "semantic_hash": ""
   },
   "supabase/migrations/20261102000001_identity.sql": {
@@ -3735,6 +3735,42 @@
     "mtime": 1795746573.1385078,
     "seen": 1795746737.5501738,
     "ast_hash": "71364947dc6c5c33351134c170e3c616",
+    "semantic_hash": ""
+  },
+  "src/app/(app)/reunioes/meeting-review.tsx": {
+    "mtime": 1795748725.4518633,
+    "seen": 1795748877.4462252,
+    "ast_hash": "abec3a2f098223af714d0803b1012ad3",
+    "semantic_hash": ""
+  },
+  "src/app/api/cron/meeting-ai/route.ts": {
+    "mtime": 1795748660.3793478,
+    "seen": 1795748877.4463654,
+    "ast_hash": "d0e934b3e9826935378db5b6554cafcd",
+    "semantic_hash": ""
+  },
+  "src/app/api/reunioes/ata/route.ts": {
+    "mtime": 1795748685.680302,
+    "seen": 1795748877.4463925,
+    "ast_hash": "27f1abc8590dc4006afd10cf4f47844a",
+    "semantic_hash": ""
+  },
+  "src/modules/meetings/review-actions.ts": {
+    "mtime": 1795748725.6087384,
+    "seen": 1795748877.446865,
+    "ast_hash": "c71fb0b4539215a68f47bd178e1f27ee",
+    "semantic_hash": ""
+  },
+  "supabase/migrations/20261127000001_meeting_minutes_review.sql": {
+    "mtime": 1795748787.9888802,
+    "seen": 1795748877.448064,
+    "ast_hash": "6f002ee47b58cb93d8cab8c1c3a571ca",
+    "semantic_hash": ""
+  },
+  "supabase/tests/010_meeting_minutes_review.sql": {
+    "mtime": 1795748777.9933338,
+    "seen": 1795748877.448593,
+    "ast_hash": "32788a737285e55fd799f3f0d773ae97",
     "semantic_hash": ""
   },
   "package-lock.json": {

@@ -16,6 +16,12 @@ interface MeetingRow {
   audio_path: string | null;
   transcript_text: string | null;
   created_by: string;
+  minutes_draft: string | null;
+  minutes_approved_at: string | null;
+  minutes_reviewed_at: string | null;
+  minutes_suggestions: string[];
+  ai_state: string | null;
+  ai_stage: string | null;
   responsible_id: string | null;
   agenda: string | null;
   decisions: string | null;
@@ -43,6 +49,12 @@ const toMeeting = (row: MeetingRow): Meeting => ({
     id: i.id, description: i.description, responsibleId: i.responsible_id, dueDate: i.due_date, done: i.done,
   })),
   createdBy: row.created_by,
+  minutesDraft: row.minutes_draft,
+  minutesApprovedAt: row.minutes_approved_at,
+  minutesReviewedAt: row.minutes_reviewed_at,
+  minutesSuggestions: row.minutes_suggestions,
+  aiState: row.ai_state,
+  aiStage: row.ai_stage,
   responsibleId: row.responsible_id,
   agenda: row.agenda,
   decisions: row.decisions,
