@@ -22,6 +22,7 @@ interface ProcessRow {
   estimated_value?: number | null;
   price_research_lines?: AdministrativeProcess["priceResearchLines"];
   validity_start_date?: string | null;
+  public_session_date?: string | null;
   contracting_mode?: AdministrativeProcess["contractingMode"];
   document_exceptions?: AdministrativeProcess["documentExceptions"];
   id: string;
@@ -44,6 +45,7 @@ const toProcess = (row: ProcessRow): AdministrativeProcess => ({
   estimatedValue: row.estimated_value ?? null,
   priceResearchLines: row.price_research_lines ?? null,
   validityStartDate: row.validity_start_date ?? null,
+  publicSessionDate: row.public_session_date ?? null,
   contractingMode: row.contracting_mode ?? null,
   documentExceptions: row.document_exceptions ?? {},
   id: row.id,
@@ -73,6 +75,7 @@ function toProcessChanges(changes: Partial<AdministrativeProcess>): Record<strin
   if (changes.documentalCompletedAt !== undefined) row.documental_completed_at = toIsoOrNull(changes.documentalCompletedAt);
   if (changes.snapshot !== undefined) row.documental_snapshot = snapshotToJson(changes.snapshot);
   if (changes.closingReportRegistered !== undefined) row.closing_report_registered = changes.closingReportRegistered;
+  if (changes.publicSessionDate !== undefined) row.public_session_date = changes.publicSessionDate;
   if (changes.validityStartDate !== undefined) row.validity_start_date = changes.validityStartDate;
   if (changes.contractingMode !== undefined) row.contracting_mode = changes.contractingMode;
   if (changes.priceResearchLines !== undefined) row.price_research_lines = changes.priceResearchLines;

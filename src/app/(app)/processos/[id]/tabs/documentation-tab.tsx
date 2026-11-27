@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, CalendarClock, Download, FileText, Loader2, Plus, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { savePublicSessionDateFormAction } from "@/modules/processes/actions";
 import {
   confirmDocumentUploadAction,
   downloadUrlAction,
@@ -59,6 +61,8 @@ export interface DocumentationTabDocument {
 
 export interface DocumentationTabProps {
   processId: string;
+  publicSessionDate?: string | null;
+  canEditPublicSessionDate?: boolean;
   estimatedValue?: number | null;
   canEditEstimatedValue?: boolean;
   priceResearchItems?: PriceResearchItemInput[];
@@ -92,6 +96,8 @@ function isArchivedDoc(doc: DocumentationTabDocument | ProcessAttachment) {
 /** Aba 1 — Pasta Documental: 7 obrigatórios compactos + complementares + arquivados. */
 export function DocumentationTab({
   processId,
+  publicSessionDate,
+  canEditPublicSessionDate,
   estimatedValue,
   canEditEstimatedValue,
   priceResearchItems = [],
@@ -406,6 +412,22 @@ export function DocumentationTab({
             );
           })}
         </div>
+        <section className="space-y-2 border-t border-border/60 pt-4" aria-labelledby="public-session-date">
+          <h3 id="public-session-date" className="text-sm font-medium">Data da sessão pública</h3>
+          <p className="text-sm">
+            {publicSessionDate ? (
+              <time dateTime={publicSessionDate}>{formatDateOnly(publicSessionDate)}</time>
+            ) : "Não informada"}
+          </p>
+          {canEditPublicSessionDate && (
+            <ActionForm key={publicSessionDate ?? ""} action={savePublicSessionDateFormAction} submitLabel="Salvar data">
+              {() => <>
+                <input type="hidden" name="processId" value={processId} />
+                <Input type="date" name="publicSessionDate" aria-labelledby="public-session-date" defaultValue={publicSessionDate ?? ""} />
+              </>}
+            </ActionForm>
+          )}
+        </section>
       </section>
 
       <section

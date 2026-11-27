@@ -25,6 +25,10 @@ describe("filterNavigation", () => {
     expect(labels(filterNavigation({ isCentralAdmin: false, roles: ["council_operator"] }))).not.toContain("Auditoria");
   });
 
+  it("mostra apenas Solicitações ao colaborador normal", () => {
+    expect(labels(filterNavigation({ isCentralAdmin: false, roles: ["request_collaborator"] }))).toEqual(["Solicitações"]);
+  });
+
   it("sem papéis não vê nada", () => {
     expect(filterNavigation({ isCentralAdmin: false, roles: [] })).toHaveLength(0);
   });
@@ -73,16 +77,17 @@ describe("NAV_ITEMS — integridade de grupos", () => {
 });
 
 describe("NAV_ITEMS — baseline", () => {
+  const operationalRoles = ["council_manager", "council_operator", "viewer", "director", "purchasing_collaborator"];
   it("preserves exact href and permission mapping", () => {
     expect(NAV_ITEMS.map(({ href, allowedRoles, centralOnly }) => [href, allowedRoles, centralOnly ?? false])).toEqual([
-      ["/dashboard", ["council_manager", "council_operator", "viewer"], false], ["/conselhos", [], true],
-      ["/solicitacoes", ["council_manager", "council_operator", "viewer"], false], ["/processos", ["council_manager", "council_operator", "viewer"], false],
-      ["/atas", ["council_manager", "council_operator", "viewer"], false], ["/contratos", ["council_manager", "council_operator", "viewer"], false],
-      ["/calendario", ["council_manager", "council_operator", "viewer"], false], ["/fornecedores", ["council_manager", "council_operator", "viewer"], false],
-      ["/reunioes", ["council_manager", "council_operator", "viewer"], false], ["/estoque", ["council_manager", "council_operator", "viewer"], false],
-      ["/entregas", ["council_manager", "council_operator", "viewer"], false],
-      ["/alertas", ["council_manager", "council_operator", "viewer"], false], ["/relatorios", ["council_manager", "viewer"], false],
-      ["/administracao/auditoria", ["council_manager"], false], ["/administracao", [], true],
+      ["/dashboard", operationalRoles, false], ["/conselhos", [], true],
+      ["/solicitacoes", [...operationalRoles, "request_collaborator"], false], ["/processos", operationalRoles, false],
+      ["/atas", operationalRoles, false], ["/contratos", operationalRoles, false],
+      ["/calendario", operationalRoles, false], ["/fornecedores", operationalRoles, false],
+      ["/reunioes", operationalRoles, false], ["/estoque", operationalRoles, false],
+      ["/entregas", operationalRoles, false],
+      ["/alertas", operationalRoles, false], ["/relatorios", ["council_manager", "viewer", "director", "purchasing_collaborator"], false],
+      ["/administracao/auditoria", ["council_manager", "director", "purchasing_collaborator"], false], ["/administracao", [], true],
     ]);
   });
 });

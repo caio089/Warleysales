@@ -9,7 +9,7 @@ import { calculateProgress, type DocumentalProgress, type ProcessAttachment } fr
 import { changeProcessStatus } from "./domain/process-status";
 import { formatProcessNumber, parseProcessNumber } from "./domain/process-number";
 import type { ProcessRepository } from "./repository";
-import { changeProcessStatusSchema, classifyProcessSchema, createProcessSchema, registerClosingSchema, type AdministrativeProcess } from "./schemas";
+import { changeProcessStatusSchema, classifyProcessSchema, createProcessSchema, publicSessionDateSchema, registerClosingSchema, type AdministrativeProcess } from "./schemas";
 
 /** Visão de leitura: processo + progresso derivado (nunca editável, R3). */
 export interface ProcessView {
@@ -34,12 +34,21 @@ export class ProcessService {
     return formatProcessNumber(seq, targetYear);
   }
 
-  async create(actor: Actor, input: unknown): Promise<Result<AdministrativeProcess>> {
+  create(actor: Actor, input: unknown): Promise<Result<AdministrativeProcess>> {
+    return this.createWithPermission(actor, input, "process.create");
+  }
+
+  async createForRequest(actor: Actor, councilId: string, title: string, year: number): Promise<Result<AdministrativeProcess>> {
+    const number = await this.getNextNumber(councilId, year);
+    return this.createWithPermission(actor, { councilId, title, number }, "request.create");
+  }
+
+  private async createWithPermission(actor: Actor, input: unknown, permission: "process.create" | "request.create"): Promise<Result<AdministrativeProcess>> {
     const parsed = parseInput(createProcessSchema, input);
     if (!parsed.ok) return parsed;
     const { councilId, number, title, responsibleId, processType } = parsed.data;
 
-    const allowed = await guard(this.audit, actor, "process.create", councilId, "administrative_process");
+    const allowed = await guard(this.audit, actor, permission, councilId, "administrative_process");
     if (!allowed.ok) return allowed;
 
     const parsedNumber = parseProcessNumber(number);
@@ -82,6 +91,23 @@ export class ProcessService {
     if (!updated) return fail("NOT_FOUND", "Processo não encontrado.");
     await this.audit.record({ actorId: actor.userId, action: "process.update", entity: "administrative_process", entityId: process.id, councilId: process.councilId, result: "success", details: { responsibleId: { from: process.responsibleId ?? null, to: changes.responsibleId }, processType: { from: process.processType ?? null, to: changes.processType } } });
     return ok(updated);
+  }
+
+  async setPublicSessionDate(actor: Actor, input: unknown): Promise<Result<AdministrativeProcess>> {
+    const parsed = parseInput(publicSessionDateSchema, input);
+    if (!parsed.ok) return parsed;
+    const { processId, publicSessionDate } = parsed.data;
+    const process = await this.processes.findById(processId);
+    if (!process) return fail("NOT_FOUND", "Processo não encontrado.");
+    const allowed = await guard(this.audit, actor, "process.create", process.councilId, "administrative_process", process.id);
+    if (!allowed.ok) return allowed;
+    const saved = await this.processes.update(process.id, { publicSessionDate });
+    if (!saved) return fail("NOT_FOUND", "Processo não encontrado.");
+    await this.audit.record({
+      actorId: actor.userId, action: "process.public_session_date", entity: "administrative_process",
+      entityId: process.id, councilId: process.councilId, result: "success", details: { publicSessionDate },
+    });
+    return ok(saved);
   }
 
   async get(actor: Actor, processId: string): Promise<Result<ProcessView>> {

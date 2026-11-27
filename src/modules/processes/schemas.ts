@@ -13,6 +13,7 @@ export interface AdministrativeProcess {
   priceResearchLines?: PriceResearchLine[] | null;
   /** Início da vigência informado no TR; reutilizado na ata e no contrato. */
   validityStartDate?: string | null;
+  publicSessionDate?: string | null;
   /** Registro de preços (ata + contrato) ou somente contrato. */
   contractingMode?: ProcessContractingMode | null;
   documentExceptions?: Record<string, { justification: string; actorId: string; at: string }>;
@@ -40,6 +41,11 @@ export const createProcessSchema = z.object({
   number: z.string().trim().regex(/^\d{1,6}\/\d{4}$/, "Use o formato NNN/AAAA."),
   title: z.string().trim().min(3, "Informe ao menos 3 caracteres.").max(200),
 });
+export const publicSessionDateSchema = z.object({
+  processId: idSchema,
+  publicSessionDate: z.iso.date().refine((date) => date.slice(0, 4) !== "0000", "Informe uma data válida.").nullable(),
+});
+
 export const classifyProcessSchema = z.object({
   processId: idSchema,
   responsibleId: idSchema.nullable(),

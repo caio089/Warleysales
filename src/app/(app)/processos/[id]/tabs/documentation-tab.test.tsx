@@ -1,3 +1,4 @@
+vi.mock("@/modules/processes/actions", () => ({ savePublicSessionDateFormAction: vi.fn() }));
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@/modules/processes/estimated-value-action", () => ({ saveProcessEstimatedValue: vi.fn() }));
@@ -57,6 +58,12 @@ const BASE_PROPS: DocumentationTabProps = {
 };
 
 describe("DocumentationTab", () => {
+  it("exibe a data logo após o edital na seção de documentos obrigatórios", () => {
+    const html = renderToStaticMarkup(<DocumentationTab {...BASE_PROPS} publicSessionDate="2026-12-07" />);
+    const mandatory = html.match(/<section aria-label="Documentos Obrigatórios[^>]*>[\s\S]*?<\/section>/)?.[0];
+    expect(mandatory).toContain("07/12/2026");
+    expect(mandatory!.indexOf("7. Edital de Licitação / Aviso")).toBeLessThan(mandatory!.indexOf("Data da sessão pública"));
+  });
   describe("Seção 1: Documentos Obrigatórios (Lei 14.133 / PNCP)", () => {
     it("renderiza o cabeçalho do card com título e texto contextual", () => {
       const html = renderToStaticMarkup(<DocumentationTab {...BASE_PROPS} />);

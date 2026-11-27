@@ -1,5 +1,5 @@
 import { log } from "@/shared/lib/logger";
-import { authorize, readableCouncilIds, type Actor } from "@/shared/lib/authz/policy";
+import { authorize, can, readableCouncilIds, type Actor } from "@/shared/lib/authz/policy";
 import { fail, ok, type Result } from "@/shared/lib/result";
 import type { AuditRepository } from "./repository";
 import type { AuditEntry, AuditFilter, NewAuditEntry } from "./schemas";
@@ -24,7 +24,7 @@ export class AuditService implements AuditRecorder {
   /** Admin central vê tudo; gestor, apenas seus conselhos (matriz §6). */
   async list(actor: Actor, filter: AuditFilter = {}): Promise<Result<AuditEntry[]>> {
     // Gestor restrito aos conselhos onde tem papel council_manager
-    const managedCouncils = actor.memberships.filter((m) => m.role === "council_manager").map((m) => m.councilId);
+    const managedCouncils = actor.memberships.filter((m) => can(actor, "audit.view", m.councilId)).map((m) => m.councilId);
 
     // Se não for admin central e tentar filtrar conselho específico, valida autorização
     if (filter.councilId) {

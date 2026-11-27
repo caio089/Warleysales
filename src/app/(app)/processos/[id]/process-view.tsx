@@ -363,6 +363,8 @@ export function ProcessView({
                 canEditEstimatedValue={canManageDocs && !view.process.snapshot && !["cancelado", "arquivado"].includes(view.process.status)}
                 priceResearchItems={requestItems}
                 priceResearchLines={view.process.priceResearchLines ?? null}
+                publicSessionDate={view.process.publicSessionDate ?? null}
+                canEditPublicSessionDate={canManage}
                 validityStartDate={view.process.validityStartDate ?? null}
                 canEditValidityStart={canManageDocs && !view.process.snapshot && !["cancelado", "arquivado"].includes(view.process.status)}
                 contractingMode={view.process.contractingMode ?? null}

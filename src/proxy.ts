@@ -4,7 +4,7 @@ import { getSupabaseConfig } from "@/server/supabase/config";
 
 /**
  * Renova o token de sessão do Supabase a cada navegação e repassa os cookies atualizados.
- * Não decide autorização: isso é feito no servidor (loadScreen/runAction) a partir das tabelas protegidas.
+ * O redirecionamento reflete o escopo de navegação. Os serviços conferem as permissões dos dados.
  */
 export async function proxy(request: NextRequest) {
   const config = getSupabaseConfig();
@@ -22,7 +22,24 @@ export async function proxy(request: NextRequest) {
     },
   });
   // getClaims valida a assinatura do JWT e dispara a renovação quando necessário.
-  await supabase.auth.getClaims();
+  const { data } = await supabase.auth.getClaims();
+  const userId = data?.claims.sub;
+  const path = request.nextUrl.pathname;
+  const isRequestModule = /^\/solicitacoes(?:\/(?!processos(?:\/|$))[^/]+)?\/?$/.test(path);
+  const isAccountRoute = path === "/login" || path === "/redefinir-senha" || path === "/recuperar-senha" || path.startsWith("/auth/");
+
+  if (userId && (request.method === "GET" || request.method === "HEAD") && !isRequestModule && !isAccountRoute && !path.startsWith("/api/")) {
+    const [profile, memberships] = await Promise.all([
+      supabase.from("profiles").select("is_central_admin").eq("id", userId).maybeSingle(),
+      supabase.from("council_memberships").select("role").eq("user_id", userId),
+    ]);
+    if (profile.data && !profile.data.is_central_admin && memberships.data?.length &&
+      memberships.data.every((membership) => membership.role === "request_collaborator")) {
+      const redirect = NextResponse.redirect(new URL("/solicitacoes", request.url));
+      for (const cookie of response.cookies.getAll()) redirect.cookies.set(cookie);
+      return redirect;
+    }
+  }
   return response;
 }
 

@@ -1,7 +1,7 @@
 import type { Meeting } from "@/modules/meetings/schemas";
 import type { Services } from "@/server/container";
 import type { AuditEntry, AuditFilter } from "@/modules/audit/schemas";
-import { can, type Actor } from "@/shared/lib/authz/policy";
+import { can, canReportOnPerson, type Actor } from "@/shared/lib/authz/policy";
 import { fail, ok, type Result } from "@/shared/lib/result";
 
 export type DetailedKind = "colaborador" | "estagiarios" | "processos" | "atas" | "contratos" | "estoque";
@@ -171,6 +171,12 @@ export async function buildDetailedReport(services: Services, actor: Actor, filt
   }
   if (filter.kind === "colaborador") {
     if (!filter.actorId) return fail("VALIDATION", "Selecione um colaborador.");
+    if (!canReportOnPerson(actor, filter.actorId)) return fail("FORBIDDEN", "Você não pode emitir um relatório individual sobre sua própria atuação.");
+    if (!actor.isCentralAdmin) {
+      const directory = await services.memberships.reportDirectory(actor, filter.councilId);
+      if (!directory.ok) return directory;
+      if (!directory.data.some((person) => person.id === filter.actorId)) return fail("NOT_FOUND", "Colaborador não encontrado no órgão.");
+    }
     const [audits, requests, processes, meetings] = await Promise.all([auditEvents(services, actor, { councilId: filter.councilId, actorId: filter.actorId, startDate: filter.start ? `${filter.start}T00:00:00-03:00` : undefined, endDate: filter.end ? `${filter.end}T23:59:59.999999-03:00` : undefined }), services.purchases.list(actor), services.processes.list(actor), services.meetings.list(actor)]);
     if (!requests.ok) return requests; if (!processes.ok) return processes; if (!meetings.ok) return meetings;
     const activity = (audits.ok ? audits.data.entries : []).filter((a) => scoped(a.councilId ?? "") && inRange(a.createdAt, filter.start, filter.end));
@@ -199,7 +205,7 @@ export async function buildDetailedReport(services: Services, actor: Actor, filt
   }
   if (filter.kind === "estagiarios") {
     if (!filter.start || !filter.end) return fail("VALIDATION", "Selecione o mês do relatório de estagiários.");
-    const [directory, requests, processes, meetings] = await Promise.all([services.memberships.reportDirectory(actor), services.purchases.list(actor), services.processes.list(actor), services.meetings.list(actor)]);
+    const [directory, requests, processes, meetings] = await Promise.all([services.memberships.reportDirectory(actor, filter.councilId), services.purchases.list(actor), services.processes.list(actor), services.meetings.list(actor)]);
     if (!directory.ok) return directory; if (!requests.ok) return requests; if (!processes.ok) return processes; if (!meetings.ok) return meetings;
     const interns = directory.data.filter((p) => p.staffCategory === "intern" && p.active && (!filter.actorId || p.id === filter.actorId));
     if (filter.actorId && interns.length === 0) return fail("NOT_FOUND", "Estagiário classificado não encontrado no escopo autorizado.");

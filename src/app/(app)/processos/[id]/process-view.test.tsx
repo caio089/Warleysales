@@ -35,6 +35,7 @@ vi.mock("@/modules/formalizations/actions", () => ({
 
 vi.mock("@/modules/processes/actions", () => ({
   classifyProcessFormAction: vi.fn(),
+  savePublicSessionDateFormAction: vi.fn(),
   changeProcessStatusFormAction: vi.fn(),
   registerClosingReportFormAction: vi.fn(),
 }));

@@ -6,8 +6,8 @@ import { fail, ok, type Result } from "@/shared/lib/result";
 import { idSchema, parseInput, type RuntimeDeps } from "@/shared/lib/service-support";
 import { parseWhatsapp } from "./domain/whatsapp";
 import type { CouncilRepository, MembershipRepository } from "./repository";
-import type { Council, MembershipRecord, ProfileSummary } from "./schemas";
-import type { CouncilRole } from "@/shared/lib/authz/navigation";
+import { STAFF_CATEGORIES, type Council, type MembershipRecord, type ProfileSummary } from "./schemas";
+import { COUNCIL_ROLES, COUNCIL_ROLE_LABELS, isStaffRole, type CouncilRole } from "@/shared/lib/authz/navigation";
 
 const councilFields = {
   organizationType: z.enum(["public_body", "private_company"]).default("public_body"),
@@ -62,7 +62,7 @@ export class CouncilService {
   }
 
   async list(actor: Actor): Promise<Result<Council[]>> {
-    const scope = readableCouncilIds(actor);
+    const scope = readableCouncilIds(actor, "request.read");
     if (scope !== "all" && scope.length === 0) return ok([]);
     return ok(await this.repository.list(scope));
   }
@@ -77,7 +77,7 @@ export class CouncilService {
 const assignMembershipSchema = z.object({
   userId: idSchema,
   councilId: idSchema,
-  role: z.enum(["council_manager", "council_operator", "viewer"]),
+  role: z.enum(COUNCIL_ROLES),
 });
 const removeMembershipSchema = z.object({ userId: idSchema, councilId: idSchema });
 
@@ -87,12 +87,6 @@ export interface MembershipDirectory {
   councils: Council[];
   roles: { value: CouncilRole; label: string }[];
 }
-
-const ROLE_LABEL: Record<CouncilRole, string> = {
-  council_manager: "Gestor",
-  council_operator: "Operador",
-  viewer: "Consulta",
-};
 
 /** Vínculos usuário ↔ conselho. Somente admin central (P7 / user.manage). Convite continua no Auth. */
 export class MembershipService {
@@ -124,18 +118,18 @@ export class MembershipService {
     return (await this.memberships.listProfiles()).filter((profile) => ids.has(profile.id));
   }
 
-  async reportDirectory(actor: Actor): Promise<Result<ProfileSummary[]>> {
+  async reportDirectory(actor: Actor, councilId?: string): Promise<Result<ProfileSummary[]>> {
     const councils = actor.isCentralAdmin
       ? "all" as const
       : actor.memberships.filter((m) => can(actor, "report.view", m.councilId)).map((m) => m.councilId);
     if (councils !== "all" && councils.length === 0) return fail("FORBIDDEN", "Você não tem permissão para consultar colaboradores.");
     const [memberships, profiles] = await Promise.all([this.memberships.listAll(), this.memberships.listProfiles()]);
-    const visible = new Set(memberships.filter((m) => councils === "all" || councils.includes(m.councilId)).map((m) => m.userId));
+    const visible = new Set(memberships.filter((m) => (councils === "all" || councils.includes(m.councilId)) && (!councilId || m.councilId === councilId)).map((m) => m.userId));
     return ok(profiles.filter((p) => visible.has(p.id)));
   }
 
   async setStaffCategory(actor: Actor, input: unknown): Promise<Result<true>> {
-    const parsed = parseInput(z.object({ userId: idSchema, category: z.enum(["unclassified", "collaborator", "intern"]) }), input);
+    const parsed = parseInput(z.object({ userId: idSchema, category: z.enum(STAFF_CATEGORIES) }), input);
     if (!parsed.ok) return parsed;
     const allowed = await guard(this.audit, actor, "user.manage", undefined, "profile", parsed.data.userId);
     if (!allowed.ok) return allowed;
@@ -163,7 +157,7 @@ export class MembershipService {
       })),
       profiles,
       councils,
-      roles: (Object.keys(ROLE_LABEL) as CouncilRole[]).map((value) => ({ value, label: ROLE_LABEL[value] })),
+      roles: COUNCIL_ROLES.map((value) => ({ value, label: COUNCIL_ROLE_LABELS[value] })),
     });
   }
 
@@ -176,6 +170,17 @@ export class MembershipService {
     if (!council) return fail("NOT_FOUND", "Organização não encontrada.");
     const profiles = await this.memberships.listProfiles();
     if (!profiles.some((p) => p.id === parsed.data.userId)) return fail("NOT_FOUND", "Usuário não encontrado. Convide-o primeiro no Auth.");
+    const { role, userId, councilId } = parsed.data;
+    const existing = await this.memberships.listByUser(userId);
+    const assignsStaffRole = isStaffRole(role);
+    if (assignsStaffRole || existing.some((m) => isStaffRole(m.role))) {
+      if (existing.some((m) => m.councilId !== councilId)) return fail("CONFLICT", "Este perfil deve ficar vinculado a um único órgão.");
+      if (!actor.isSpecialDeleter) return fail("FORBIDDEN", "Somente Warley pode atribuir este perfil.");
+      if (assignsStaffRole && council.organizationType !== "public_body") return fail("VALIDATION", "Selecione um órgão público.");
+      if (role === "director" && (await this.memberships.listByCouncil(councilId)).some((m) => m.role === "director" && m.userId !== userId)) {
+        return fail("CONFLICT", "Este órgão já tem um diretor.");
+      }
+    }
     await this.memberships.upsert(parsed.data);
     await this.audit.record({ actorId: actor.userId, action: "membership.assign", entity: "council_membership", entityId: parsed.data.userId, councilId: parsed.data.councilId, result: "success", details: { role: parsed.data.role } });
     return ok(true);

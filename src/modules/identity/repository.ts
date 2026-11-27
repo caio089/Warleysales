@@ -1,5 +1,5 @@
 import type { Result } from "@/shared/lib/result";
-import type { Council, MembershipRecord, ProfileSummary } from "./schemas";
+import type { Council, MembershipRecord, StaffCategory, ProfileSummary } from "./schemas";
 
 export interface CouncilRepository {
   /** CONFLICT quando a sigla já existe. */
@@ -11,9 +11,10 @@ export interface CouncilRepository {
 
 export interface MembershipRepository {
   listByCouncil(councilId: string): Promise<MembershipRecord[]>;
+  listByUser(userId: string): Promise<MembershipRecord[]>;
   listAll(): Promise<MembershipRecord[]>;
   listProfiles(): Promise<ProfileSummary[]>;
-  setStaffCategory(userId: string, category: "unclassified" | "collaborator" | "intern"): Promise<boolean>;
+  setStaffCategory(userId: string, category: StaffCategory): Promise<boolean>;
   upsert(record: MembershipRecord): Promise<void>;
   remove(userId: string, councilId: string): Promise<boolean>;
   /** Usuários gestores do conselho (destinatários de alertas). */

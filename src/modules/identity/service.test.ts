@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { InMemoryAuditRepository } from "@/modules/audit/repository.memory";
 import { AuditService } from "@/modules/audit/service";
-import { centralAdmin, makeActor, makeRuntime, managerOf, COUNCIL_A } from "@/shared/testing/fixtures";
+import { centralAdmin, makeActor, makeRuntime, managerOf, specialDeleter, COUNCIL_A } from "@/shared/testing/fixtures";
 import { InMemoryCouncilRepository, InMemoryMembershipRepository } from "./repository.memory";
 import { CouncilService, MembershipService } from "./service";
 
@@ -37,6 +37,22 @@ describe("CouncilService", () => {
 });
 
 describe("MembershipService", () => {
+  it("permite somente ao Warley vincular os novos perfis e limita o órgão a um diretor", async () => {
+    const runtime = makeRuntime();
+    const audit = new AuditService(new InMemoryAuditRepository(runtime.now));
+    const councils = new InMemoryCouncilRepository();
+    const councilService = new CouncilService(councils, audit, runtime);
+    await councilService.create(centralAdmin(), base);
+    await councilService.create(centralAdmin(), { name: "Órgão de teste", acronym: "OT" });
+    const [first, second] = await councils.list("all");
+    const users = ["Primeiro", "Segundo"].map((fullName) => ({ id: crypto.randomUUID(), fullName, active: true }));
+    const service = new MembershipService(new InMemoryMembershipRepository([], users), councils, audit);
+    const assignment = { userId: users[0]!.id, councilId: first!.id, role: "director" };
+    expect(await service.assign(centralAdmin(), assignment)).toMatchObject({ code: "FORBIDDEN" });
+    expect(await service.assign(specialDeleter(), assignment)).toMatchObject({ ok: true });
+    expect(await service.assign(specialDeleter(), { ...assignment, userId: users[1]!.id })).toMatchObject({ code: "CONFLICT" });
+    expect(await service.assign(specialDeleter(), { ...assignment, councilId: second!.id })).toMatchObject({ code: "CONFLICT" });
+  });
   it("admin central vincula e remove; gestor não", async () => {
     const runtime = makeRuntime();
     const audit = new AuditService(new InMemoryAuditRepository(runtime.now));
