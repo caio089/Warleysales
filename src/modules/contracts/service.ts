@@ -91,6 +91,9 @@ export class ContractService {
       if (ata.data.ata.processId && ata.data.ata.processId !== processId.data) {
         return fail("VALIDATION", "A ata e o contrato precisam pertencer ao mesmo processo.");
       }
+      if (ata.data.ata.supplierId && d.supplierId !== ata.data.ata.supplierId) {
+        return fail("VALIDATION", "A empresa do contrato precisa ser a mesma empresa vencedora da ata.");
+      }
       if (ata.data.ata.status !== "vigente") {
         return fail("INVALID_STATE", "Ative a ata antes de consumir saldo com o contrato.");
       }

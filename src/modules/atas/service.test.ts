@@ -23,6 +23,18 @@ async function activeAta(quantity = 100) {
 beforeEach(() => { ctx = setup(); });
 
 describe("AtaService — saldo (R9)", () => {
+  it("permite atas de vencedores diferentes com itens distintos no mesmo processo", async () => {
+    const processId = "11111111-1111-4111-8111-111111111111";
+    const service = new AtaService(ctx.repository, new AuditService(new InMemoryAuditRepository(ctx.runtime.now)), ctx.runtime, {
+      findById: async () => ({ id: processId, councilId: COUNCIL_A }),
+    } as never);
+    const first = await service.create(manager(), { processId, councilId: COUNCIL_A, number: "ARP-A", supplierId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", startDate: "2026-11-01",
+      items: [{ description: "Papel", materialId: "11111111-1111-4111-8111-111111111112", registeredQuantity: 10, unitPrice: 5 }] });
+    expect(first.ok).toBe(true);
+    const base = { processId, councilId: COUNCIL_A, number: "ARP-B", supplierId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", additionalWinner: true, startDate: "2026-11-01" };
+    expect(await service.create(manager(), { ...base, items: [{ description: "Caneta", materialId: "22222222-2222-4222-8222-222222222222", registeredQuantity: 5, unitPrice: 2 }] })).toMatchObject({ ok: true });
+    expect(await service.create(manager(), { ...base, number: "ARP-C", items: [{ description: "Papel", materialId: "11111111-1111-4111-8111-111111111112", registeredQuantity: 1, unitPrice: 5 }] })).toMatchObject({ code: "VALIDATION" });
+  });
   it("exige e audita a justificativa da nova ata para o mesmo processo", async () => {
     const processId = "11111111-1111-4111-8111-111111111111";
     const { runtime, repository } = ctx;

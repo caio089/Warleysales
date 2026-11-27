@@ -19,7 +19,7 @@ describe("suggestAtaNumber", () => {
 });
 
 describe("NewAtaForm (no processo)", () => {
-  it("mostra número editável, empresa, materiais, vigência e valor", () => {
+  it("pergunta sobre múltiplos vencedores antes de abrir o cadastro da ata", () => {
     const html = renderToStaticMarkup(
       <NewAtaForm
         councils={[]}
@@ -42,15 +42,8 @@ describe("NewAtaForm (no processo)", () => {
       />,
     );
 
-    expect(html).toContain("Número da ata");
-    expect(html).toContain('value="ARP 042/2026 (2)"');
-    expect(html).toContain("1. Empresa vencedora");
-    expect(html).toContain("Nome da empresa");
-    expect(html).toContain('name="supplierName"');
-    expect(html).toContain("2. Materiais e valores");
-    expect(html).toContain("Resina Fotopolimerizável");
-    expect(html).toContain("Valor unitário");
-    expect(html).toContain("Total da ata");
-    expect(html).toContain("Início da vigência");
+    expect(html).toContain("Houve mais de uma empresa vencedora nesta licitação?");
+    expect(html).not.toContain("Número da ata");
+    expect(html).not.toContain('name="supplierName"');
   });
 });
