@@ -129,6 +129,8 @@ export async function createAtaFormAction(_previous: ActionState, formData: Form
   }, "Ata cadastrada e ativada.");
   if (result.status !== "success" || !result.data) return result.status === "success" ? result : result;
   revalidatePath("/atas");
+  revalidatePath("/estoque");
+  revalidatePath("/estoque/movimentacoes");
   revalidatePath("/fornecedores");
   const backToProcess = processReturnPath(formData);
   if (backToProcess) {
@@ -142,7 +144,11 @@ export async function ataStepFormAction(_previous: ActionState, formData: FormDa
   const ataId = String(formData.get("ataId"));
   const step = String(formData.get("step"));
   const result = await runAction(({ services, actor }) => (step === "extend" ? services.atas.extend(actor, { ataId }) : services.atas.activate(actor, { ataId })), step === "extend" ? "Ata prorrogada por 1 ano." : "Ata ativada.");
-  if (result.status === "success") revalidatePath(`/atas/${ataId}`);
+  if (result.status === "success") {
+    revalidatePath(`/atas/${ataId}`);
+    revalidatePath("/estoque");
+    revalidatePath("/estoque/movimentacoes");
+  }
   return result.status === "success" ? { status: "success", message: result.message } : result;
 }
 
@@ -171,6 +177,8 @@ export async function linkAtaProcessFormAction(_previous: ActionState, formData:
     revalidatePath(`/atas/${ataId}`);
     revalidatePath("/atas");
     revalidatePath("/processos");
+    revalidatePath("/estoque");
+    revalidatePath("/estoque/movimentacoes");
     if (processId) revalidatePath(`/processos/${processId}`);
   }
   return result.status === "success" ? { status: "success", message: result.message } : result;

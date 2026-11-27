@@ -63,6 +63,16 @@ export function buildStockEntrySources(input: {
   }
   const allContracts = input.contracts ?? [];
   const receivedByProcess = receivedQuantitiesByProcess(input.requests);
+  const latestAtaByProcess = new Map<string, AtaView>();
+  for (const ata of input.atas) {
+    const processId = ata.ata.processId;
+    if (!processId) continue;
+    const current = latestAtaByProcess.get(processId);
+    if (!current || ata.ata.createdAt > current.ata.createdAt ||
+      (ata.ata.createdAt.getTime() === current.ata.createdAt.getTime() && ata.ata.id > current.ata.id)) {
+      latestAtaByProcess.set(processId, ata);
+    }
+  }
 
   const sources: StockEntrySource[] = [];
   for (const request of input.requests) {
@@ -70,25 +80,32 @@ export function buildStockEntrySources(input: {
     const process = processById.get(request.processId);
     if (!process) continue;
 
-    const processContracts = allContracts.filter(
-      (contract) => contract.processId === request.processId,
+    const latestAta = latestAtaByProcess.get(request.processId);
+    const processContracts = allContracts.filter((contract) =>
+      contract.processId === request.processId &&
+      (!latestAta || contract.ataId === latestAta.ata.id),
     );
+    const currentItems = request.items.map((item) => ({
+      ...item,
+      ataItemId: latestAta?.ata.items.find((ataItem) => ataItem.materialId === item.materialId)?.id
+        ?? item.ataItemId,
+    }));
     const gate = assertContractAllowsReceive({
       processId: request.processId,
       contractingMode: process.process.contractingMode ?? null,
-      requestItems: request.items,
+      requestItems: currentItems,
       contracts: processContracts,
     });
     if (!gate.ok) continue;
 
     const selectedContract = processContracts.find((contract) =>
-      contract.ataItems.some((line) => request.items.some((item) => item.ataItemId === line.ataItemId)),
+      contract.ataItems.some((line) => currentItems.some((item) => item.ataItemId === line.ataItemId)),
     ) ?? processContracts[0];
     if (!selectedContract?.id) continue;
 
     const contractedByAtaItem = contractedQuantityByAtaItem([selectedContract], request.processId);
     const receivedByAtaItem = receivedByProcess.get(request.processId);
-    const eligibleItems = request.items.filter((item) => Boolean(item.materialId));
+    const eligibleItems = currentItems.filter((item) => Boolean(item.materialId));
     const defaults = receiptDefaults(eligibleItems, contractedByAtaItem, receivedByAtaItem);
     const pendingItems = eligibleItems
       .map((item) => {
