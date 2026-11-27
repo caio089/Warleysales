@@ -257,7 +257,7 @@ describe("ContractingTab", () => {
     expect(html).toContain("Complete os 7 documentos obrigatórios para formalizar a contratação");
   });
 
-  it("incorpora a seção principal com o FormalizationCard pronto para submissão se documentos 100%", () => {
+  it("exibe a economia do contrato e mantém os formulários ocultos após o registro", () => {
     const html = renderToStaticMarkup(
       <ContractingTab
         processId="proc-1"
@@ -266,6 +266,7 @@ describe("ContractingTab", () => {
         formalization={null}
         suppliers={MOCK_SUPPLIERS}
         isWarley={false}
+        canLink
         defaultEstimatedValue={90000}
         requestItems={[{ materialId: "mat-1", name: "Papel Sulfite A4", quantity: 500 }]}
         linkedAtas={MOCK_ATAS}
@@ -273,10 +274,11 @@ describe("ContractingTab", () => {
       />,
     );
 
-    expect(html).toContain("Formalização da Contratação");
-    expect(html).toContain("Apto para Formalização");
-    expect(html).toContain("Papel Sulfite A4");
-    expect(html).toContain("Papelaria Central Ltda");
+    expect(html).toContain("Cálculo da economia gerada");
+    expect(html).toContain("8.000,00");
+    expect(html).toContain("Enviar para homologação");
+    expect(html).not.toContain("Ler contrato em PDF para preencher");
+    expect(html).not.toContain("Formalização da Contratação");
   });
 
   it("renderiza a formalização homologada com resumo de economia dentro da aba", () => {
@@ -301,8 +303,8 @@ describe("ContractingTab", () => {
       />,
     );
 
-    expect(html).toContain("Homologado por Warley");
-    expect(html).toContain("Economia Obtida");
+    expect(html).not.toContain("Formalização da Contratação");
+    expect(html).toContain("Economia Gerada");
     expect(html).toContain("+18,00% de economia");
   });
 });

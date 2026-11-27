@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ExternalLink, FileCheck2, ScrollText } from "lucide-react";
 import { AtaBalancePanel, type AtaBalanceRow } from "@/app/(app)/atas/ata-balance-panel";
+import { SavingsPanel } from "../savings-panel";
 import { NewAtaForm } from "@/app/(app)/atas/nova/new-ata-form";
 import { NewContractForm } from "@/app/(app)/contratos/novo/new-contract-form";
 import type { ProcessContractingMode } from "@/modules/processes/contracting-mode";
@@ -86,12 +87,18 @@ export function ContractingTab({
   draft,
   contractingMode = null,
 }: ContractingTabProps) {
+  const [showFormalization, setShowFormalization] = useState(false);
   const [replacementFor, setReplacementFor] = useState<string | null>(null);
   const existingAta = linkedAtas[0];
   const replacementOpen = existingAta != null && replacementFor === existingAta.id;
   const showAta = needsAta(contractingMode);
   const instrumentsReady =
     (!showAta || linkedAtas.length > 0) && linkedContracts.length > 0;
+  const linkedContractValue = linkedContracts.reduce((sum, item) => sum + item.value, 0);
+  const recorded = formalization?.status !== "rejeitada" ? formalization : null;
+  const canOpenFormalization = formalization?.status === "aguardando_homologacao"
+    ? isWarley
+    : isWarley || (canLink && documentalComplete);
   return (
     <div className="space-y-6">
       {/* Seção Superior: Instrumentos Contratuais Vinculados */}
@@ -296,7 +303,7 @@ export function ContractingTab({
                 </p>
               </div>
             )}
-            {canLink ? (
+            {canLink && linkedContracts.length === 0 ? (
               <div className="space-y-4 rounded-xl border border-border/70 bg-muted/10 p-4">
                 {availableContracts.length > 0 ? (
                   <LinkContractToProcessForm processId={processId} contracts={availableContracts} submitLabel="Anexar contrato" />
@@ -337,20 +344,36 @@ export function ContractingTab({
         </ol>
       </section>
 
-      {/* Seção Principal: Formalização da Contratação */}
-      <FormalizationCard
-        processId={processId}
-        councilId={councilId}
-        documentalComplete={documentalComplete}
-        evidenceOptions={evidenceOptions}
-        formalization={formalization}
-        suppliers={suppliers}
-        isWarley={isWarley}
-        defaultEstimatedValue={defaultEstimatedValue}
-        requestId={requestId}
-        requestItems={requestItems}
-        instrumentsReady={instrumentsReady}
-      />
+      {instrumentsReady && (
+        <section className="space-y-3" aria-label="Economia da contratação">
+          <SavingsPanel estimatedNum={recorded?.estimatedValue ?? defaultEstimatedValue ?? 0}
+            contractedNum={recorded?.contractedValue ?? linkedContractValue} />
+          {formalization?.status !== "homologado" && canOpenFormalization && (
+            <Button type="button" variant="outline" aria-expanded={showFormalization}
+              onClick={() => setShowFormalization((open) => !open)}>
+              {showFormalization ? "Fechar formalização"
+                : formalization?.status === "aguardando_homologacao" ? "Revisar homologação"
+                : isWarley ? "Gravar economia e liberar estoque" : "Enviar para homologação"}
+            </Button>
+          )}
+        </section>
+      )}
+      {(!instrumentsReady || (showFormalization && canOpenFormalization && formalization?.status !== "homologado")) && (
+        <FormalizationCard
+          processId={processId}
+          councilId={councilId}
+          documentalComplete={documentalComplete}
+          evidenceOptions={evidenceOptions}
+          formalization={formalization}
+          suppliers={suppliers}
+          isWarley={isWarley}
+          defaultEstimatedValue={defaultEstimatedValue}
+          defaultContractedValue={instrumentsReady ? linkedContractValue : undefined}
+          requestId={requestId}
+          requestItems={requestItems}
+          instrumentsReady={instrumentsReady}
+        />
+      )}
     </div>
   );
 }

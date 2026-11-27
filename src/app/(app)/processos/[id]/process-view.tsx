@@ -403,7 +403,7 @@ export function ProcessView({
               )}
               suppliers={suppliers}
               isWarley={isWarley}
-              defaultEstimatedValue={initialValue}
+              defaultEstimatedValue={view.process.estimatedValue ?? initialValue}
               requestId={requestId}
               requestItems={requestItems}
               linkedAtas={linkedAtas}

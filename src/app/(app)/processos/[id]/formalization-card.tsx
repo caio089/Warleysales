@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  calculateSavings,
   type InstrumentType,
   type ProcessFormalization,
 } from "@/modules/formalizations/domain/formalization";
@@ -21,6 +20,7 @@ import { ActionForm } from "@/shared/ui/forms/action-form";
 import { TextField } from "@/shared/ui/forms/fields";
 import { CurrencyInput } from "@/shared/ui/forms/currency-input";
 import { StatusBadge } from "@/shared/ui/status-badge";
+import { SavingsPanel } from "./savings-panel";
 import { toast } from "@/shared/ui/toast-store";
 
 export interface FormalizationSupplier {
@@ -38,6 +38,7 @@ export interface FormalizationCardProps {
   suppliers: FormalizationSupplier[];
   isWarley: boolean;
   defaultEstimatedValue?: number | null;
+  defaultContractedValue?: number;
   requestId?: string | null;
   requestItems?: { materialId: string; name: string; quantity: number }[];
   /** Ata e contrato já vinculados. Sem os dois, a conclusão fica bloqueada. */
@@ -73,6 +74,7 @@ export function FormalizationCard({
   suppliers,
   isWarley,
   defaultEstimatedValue,
+  defaultContractedValue,
   requestId,
   requestItems = [],
   instrumentsReady = true,
@@ -83,7 +85,7 @@ export function FormalizationCard({
       ? String(defaultEstimatedValue)
       : "",
   );
-  const [contractedInput, setContractedInput] = useState<string>("");
+  const [contractedInput, setContractedInput] = useState<string>(defaultContractedValue == null ? "" : String(defaultContractedValue));
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [exceptionalRelease, setExceptionalRelease] = useState(false);
   const requiresException = !documentalComplete || !instrumentsReady;
@@ -108,13 +110,6 @@ export function FormalizationCard({
   // Cálculo de economia em tempo real para o formulário
   const estimatedNum = Number(estimatedInput) || 0;
   const contractedNum = Number(contractedInput) || 0;
-
-  const { savingsValue, savingsPercent } = useMemo(() => {
-    if (estimatedNum > 0 && contractedNum >= 0) {
-      return calculateSavings(estimatedNum, contractedNum);
-    }
-    return { savingsValue: 0, savingsPercent: 0 };
-  }, [estimatedNum, contractedNum]);
 
   // 1. Estado de Espera: Documentos incompletos (<100%)
   if (!documentalComplete && !formalization && !releasingExceptionally) {
@@ -650,99 +645,7 @@ export function FormalizationCard({
               </FormField>
             </div>
 
-            {/* Linha 5: Painel Reativo de Economia em Tempo Real */}
-            <div
-              className={`rounded-xl border p-4 sm:p-5 transition-all ${
-                savingsValue > 0
-                  ? "border-emerald-500/40 bg-emerald-500/10 dark:border-emerald-500/30 dark:bg-emerald-950/20"
-                  : savingsValue < 0
-                    ? "border-destructive/30 bg-destructive/5"
-                    : "border-border/80 bg-secondary/30"
-              }`}
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                <span className="text-xs font-semibold uppercase tracking-wider text-primary">
-                  Cálculo de Economia em Tempo Real
-                </span>
-                {estimatedNum > 0 && contractedNum >= 0 ? (
-                  savingsValue > 0 ? (
-                    <span className="inline-flex items-center rounded-full border border-emerald-600/30 bg-emerald-500/20 px-2.5 py-0.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                      +{formatPercent(savingsPercent)} de economia
-                    </span>
-                  ) : savingsValue < 0 ? (
-                    <span className="inline-flex items-center rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-0.5 text-xs font-bold text-destructive">
-                      Acréscimo de {formatPercent(Math.abs(savingsPercent))}
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-                      0,00% (Sem variação)
-                    </span>
-                  )
-                ) : (
-                  <span className="text-xs text-muted-foreground">Aguardando valores</span>
-                )}
-              </div>
-
-              {estimatedNum > 0 && contractedNum >= 0 ? (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 pt-1">
-                  <div className="rounded-lg bg-background/60 p-2.5 border border-border/40">
-                    <p className="text-[0.7rem] text-muted-foreground uppercase font-medium">Valor Estimado</p>
-                    <p className="text-base font-semibold text-foreground mt-0.5">
-                      {formatCurrency(estimatedNum)}
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-background/60 p-2.5 border border-border/40">
-                    <p className="text-[0.7rem] text-muted-foreground uppercase font-medium">Valor Contratado</p>
-                    <p className="text-base font-semibold text-foreground mt-0.5">
-                      {formatCurrency(contractedNum)}
-                    </p>
-                  </div>
-                  <div
-                    className={`rounded-lg p-2.5 border ${
-                      savingsValue > 0
-                        ? "border-emerald-500/40 bg-emerald-500/15"
-                        : savingsValue < 0
-                          ? "border-destructive/30 bg-destructive/10"
-                          : "border-border/40 bg-background/60"
-                    }`}
-                  >
-                    <p
-                      className={`text-[0.7rem] uppercase font-semibold ${
-                        savingsValue > 0
-                          ? "text-emerald-800 dark:text-emerald-300"
-                          : savingsValue < 0
-                            ? "text-destructive"
-                            : "text-muted-foreground"
-                      }`}
-                    >
-                      Economia Gerada
-                    </p>
-                    <p
-                      className={`text-base font-bold mt-0.5 ${
-                        savingsValue > 0
-                          ? "text-emerald-700 dark:text-emerald-400"
-                          : savingsValue < 0
-                            ? "text-destructive"
-                            : "text-foreground"
-                      }`}
-                    >
-                      {formatCurrency(savingsValue)}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Informe o valor estimado e contratado acima para visualizar a economia obtida em
-                  relação ao teto do processo.
-                </p>
-              )}
-
-              {savingsValue < 0 ? (
-                <p className="mt-2 text-xs font-medium text-destructive">
-                  Atenção: O valor contratado é superior ao valor estimado inicialmente.
-                </p>
-              ) : null}
-            </div>
+            <SavingsPanel estimatedNum={estimatedNum} contractedNum={contractedNum} live />
           </div>
         )}
       </ActionForm>
