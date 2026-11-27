@@ -17,6 +17,7 @@ import { ModuleInsight, ModuleInsightFallback } from "@/shared/ui/module-insight
 import { processDisplayStatus } from "@/shared/ui/status-presentation";
 import { ProcessAttachmentSheet } from "./process-attachment-sheet";
 import { ProcessesTable } from "./processes-table";
+import { deadlinePriority } from "./deadline-priority";
 
 export const metadata: Metadata = { title: "Processos" };
 
@@ -162,8 +163,7 @@ async function Content({ openApprovals }: { openApprovals: boolean }) {
                 const due = deadlines.get(p.process.id);
                 if (!due) return "";
                 const days = diffInDays(today, due);
-                if (days < 0) return "";
-                return days <= 15 ? "Alta" : days <= 30 ? "Média" : "Baixa";
+                return deadlinePriority(days);
               })(),
               href: `/solicitacoes/processos/${p.process.id}`,
             }))}

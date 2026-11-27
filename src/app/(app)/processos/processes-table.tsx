@@ -107,7 +107,11 @@ export function ProcessesTable({
     () => [
       { id: "status", label: "Situação", options: statusOptions, accessor: (r) => r.status },
       { id: "council", label: "Órgão", options: councilOptions, accessor: (r) => r.council },
-      { id: "priority", label: "Prioridade do prazo", options: ["Alta", "Média", "Baixa"].map((value) => ({ value, label: value })), accessor: (r) => r.priority ?? "" },
+      { id: "priority", label: "Prioridade do prazo", options: [
+        { value: "Alta", label: "Alta (0 a 30 dias)" },
+        { value: "Média", label: "Média (31 a 60 dias)" },
+        { value: "Baixa", label: "Baixa (61 a 90 dias)" },
+      ], accessor: (r) => r.priority ?? "" },
     ],
     [statusOptions, councilOptions],
   );
@@ -198,9 +202,9 @@ export function ProcessesTable({
             value={activeFilters.priority ?? ""}
             onChange={(event) => updateTableState({ ...tableState, filters: { ...activeFilters, priority: event.target.value }, page: 1 })}>
             <option value="">Todas as prioridades</option>
-            <option value="Alta">Alta</option>
-            <option value="Média">Média</option>
-            <option value="Baixa">Baixa</option>
+            <option value="Alta">Alta (0 a 30 dias)</option>
+            <option value="Média">Média (31 a 60 dias)</option>
+            <option value="Baixa">Baixa (61 a 90 dias)</option>
           </select>
         </label>
         <label className="flex flex-col gap-1.5">
