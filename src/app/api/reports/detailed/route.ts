@@ -3,6 +3,8 @@ import { detailedReportPdf } from "@/modules/reports/detailed-pdf";
 import { getServices } from "@/server/runtime";
 import { getSession } from "@/server/session";
 import { parseDetailedFilter } from "@/modules/reports/detailed-filter";
+import { loadReportNames } from "@/modules/reports/load-names";
+import { presentDetailedReport } from "@/modules/reports/presentation";
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -12,6 +14,7 @@ export async function GET(request: Request) {
   const filter = parseDetailedFilter(Object.fromEntries(new URL(request.url).searchParams));
   const result = await buildDetailedReport(services, session.actor, filter);
   if (!result.ok) return Response.json({ error: result.message }, { status: result.code === "FORBIDDEN" ? 403 : 400 });
-  const pdf = await detailedReportPdf(result.data, session.displayName || "Usuário autenticado", new Date());
+  const names = await loadReportNames(services, session.actor);
+  const pdf = await detailedReportPdf(presentDetailedReport(result.data, names), session.displayName || "Usuário autenticado", new Date());
   return new Response(pdf as BodyInit, { headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="relatorio-${filter.kind}.pdf"`, "Cache-Control": "private, no-store" } });
 }
