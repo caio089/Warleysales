@@ -34,19 +34,19 @@ function readProcessItems(formData: FormData): {
   const itemCount = Number(formData.get("itemCount") ?? 0);
   if (!Number.isFinite(itemCount) || itemCount < 1) return null;
 
-  const hasLineTotals = formData.has("items.0.lineTotal");
-  if (hasLineTotals) {
+  const hasUnitPrices = formData.has("items.0.unitPrice");
+  if (hasUnitPrices) {
     const rows = Array.from({ length: itemCount }, (_, index) => {
       const quantity = toNumber(formData.get(`items.${index}.registeredQuantity`));
-      const lineTotal = toMoney(formData.get(`items.${index}.lineTotal`));
-      if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(lineTotal) || lineTotal < 0) {
+      const unitPrice = toMoney(formData.get(`items.${index}.unitPrice`));
+      if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || unitPrice < 0) {
         return null;
       }
       return {
         description: String(formData.get(`items.${index}.description`) ?? "").trim(),
         materialId: optionalId(formData.get(`items.${index}.materialId`)),
         registeredQuantity: quantity,
-        unitPrice: lineTotal / quantity,
+        unitPrice,
       };
     });
     if (rows.some((row) => row == null)) return null;
@@ -106,8 +106,8 @@ export async function createAtaFormAction(_previous: ActionState, formData: Form
   if (processItems == null && formData.has("itemCount")) {
     return {
       status: "error",
-      message: "Informe o valor total de cada item da ata.",
-      fieldErrors: { "items.0.lineTotal": ["Informe o valor total do item."] },
+      message: "Informe o valor unitário de cada material da ata.",
+      fieldErrors: { "items.0.unitPrice": ["Informe o valor unitário."] },
     };
   }
 

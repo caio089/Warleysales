@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { formatCurrency } from "@/shared/lib/format";
 import { parseCurrencyInput } from "@/shared/lib/money-input";
 import { FormField } from "@/shared/ui/form-field";
-import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/shared/ui/forms/currency-input";
 
 export type AtaMaterialLine = {
   materialId: string;
@@ -26,18 +26,18 @@ function buildDrafts(
 ): string[] {
   return lines.map((line, index) => {
     const fromPdf = defaultLineTotals?.[index];
-    if (fromPdf != null && Number.isFinite(fromPdf)) return Number(fromPdf).toFixed(2).replace(".", ",");
-    if (lines.length === 1 && defaultTotal != null) return defaultTotal.toFixed(2).replace(".", ",");
+    if (fromPdf != null && Number.isFinite(fromPdf) && line.quantity > 0) return (Number(fromPdf) / line.quantity).toFixed(2);
+    if (lines.length === 1 && defaultTotal != null && line.quantity > 0) return (defaultTotal / line.quantity).toFixed(2);
     if (defaultTotal != null && lines.length > 1) {
       const sumQty = lines.reduce((total, item) => total + item.quantity, 0);
       if (sumQty <= 0) return "";
-      return ((defaultTotal * line.quantity) / sumQty).toFixed(2).replace(".", ",");
+      return (defaultTotal / sumQty).toFixed(2);
     }
     return "";
   });
 }
 
-/** Materiais da ata com valor total por item e unitário (total ÷ qtd) ao vivo. */
+/** Valor unitário por material e valor total da ata calculado ao vivo. */
 export function AtaMaterialsValues({
   lines,
   councilLabel,
@@ -59,11 +59,11 @@ export function AtaMaterialsValues({
   const computed = useMemo(
     () =>
       lines.map((line, index) => {
-        const lineTotal = parseMoney(drafts[index] ?? "");
-        const unit = line.quantity > 0 ? lineTotal / line.quantity : 0;
+        const unit = parseMoney(drafts[index] ?? "");
+        const lineTotal = Math.round(unit * line.quantity * 100) / 100;
         return {
           lineTotal,
-          unit: Math.round(unit * 100) / 100,
+          unit,
         };
       }),
     [drafts, lines],
@@ -76,7 +76,7 @@ export function AtaMaterialsValues({
       <div>
         <p className="text-sm font-semibold text-foreground">2. Materiais e valores</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Informe o valor total de cada item. O unitário é total ÷ quantidade.
+          Informe o valor unitário de cada material. O valor total da ata é calculado automaticamente.
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
           {councilLabel} · {processLabel}
@@ -100,21 +100,18 @@ export function AtaMaterialsValues({
 
               <div className="grid gap-3 p-3.5 sm:grid-cols-2">
                 <FormField
-                  label="Valor total do item"
+                  label="Valor unitário"
                   required
-                  errors={errors[`items.${index}.lineTotal`] ?? errors[`items.${index}.unitPrice`]}
+                  errors={errors[`items.${index}.unitPrice`]}
                 >
                   {(props) => (
-                    <Input
+                    <CurrencyInput
                       {...props}
-                      name={`items.${index}.lineTotal`}
-                      type="text"
-                      inputMode="decimal"
+                      name={`items.${index}.unitPrice`}
                       placeholder="0,00"
                       required
                       value={drafts[index] ?? ""}
-                      onChange={(event) => {
-                        const next = event.currentTarget.value;
+                      onValueChange={(next) => {
                         setDrafts((current) => {
                           const copy = [...current];
                           copy[index] = next;
@@ -127,13 +124,13 @@ export function AtaMaterialsValues({
 
                 <div className="flex flex-col justify-end rounded-xl border border-primary/15 bg-primary/5 px-3 py-2.5">
                   <p className="text-[0.68rem] font-medium uppercase tracking-wide text-muted-foreground">
-                    Valor unitário
+                    Subtotal
                   </p>
                   <p className="mt-0.5 text-lg font-semibold tabular-nums text-primary">
-                    {formatCurrency(row.unit)}
+                    {formatCurrency(row.lineTotal)}
                   </p>
                   <p className="text-[0.7rem] text-muted-foreground">
-                    {formatCurrency(row.lineTotal)} ÷ {line.quantity}
+                    {formatCurrency(row.unit)} × {line.quantity}
                   </p>
                 </div>
               </div>
@@ -143,7 +140,7 @@ export function AtaMaterialsValues({
       </ul>
 
       <div className="flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-3.5 py-3">
-        <span className="text-sm font-medium text-foreground">Total da ata</span>
+        <span className="text-sm font-medium text-foreground">Valor total da ata</span>
         <span className="text-base font-semibold tabular-nums text-primary">
           {formatCurrency(grandTotal)}
         </span>
