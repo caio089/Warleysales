@@ -33,6 +33,8 @@ describe("buildStockEntrySources", () => {
     } as unknown as ProcessView;
     const ata = {
       ata: {
+        id: "ata-1",
+        number: "ARP 01/2026",
         items: [{ id: "ata-item-1", unitPrice: 12.5, registeredQuantity: 10, description: "A4", materialId: "m1", allocations: [] }],
       },
       endDate: "2027-01-01",
@@ -56,6 +58,8 @@ describe("buildStockEntrySources", () => {
       materialLabel: { m1: "Papel A4", m2: "Caneta" },
       contracts: [
         {
+          id: "contract-1",
+          number: "CT 01/2026",
           processId: "proc-1",
           ataId: "ata-1",
           ataItems: [{ ataItemId: "ata-item-1", quantity: 4 }],
@@ -65,10 +69,17 @@ describe("buildStockEntrySources", () => {
 
     expect(sources).toHaveLength(1);
     expect(sources[0]!.label).toContain("01/2026");
+    expect(sources[0]).toMatchObject({
+      contractId: "contract-1",
+      contractLabel: "Contrato CT 01/2026",
+      ataLabel: "Ata ARP 01/2026",
+    });
     expect(sources[0]!.items).toHaveLength(1);
     // Pendência da solicitação era 8; contrato libera só 4 (já recebeu 2 → resto 2).
     expect(sources[0]!.items[0]).toMatchObject({
       materialLabel: "Papel A4",
+      ataQuantity: 10,
+      contractQuantity: 4,
       pending: 2,
       unitPrice: 12.5,
       lineTotal: 25,
@@ -125,6 +136,8 @@ describe("buildStockEntrySources", () => {
       atas: [],
       materialLabel: {},
       contracts: [{
+        id: "contract-1",
+        number: "CT 01/2026",
         processId: "proc-1",
         ataId: "ata-1",
         ataItems: [{ ataItemId: "ata-item-1", quantity: contracted }],

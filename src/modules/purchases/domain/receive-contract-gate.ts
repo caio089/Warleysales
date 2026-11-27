@@ -4,6 +4,8 @@ import { fail, ok, type Result } from "@/shared/lib/result";
 
 /** Forma mínima do contrato para o gate de entrada no estoque. */
 export type ContractForReceiveGate = {
+  id?: string;
+  number?: string;
   processId?: string | null;
   ataId?: string | null;
   ataItems: { ataItemId: string; quantity: number }[];

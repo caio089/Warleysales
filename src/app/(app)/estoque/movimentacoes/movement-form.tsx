@@ -7,7 +7,6 @@ import { receiveFormAction } from "@/modules/purchases/actions";
 import { registerMovementFormAction } from "@/modules/inventory/actions";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatNumber } from "@/shared/lib/format";
-import { parseQuantityInput } from "@/shared/lib/quantity-input";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { SelectField, TextField } from "@/shared/ui/forms/fields";
 import type { StockEntrySource } from "../entry-sources";
@@ -276,16 +275,12 @@ function EntryFromProcessForm({
   submitLabel: string;
 }) {
   const processOptions = processes.map((row) => ({ value: row.processId, label: row.label }));
-  const [receivedDrafts, setReceivedDrafts] = useState<Record<string, string>>({});
-  const receivedDraft = (item: StockEntrySource["items"][number]) =>
-    receivedDrafts[item.itemId] ?? String(item.suggested ?? item.pending).replace(".", ",");
   const receivedQuantity = (item: StockEntrySource["items"][number]) =>
-    parseQuantityInput(receivedDraft(item));
+    item.suggested ?? item.pending;
   const totalValue = source?.items.reduce((sum, item) => {
     const quantity = receivedQuantity(item);
     return sum + (item.unitPrice != null && Number.isFinite(quantity) ? quantity * item.unitPrice : 0);
   }, 0) ?? 0;
-  const hasInvalidQuantity = source?.items.some((item) => !Number.isFinite(receivedQuantity(item))) ?? false;
   const hasPrices = source?.items.some((item) => item.unitPrice != null) ?? false;
 
   if (processes.length === 0) {
@@ -312,7 +307,7 @@ function EntryFromProcessForm({
       action={receiveFormAction}
       submitLabel={submitLabel}
       idempotencyField="receiptKey"
-      hiddenFields={source ? { requestId: source.requestId } : undefined}
+      hiddenFields={source ? { requestId: source.requestId, contractId: source.contractId } : undefined}
     >
       {(errors) => (
         <div className="space-y-4">
@@ -361,7 +356,7 @@ function EntryFromProcessForm({
               <div className="rounded-xl border border-border/70 bg-muted/30 px-4 py-3 text-sm">
                 <p className="font-medium text-foreground">Entrada no meu estoque — já montada pelo processo</p>
                 <p className="mt-1 text-muted-foreground">
-                  Itens, quantidades e valores vêm da solicitação. Confira e lance a entrada no estoque.
+                  Itens, quantidades e valores espelham a ata e o contrato. Confira e lance a entrada no estoque.
                 </p>
                 {source.estimatedValue != null ? (
                   <p className="mt-2 text-xs text-muted-foreground">
@@ -377,8 +372,8 @@ function EntryFromProcessForm({
                   <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
                     <tr>
                       <th className="px-3 py-2.5 font-semibold">Produto</th>
-                      <th className="px-3 py-2.5 text-right font-semibold">Pedido</th>
-                      <th className="px-3 py-2.5 text-right font-semibold">A receber</th>
+                      <th className="px-3 py-2.5 text-right font-semibold">{source.ataLabel}</th>
+                      <th className="px-3 py-2.5 text-right font-semibold">{source.contractLabel}</th>
                       <th className="px-3 py-2.5 text-right font-semibold">Unitário</th>
                       <th className="px-3 py-2.5 text-right font-semibold">Total</th>
                     </tr>
@@ -391,19 +386,11 @@ function EntryFromProcessForm({
                           <input type="hidden" name="itemId" value={item.itemId} />
                         </td>
                         <td className="px-3 py-3 text-right tabular-nums text-muted-foreground">
-                          {formatNumber(item.ordered)}
+                          {formatNumber(item.ataQuantity)}
                         </td>
-                        <td className="px-3 py-2 text-right">
+                        <td className="px-3 py-3 text-right tabular-nums text-muted-foreground">
                           <input type="hidden" name="received" value={String(receivedQuantity(item))} />
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            required
-                            value={receivedDraft(item)}
-                            onChange={(event) => setReceivedDrafts((current) => ({ ...current, [item.itemId]: event.target.value }))}
-                            className="h-9 w-24 rounded-md border border-input bg-background px-2 text-right text-sm tabular-nums"
-                            aria-label={`Quantidade a receber de ${item.materialLabel}`}
-                          />
+                          {formatNumber(item.contractQuantity)}
                         </td>
                         <td className="px-3 py-3 text-right tabular-nums text-muted-foreground">
                           {item.unitPrice != null ? formatCurrency(item.unitPrice) : "—"}
@@ -423,7 +410,7 @@ function EntryFromProcessForm({
                            Total desta entrada
                         </td>
                         <td className="px-3 py-2.5 text-right text-sm font-semibold tabular-nums">
-                           {hasInvalidQuantity ? "—" : formatCurrency(totalValue)}
+                           {formatCurrency(totalValue)}
                         </td>
                       </tr>
                     </tfoot>
