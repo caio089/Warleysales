@@ -140,14 +140,14 @@ export async function ProcessContent({
           id: item.ata.id,
           number: item.ata.number,
           endDate: item.endDate,
-          status: item.ata.status === "rascunho" ? "Rascunho" : item.validity === "vigente" ? "Vigente" : "Vencida",
+          status: item.ata.status === "cancelada" ? "Cancelada" : item.ata.status === "rascunho" ? "Rascunho" : item.validity === "vigente" ? "Vigente" : "Vencida",
           items: buildAtaBalanceRows(item, lookups.data.materialLabel),
         })),
       linkedContracts: contracts.data
         .filter((item) => item.contract.processId === id)
         .map((item) => ({ id: item.contract.id, number: item.contract.number, object: item.contract.object, value: item.terms.value, endDate: item.terms.endDate })),
       availableAtas: atas.data
-        .filter((item) => item.ata.councilId === councilId && !item.ata.processId)
+        .filter((item) => item.ata.councilId === councilId && !item.ata.processId && item.ata.status !== "cancelada")
         .map((item) => ({ value: item.ata.id, label: item.ata.number })),
       availableContracts: contracts.data
         .filter((item) => item.contract.councilId === councilId && !item.contract.processId)

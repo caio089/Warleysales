@@ -81,8 +81,15 @@ const toCommitment = (r: CommitmentRow): CommitmentEvent => ({
 export class SupabaseAtaRepository implements AtaRepository {
   constructor(private readonly db: SupabaseClient) {}
 
-  async insert(ata: PriceRegistrationAta) {
-    const response = (await this.db.rpc("save_ata", { p: toPayload(ata) })) as DbResponse<null>;
+  async insert(ata: PriceRegistrationAta, replacementJustification?: string) {
+    const response = (ata.processId
+      ? await this.db.rpc("register_process_ata", { p: toPayload(ata), p_justification: replacementJustification ?? null })
+      : await this.db.rpc("save_ata", { p: toPayload(ata) })) as DbResponse<null>;
+    if (response.error?.code === "P0001" && response.error.message === "ata_replacement_justification_required") {
+      return fail("VALIDATION", "Informe a justificativa para cadastrar outra ata neste processo.", {
+        replacementJustification: ["A justificativa é obrigatória."],
+      });
+    }
     if (isUniqueViolation(response.error)) {
       return fail("CONFLICT", "Já existe uma ata com este número neste órgão. Altere o número.", {
         number: ["Número já cadastrado."],

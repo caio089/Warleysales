@@ -89,11 +89,11 @@ export function ContractingTab({
 }: ContractingTabProps) {
   const [showFormalization, setShowFormalization] = useState(false);
   const [replacementFor, setReplacementFor] = useState<string | null>(null);
-  const existingAta = linkedAtas[0];
+  const existingAta = linkedAtas.find((ata) => ata.status !== "Cancelada");
   const replacementOpen = existingAta != null && replacementFor === existingAta.id;
   const showAta = needsAta(contractingMode);
   const instrumentsReady =
-    (!showAta || linkedAtas.length > 0) && linkedContracts.length > 0;
+    (!showAta || existingAta != null) && linkedContracts.length > 0;
   const linkedContractValue = linkedContracts.reduce((sum, item) => sum + item.value, 0);
   const recorded = formalization?.status !== "rejeitada" ? formalization : null;
   const canOpenFormalization = formalization?.status === "aguardando_homologacao"
@@ -164,15 +164,20 @@ export function ContractingTab({
                         tone={
                           ata.status === "Vigente"
                             ? "success"
-                            : ata.status === "Rascunho"
-                              ? "warning"
+                            : ata.status === "Cancelada"
+                              ? "danger"
+                              : ata.status === "Rascunho"
+                                ? "warning"
                               : "neutral"
                         }
                       />
                     </div>
 
+                    {ata.status === "Cancelada" && (
+                      <p className="text-sm text-muted-foreground">Ata cancelada após o cadastro de uma nova ata para este processo.</p>
+                    )}
                     {ata.items && (
-                      <AtaBalancePanel headingId={`saldo-ata-${ata.id}`} items={ata.items} isDraft={ata.status === "Rascunho"} />
+                      <AtaBalancePanel headingId={`saldo-ata-${ata.id}`} items={ata.items} isDraft={ata.status === "Rascunho"} isCancelled={ata.status === "Cancelada"} />
                     )}
 
                     <div className="flex items-center justify-between pt-2 border-t border-border/40 text-xs text-muted-foreground">
@@ -325,7 +330,7 @@ export function ContractingTab({
                       defaultValue: draft.defaultValue,
                       validityStartDate: draft.validityStartDate,
                       requestMaterials: draft.requestMaterials,
-                      atas: linkedAtas.map((ata) => ({
+                      atas: linkedAtas.filter((ata) => ata.status !== "Cancelada").map((ata) => ({
                         id: ata.id,
                         number: ata.number,
                         status: ata.status,

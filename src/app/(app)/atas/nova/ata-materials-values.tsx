@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { formatCurrency } from "@/shared/lib/format";
 import { parseCurrencyInput } from "@/shared/lib/money-input";
 import { FormField } from "@/shared/ui/form-field";
-import { CurrencyInput } from "@/shared/ui/forms/currency-input";
+import { Input } from "@/components/ui/input";
 
 export type AtaMaterialLine = {
   materialId: string;
@@ -26,12 +26,12 @@ function buildDrafts(
 ): string[] {
   return lines.map((line, index) => {
     const fromPdf = defaultLineTotals?.[index];
-    if (fromPdf != null && Number.isFinite(fromPdf)) return Number(fromPdf).toFixed(2);
-    if (lines.length === 1 && defaultTotal != null) return defaultTotal.toFixed(2);
+    if (fromPdf != null && Number.isFinite(fromPdf)) return Number(fromPdf).toFixed(2).replace(".", ",");
+    if (lines.length === 1 && defaultTotal != null) return defaultTotal.toFixed(2).replace(".", ",");
     if (defaultTotal != null && lines.length > 1) {
       const sumQty = lines.reduce((total, item) => total + item.quantity, 0);
       if (sumQty <= 0) return "";
-      return ((defaultTotal * line.quantity) / sumQty).toFixed(2);
+      return ((defaultTotal * line.quantity) / sumQty).toFixed(2).replace(".", ",");
     }
     return "";
   });
@@ -105,11 +105,16 @@ export function AtaMaterialsValues({
                   errors={errors[`items.${index}.lineTotal`] ?? errors[`items.${index}.unitPrice`]}
                 >
                   {(props) => (
-                    <CurrencyInput
+                    <Input
                       {...props}
                       name={`items.${index}.lineTotal`}
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      required
                       value={drafts[index] ?? ""}
-                      onValueChange={(next) => {
+                      onChange={(event) => {
+                        const next = event.currentTarget.value;
                         setDrafts((current) => {
                           const copy = [...current];
                           copy[index] = next;

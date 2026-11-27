@@ -169,11 +169,13 @@ describe("ContractingTab", () => {
     const html = renderToStaticMarkup(
       <ContractingTab processId="proc-1" councilId="council-a" documentalComplete formalization={null}
         suppliers={MOCK_SUPPLIERS} isWarley={false} canLink contractingMode="registro_precos"
-        linkedAtas={MOCK_ATAS}
+        linkedAtas={[...MOCK_ATAS, { ...MOCK_ATAS[0]!, id: "ata-antiga", number: "ARP antiga", status: "Cancelada" }]}
         draft={{ councilLabel: "CRQ18", processLabel: "Processo", processNumber: "012/2026",
           materials: [], requestMaterials: [], suppliers: [] }} />,
     );
     expect(html).toContain("Criar nova ata com justificativa");
+    expect(html).toContain("ARP antiga");
+    expect(html).toContain("Ata cancelada após o cadastro");
     expect(html).not.toContain("Número da ata");
     expect(html).not.toContain("Ler ata em PDF para preencher");
   });

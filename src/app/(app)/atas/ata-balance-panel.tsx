@@ -24,10 +24,11 @@ export function buildAtaBalanceRows(view: AtaView, materialLabels: Record<string
   }));
 }
 
-export function AtaBalancePanel({ headingId, items, isDraft }: {
+export function AtaBalancePanel({ headingId, items, isDraft, isCancelled = false }: {
   headingId: string;
   items: AtaBalanceRow[];
   isDraft: boolean;
+  isCancelled?: boolean;
 }) {
   const totalRegistered = items.reduce((sum, row) => sum + row.registered, 0);
   const totalCommitted = items.reduce((sum, row) => sum + row.committed, 0);
@@ -40,7 +41,7 @@ export function AtaBalancePanel({ headingId, items, isDraft }: {
             Saldo por item
           </h2>
           <p className="text-sm text-muted-foreground">
-            Registrada − comprometida = saldo. {isDraft ? "No rascunho o saldo ainda não é consumido." : "Pedidos aprovados consomem este saldo."}
+            Registrada − comprometida = saldo. {isCancelled ? "Saldo histórico da ata cancelada." : isDraft ? "No rascunho o saldo ainda não é consumido." : "Pedidos aprovados consomem este saldo."}
           </p>
         </div>
       </div>

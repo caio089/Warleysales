@@ -8,7 +8,7 @@ export class InMemoryAtaRepository implements AtaRepository {
   private table = new MemoryTable<PriceRegistrationAta>();
   private events = new Map<string, CommitmentEvent[]>();
 
-  async insert(a: PriceRegistrationAta) {
+  async insert(a: PriceRegistrationAta, replacementJustification?: string) {
     const duplicate = this.table.all(
       (row) =>
         row.councilId === a.councilId &&
@@ -19,7 +19,15 @@ export class InMemoryAtaRepository implements AtaRepository {
         number: ["Número já cadastrado."],
       });
     }
-    return ok(this.table.insert(a));
+    const previous = a.processId ? this.table.all((ata) =>
+      ata.councilId === a.councilId && ata.processId === a.processId && ata.status !== "cancelada",
+    ) : [];
+    if (previous.length > 0 && !replacementJustification?.trim()) {
+      return fail("VALIDATION", "Informe a justificativa para cadastrar outra ata neste processo.");
+    }
+    const saved = this.table.insert(a);
+    for (const ata of previous) this.table.insert({ ...ata, status: "cancelada" });
+    return ok(saved);
   }
   async findById(id: string) { return this.table.get(id); }
   async findByItemId(itemId: string) { return this.table.all((a) => a.items.some((i) => i.id === itemId))[0] ?? null; }

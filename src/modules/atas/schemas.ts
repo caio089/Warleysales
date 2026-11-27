@@ -14,7 +14,7 @@ export interface AtaItem {
   allocations: CouncilAllocation[];
 }
 
-export type AtaStatus = "rascunho" | "vigente";
+export type AtaStatus = "rascunho" | "vigente" | "cancelada";
 
 export interface PriceRegistrationAta {
   id: string;

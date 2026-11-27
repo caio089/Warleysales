@@ -39,7 +39,8 @@ describe("AtaService — saldo (R9)", () => {
     const second = await service.create(manager(), { ...input, number: "ARP-2", replacementJustification });
     expect(second).toMatchObject({ ok: true, data: { status: "vigente" } });
     expect((await audit.list()).at(-1)?.details).toMatchObject({ replacementJustification, priorAtaIds: [first.data.id] });
-    expect(await repository.findById(first.data.id)).toMatchObject({ processId });
+    expect(await repository.findById(first.data.id)).toMatchObject({ processId, status: "cancelada" });
+    expect(await service.commitInternal({ itemId: first.data.items[0]!.id, councilId: COUNCIL_A, quantity: 1, reference: "nova-compra" })).toMatchObject({ code: "INVALID_STATE" });
   });
   it("rascunho antigo não aceita comprometimento até ser ativado", async () => {
     const created = await ctx.service.create(manager(), { councilId: COUNCIL_A, number: "06/2026", startDate: "2026-11-01", items: [{ description: "Caneta", registeredQuantity: 10, unitPrice: 1 }] });

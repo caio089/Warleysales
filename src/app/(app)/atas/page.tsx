@@ -30,20 +30,21 @@ async function Content() {
         <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumo das atas">
           <KpiCard icon={<Archive className="size-4" aria-hidden />} label="Total de atas" value={atas.length} />
           <KpiCard icon={<Clock3 className="size-4" aria-hidden />} label="Rascunhos" value={atas.filter((a) => a.ata.status === "rascunho").length} hint="Aguardam ativação" />
-          <KpiCard icon={<FileCheck2 className="size-4" aria-hidden />} label="Vigentes" value={atas.filter((a) => a.validity === "vigente" && a.ata.status !== "rascunho").length} />
-          <KpiCard icon={<CircleAlert className="size-4" aria-hidden />} label="Vencidas" value={atas.filter((a) => a.validity !== "vigente" && a.ata.status !== "rascunho").length} accent={atas.some((a) => a.validity !== "vigente" && a.ata.status !== "rascunho")} />
+          <KpiCard icon={<FileCheck2 className="size-4" aria-hidden />} label="Vigentes" value={atas.filter((a) => a.validity === "vigente" && a.ata.status === "vigente").length} />
+          <KpiCard icon={<CircleAlert className="size-4" aria-hidden />} label="Vencidas" value={atas.filter((a) => a.validity !== "vigente" && a.ata.status === "vigente").length} accent={atas.some((a) => a.validity !== "vigente" && a.ata.status === "vigente")} />
         </div>
         <Suspense fallback={<ModuleInsightFallback />}>
           <ModuleInsight moduleName="Atas" sourceHref="/atas" facts={[
             { label: "Total", value: atas.length },
+            { label: "Canceladas", value: atas.filter((a) => a.ata.status === "cancelada").length },
             { label: "Rascunhos", value: atas.filter((a) => a.ata.status === "rascunho").length },
-            { label: "Vigentes", value: atas.filter((a) => a.validity === "vigente" && a.ata.status !== "rascunho").length },
-            { label: "Vencidas", value: atas.filter((a) => a.validity !== "vigente" && a.ata.status !== "rascunho").length },
+            { label: "Vigentes", value: atas.filter((a) => a.validity === "vigente" && a.ata.status === "vigente").length },
+            { label: "Vencidas", value: atas.filter((a) => a.validity !== "vigente" && a.ata.status === "vigente").length },
           ]} />
         </Suspense>
         <SimpleTable
           caption="Atas de registro de preços"
-          rows={atas.map((a) => ({ id: a.ata.id, number: a.ata.number, council: lookups.councilLabel[a.ata.councilId] ?? "—", process: a.ata.processId ? (processLabel[a.ata.processId] ?? "Processo") : "—", status: a.ata.status === "rascunho" ? "Rascunho" : a.validity === "vigente" ? "Vigente" : "Vencida", endDate: a.endDate, extensions: a.ata.extensions.length, href: `/atas/${a.ata.id}`, processHref: a.ata.processId ? `/solicitacoes/processos/${a.ata.processId}` : "" }))}
+          rows={atas.map((a) => ({ id: a.ata.id, number: a.ata.number, council: lookups.councilLabel[a.ata.councilId] ?? "—", process: a.ata.processId ? (processLabel[a.ata.processId] ?? "Processo") : "—", status: a.ata.status === "cancelada" ? "Cancelada" : a.ata.status === "rascunho" ? "Rascunho" : a.validity === "vigente" ? "Vigente" : "Vencida", endDate: a.endDate, extensions: a.ata.extensions.length, href: `/atas/${a.ata.id}`, processHref: a.ata.processId ? `/solicitacoes/processos/${a.ata.processId}` : "" }))}
           columns={[
             { key: "number", header: "Número", kind: "link", hrefKey: "href" }, { key: "council", header: "Órgão gerenciador" },
             { key: "process", header: "Processo", kind: "link", hrefKey: "processHref" },

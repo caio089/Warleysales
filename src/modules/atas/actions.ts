@@ -2,10 +2,16 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { parseCurrencyInput } from "@/shared/lib/money-input";
 import { runAction } from "@/server/action-runner";
 import type { ActionState } from "@/shared/ui/forms/action-state";
 
 const toNumber = (v: FormDataEntryValue | null) => Number(String(v ?? "").replace(",", "."));
+
+const toMoney = (value: FormDataEntryValue | null): number => {
+  const parsed = parseCurrencyInput(String(value ?? ""));
+  return parsed ? Number(parsed) : Number.NaN;
+};
 
 const optionalId = (value: FormDataEntryValue | null) => {
   const text = String(value ?? "").trim();
@@ -32,7 +38,7 @@ function readProcessItems(formData: FormData): {
   if (hasLineTotals) {
     const rows = Array.from({ length: itemCount }, (_, index) => {
       const quantity = toNumber(formData.get(`items.${index}.registeredQuantity`));
-      const lineTotal = toNumber(formData.get(`items.${index}.lineTotal`));
+      const lineTotal = toMoney(formData.get(`items.${index}.lineTotal`));
       if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(lineTotal) || lineTotal < 0) {
         return null;
       }
@@ -58,7 +64,7 @@ function readProcessItems(formData: FormData): {
     registeredQuantity: toNumber(formData.get(`items.${index}.registeredQuantity`)),
   }));
 
-  const totalValue = toNumber(formData.get("totalValue"));
+  const totalValue = toMoney(formData.get("totalValue"));
   if (!Number.isFinite(totalValue) || totalValue < 0) return null;
 
   const sumQty = rows.reduce((total, row) => total + (Number.isFinite(row.registeredQuantity) ? row.registeredQuantity : 0), 0);
@@ -86,7 +92,7 @@ export async function createAtaFormAction(_previous: ActionState, formData: Form
     description: formData.get("description"),
     materialId: optionalId(formData.get("materialId")),
     registeredQuantity: toNumber(formData.get("registeredQuantity")),
-    unitPrice: toNumber(formData.get("unitPrice")),
+    unitPrice: toMoney(formData.get("unitPrice")),
   }];
 
   if (processId && !supplierId && supplierName.length < 2) {

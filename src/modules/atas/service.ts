@@ -52,7 +52,7 @@ export class AtaService {
     if (!processId.ok) return processId;
 
     const councilAtas = await this.repository.listByCouncils([d.councilId]);
-    const priorAtas = processId.data ? councilAtas.filter((ata) => ata.processId === processId.data) : [];
+    const priorAtas = processId.data ? councilAtas.filter((ata) => ata.processId === processId.data && ata.status !== "cancelada") : [];
     if (priorAtas.length > 0 && !d.replacementJustification) {
       return fail("VALIDATION", "Informe a justificativa para cadastrar outra ata neste processo.", {
         replacementJustification: ["A justificativa é obrigatória."],
@@ -78,7 +78,7 @@ export class AtaService {
       items: d.items.map((i) => ({ id: this.runtime.newId(), description: i.description, materialId: i.materialId ?? null, registeredQuantity: i.registeredQuantity, unitPrice: i.unitPrice, allocations: [] })),
       extensions: [],
       createdAt: this.runtime.now(),
-    });
+    }, d.replacementJustification);
     if (!saved.ok) return saved;
     await this.audit.record({ actorId: actor.userId, action: "ata.create", entity: "price_registration_ata", entityId: saved.data.id, councilId: d.councilId, result: "success", details: {
       number: d.number, status: saved.data.status,
@@ -95,6 +95,7 @@ export class AtaService {
     if (!ata) return fail("NOT_FOUND", "Ata não encontrada.");
     const allowed = await guard(this.audit, actor, "ata.manage", ata.councilId, "price_registration_ata", ata.id);
     if (!allowed.ok) return allowed;
+    if (ata.status === "cancelada") return fail("INVALID_STATE", "O vínculo de uma ata cancelada fica no histórico.");
     const processId = await this.sameCouncilProcess(ata.councilId, parsed.data.processId);
     if (!processId.ok) return processId;
     const saved = await this.repository.save({ ...ata, processId: processId.data });
@@ -160,7 +161,7 @@ export class AtaService {
   async checkCommittable(itemId: string): Promise<Result<true>> {
     const ata = await this.repository.findByItemId(itemId);
     if (!ata) return fail("NOT_FOUND", "Item de ata não encontrado.");
-    if (ata.status !== "vigente") return fail("INVALID_STATE", "A ata não está vigente; rascunho não consome saldo.");
+    if (ata.status !== "vigente") return fail("INVALID_STATE", "Somente atas vigentes aceitam novos comprometimentos.");
     if (ataValidityStatus(currentEndDate(ata.startDate, ata.extensions), toFortalezaDate(this.runtime.now())) === "vencida") {
       return fail("INVALID_STATE", "A ata está vencida e não aceita novos comprometimentos.");
     }

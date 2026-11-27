@@ -79,10 +79,11 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
           (sum, item) => sum + item.registeredQuantity * item.unitPrice,
           0,
         );
+        const isCancelled = view.ata.status === "cancelada";
         const isDraft = view.ata.status === "rascunho";
         const isValid = view.validity === "vigente";
-        const statusTone = isDraft ? "warning" : isValid ? "success" : "danger";
-        const statusLabel = isDraft ? "Rascunho" : isValid ? "Vigente" : "Vencida";
+        const statusTone = isCancelled ? "danger" : isDraft ? "warning" : isValid ? "success" : "danger";
+        const statusLabel = isCancelled ? "Cancelada" : isDraft ? "Rascunho" : isValid ? "Vigente" : "Vencida";
 
         return (
           <>
@@ -93,8 +94,9 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
               backLabel="Todas as atas"
               title={`Ata ${view.ata.number}`}
               description={
-                isDraft
-                  ? "Rascunho: confira empresa, vigência, valores e saldo antes de ativar."
+                isCancelled ? "Ata cancelada após o registro de uma nova ata no mesmo processo."
+                : isDraft
+                  ? "Rascunho de ata de registro de preços."
                   : `Vigência até ${formatDateOnly(view.endDate)} · saldo disponível para consumo.`
               }
             />
@@ -152,7 +154,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
 
             {/* Faixa de saldo */}
             <div className="mb-8">
-              <AtaBalancePanel headingId="saldo-heading" items={buildAtaBalanceRows(view, lookups.materialLabel)} isDraft={isDraft} />
+              <AtaBalancePanel headingId="saldo-heading" items={buildAtaBalanceRows(view, lookups.materialLabel)} isDraft={isDraft} isCancelled={isCancelled} />
             </div>
 
             {/* Prorrogação */}
@@ -203,7 +205,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
                   ))}
                 </p>
               </div>
-              {canManage ? (
+              {canManage && !isCancelled ? (
                 <LinkProcessForm
                   action={linkAtaProcessFormAction}
                   entityIdName="ataId"
@@ -212,7 +214,7 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
                   current={view.ata.processId ?? null}
                 />
               ) : null}
-              {canManage && view.ata.processId ? (
+              {canManage && !isCancelled && view.ata.processId ? (
                 <div className="space-y-3 border-t border-border/70 pt-4">
                   <h3 className="text-sm font-medium">Vincular um contrato a este processo</h3>
                   {councilContracts.length > 0 ? (
