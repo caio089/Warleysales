@@ -117,6 +117,7 @@ function CollapsedGroup({
           <Link
             key={item.href}
             href={item.href}
+            prefetch={false}
             onClick={onNavigate}
             title={item.label}
             aria-label={item.label}
@@ -160,6 +161,7 @@ function ExpandedHome({
           <Link
             key={item.href}
             href={item.href}
+            prefetch={false}
             onClick={onNavigate}
             aria-current={active ? "page" : undefined}
             className={cn(
@@ -257,6 +259,7 @@ function ExpandedGroup({
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 onClick={onNavigate}
                 aria-current={active ? "page" : undefined}
                 className={cn(
