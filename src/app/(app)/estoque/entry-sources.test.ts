@@ -146,4 +146,32 @@ describe("buildStockEntrySources", () => {
     expect(sources(0.5)).toMatchObject([{ requestId: "aberta", items: [{ pending: 0.125, suggested: 0.125 }] }]);
     expect(sources(0.375)).toEqual([]);
   });
+
+  it("ao substituir a ata usa somente os valores e quantidades da nova ata e seu contrato", () => {
+    const request = {
+      id: "request-1", councilId: "c1", title: "Veículos", status: "aprovada",
+      processId: "process-1", items: [{ id: "request-item", materialId: "m1", ataItemId: "old-item", quantity: 10, receivedTotal: 0 }],
+      events: [], receiptKeys: [], createdBy: "u1", createdAt: new Date("2026-11-01"),
+    } as PurchaseRequest;
+    const process = { process: { id: "process-1", number: "01/2026", title: "Veículos", contractingMode: "registro_precos" } } as ProcessView;
+    const ata = (id: string, itemId: string, quantity: number, price: number, date: string) => ({
+      ata: { id, processId: "process-1", number: id, status: "vigente", createdAt: new Date(date),
+        items: [{ id: itemId, materialId: "m1", registeredQuantity: quantity, unitPrice: price }] },
+      validity: "vigente",
+    }) as AtaView;
+    const contracts = [
+      { id: "old-contract", number: "CT antigo", processId: "process-1", ataId: "old-ata", ataItems: [{ ataItemId: "old-item", quantity: 10 }] },
+      { id: "new-contract", number: "CT novo", processId: "process-1", ataId: "new-ata", ataItems: [{ ataItemId: "new-item", quantity: 5 }] },
+    ];
+    const input = { requests: [request], processes: [process], atas: [
+      ata("old-ata", "old-item", 10, 100, "2026-11-01"),
+      ata("new-ata", "new-item", 5, 80, "2026-11-27"),
+    ], contracts, materialLabel: { m1: "Veículo" } };
+
+    expect(buildStockEntrySources(input)).toMatchObject([{
+      contractId: "new-contract", ataLabel: "Ata new-ata", contractLabel: "Contrato CT novo",
+      items: [{ ataQuantity: 5, contractQuantity: 5, unitPrice: 80, pending: 5, lineTotal: 400 }],
+    }]);
+    expect(buildStockEntrySources({ ...input, contracts: contracts.slice(0, 1) })).toEqual([]);
+  });
 });

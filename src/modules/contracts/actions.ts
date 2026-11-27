@@ -85,6 +85,8 @@ export async function createContractFormAction(_previous: ActionState, formData:
   if (result.status !== "success" || !result.data) return result.status === "success" ? result : result;
   revalidatePath("/contratos");
   revalidatePath("/atas");
+  revalidatePath("/estoque");
+  revalidatePath("/estoque/movimentacoes");
   if (input.ataId) revalidatePath(`/atas/${String(input.ataId)}`);
   const backToProcess = processReturnPath(formData);
   if (backToProcess) {
@@ -127,6 +129,8 @@ export async function linkContractProcessFormAction(_previous: ActionState, form
     revalidatePath("/contratos");
     revalidatePath("/atas");
     revalidatePath("/processos");
+    revalidatePath("/estoque");
+    revalidatePath("/estoque/movimentacoes");
     if (processId) revalidatePath(`/processos/${processId}`);
   }
   return result.status === "success" ? { status: "success", message: result.message } : result;
