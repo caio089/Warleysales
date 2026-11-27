@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import { parseLocalInstant, period, selectEvents, shiftPeriod } from "./agenda";
 
 describe("agenda do calendário", () => {
-  it("inclui todos os dias de um mês bissexto e completa as semanas", () => {
-    expect(period("2028-02-29", "mes")).toEqual({ first: "2028-01-30", count: 35 });
+  it("usa somente os dias reais do mês selecionado", () => {
+    expect(period("2027-02-27", "mes")).toEqual({ first: "2027-02-01", count: 28 });
+    expect(period("2028-02-29", "mes")).toEqual({ first: "2028-02-01", count: 29 });
+    expect(period("2026-11-27", "mes")).toEqual({ first: "2026-11-01", count: 30 });
+    expect(period("2026-12-31", "mes")).toEqual({ first: "2026-12-01", count: 31 });
     expect(shiftPeriod("2028-01-31", "mes", 1)).toBe("2028-02-29");
   });
 

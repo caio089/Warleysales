@@ -40,9 +40,8 @@ export function localInput(instant: string) {
 export function period(date: string, view: View) {
   if (view === "mes") {
     const first = `${date.slice(0, 7)}-01`;
-    const offset = new Date(first).getUTCDay();
-    const length = Number(addDays(addMonths(first, 1), -1).slice(-2));
-    return { first: addDays(first, -offset), count: Math.ceil((offset + length) / 7) * 7 };
+    const count = Number(addDays(addMonths(first, 1), -1).slice(-2));
+    return { first, count };
   }
   if (view === "semana") return { first: addDays(date, -new Date(date).getUTCDay()), count: 7 };
   return { first: date, count: view === "agenda" ? 30 : 1 };

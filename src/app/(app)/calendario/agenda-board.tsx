@@ -136,7 +136,8 @@ export function AgendaBoard({ today, initialDate, initialCouncil, events, counci
           {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((weekday) => <span className="text-center text-xs font-semibold text-muted-foreground" key={weekday}>{weekday}</span>)}
           {days.map((day) => {
             const entries = byDay.get(day) ?? [];
-            return <div key={day} className={cn("min-w-0 rounded-lg border p-1 sm:p-2", day === date ? "border-primary bg-primary/5" : "bg-card", !day.startsWith(date.slice(0, 7)) && "text-muted-foreground")}>
+            return <div key={day} style={day === first ? { gridColumnStart: new Date(first).getUTCDay() + 1 } : undefined}
+              className={cn("min-w-0 rounded-lg border p-1 sm:p-2", day === date ? "border-primary bg-primary/5" : "bg-card")}>
               <button type="button" aria-label={`${dateLabel(day)}: ${entries.length} eventos`} aria-pressed={day === date} aria-current={day === today ? "date" : undefined}
                 className="w-full rounded p-1 text-center font-semibold focus-visible:outline-2 focus-visible:outline-ring" onClick={() => setDate(day)}>
                 {Number(day.slice(-2))}<span className="block text-xs font-normal lg:hidden">{entries.length || "\u00a0"}</span>
