@@ -9,7 +9,7 @@ vi.mock("next/link", () => ({ default: ({ children }: { children: unknown }) => 
 vi.mock("@/shared/ui/screen", () => ({ Screen: ({ result }: { result: unknown }) => <pre>{JSON.stringify(result)}</pre> }));
 vi.mock("../new-council-form", () => ({ EditCouncilForm: () => null }));
 vi.mock("@/modules/identity/council-actions", () => ({}));
-import { CouncilContent } from "./page";
+import { CouncilContent } from "./council-detail-page";
 
 describe("council detail required queries", () => {
   it("propagates required query failures and preserves empty successful results", async () => {

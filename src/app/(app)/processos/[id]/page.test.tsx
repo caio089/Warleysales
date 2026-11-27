@@ -9,7 +9,7 @@ vi.mock("./process-view", () => ({ ProcessView: () => <div>process view</div> })
 vi.mock("@/shared/ui/screen", () => ({ Screen: ({ result }: { result: unknown }) => <div>{JSON.stringify(result)}</div> }));
 vi.mock("next/navigation", () => ({ notFound: vi.fn() }));
 
-import { ProcessContent } from "./page";
+import { ProcessContent } from "./process-detail-page";
 
 describe("process detail required queries", () => {
   it("returns first failed required query and keeps empty success as valid data", async () => {

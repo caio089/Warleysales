@@ -342,16 +342,16 @@
     "semantic_hash": ""
   },
   "src/app/(app)/conselhos/[id]/page.test.tsx": {
-    "mtime": 1795034420.7913015,
-    "seen": 1795707380.2407286,
-    "ast_hash": "eac78e39d8d851d790c63b26bb2b9f7b",
+    "mtime": 1795787123.2726636,
+    "seen": 1795787146.9545784,
+    "ast_hash": "04cf23298cf92499f4d5a66b7f349bc1",
     "semantic_hash": ""
   },
   "src/app/(app)/conselhos/[id]/page.tsx": {
-    "mtime": 1795034247.4988608,
-    "seen": 1795707380.2407298,
-    "ast_hash": "374c6d809235bba4906a386cec3a7817",
-    "semantic_hash": "374c6d809235bba4906a386cec3a7817"
+    "mtime": 1795787123.273663,
+    "seen": 1795787146.9545803,
+    "ast_hash": "f4ae88c0a7840024b92a9652a8e5b74b",
+    "semantic_hash": ""
   },
   "src/app/(app)/conselhos/new-council-form.tsx": {
     "mtime": 1794849115.1527345,
@@ -366,16 +366,16 @@
     "semantic_hash": "bd9af3b679dd559280d66de506101eee"
   },
   "src/app/(app)/conselhos/page.test.tsx": {
-    "mtime": 1795034267.8275433,
-    "seen": 1795707380.2407339,
-    "ast_hash": "0ecc4845222504056bde9b1d03ce93a4",
+    "mtime": 1795787123.2756643,
+    "seen": 1795787146.9545891,
+    "ast_hash": "7a8da734bdea02da842461a1cb845e22",
     "semantic_hash": ""
   },
   "src/app/(app)/conselhos/page.tsx": {
-    "mtime": 1795034245.044337,
-    "seen": 1795707380.2407353,
-    "ast_hash": "b8af71e0d34dcecd2a245c2c6736bc69",
-    "semantic_hash": "b8af71e0d34dcecd2a245c2c6736bc69"
+    "mtime": 1795787123.277665,
+    "seen": 1795787146.9545913,
+    "ast_hash": "72080e3383cf4fdc76177779b97f9217",
+    "semantic_hash": ""
   },
   "src/app/(app)/contratos/[id]/amendment-form.tsx": {
     "mtime": 1795540810.4919815,
@@ -546,16 +546,16 @@
     "semantic_hash": ""
   },
   "src/app/(app)/estoque/movimentacoes/page.test.tsx": {
-    "mtime": 1795706385.1362484,
-    "seen": 1795707380.2407813,
-    "ast_hash": "91354eaecdde1bd912af2eada5f1a1ca",
-    "semantic_hash": "91354eaecdde1bd912af2eada5f1a1ca"
+    "mtime": 1795787123.2803867,
+    "seen": 1795787146.9546604,
+    "ast_hash": "59c7f9f2870e90780623805e07fea5d5",
+    "semantic_hash": ""
   },
   "src/app/(app)/estoque/movimentacoes/page.tsx": {
-    "mtime": 1795706385.1362484,
-    "seen": 1795707380.2407825,
-    "ast_hash": "87a54b94eb330e417942f5f10915e7a7",
-    "semantic_hash": "87a54b94eb330e417942f5f10915e7a7"
+    "mtime": 1795787123.2823968,
+    "seen": 1795787146.954662,
+    "ast_hash": "1e4de9705d248d9296476437f1f1c536",
+    "semantic_hash": ""
   },
   "src/app/(app)/estoque/movimentacoes/product-field.tsx": {
     "mtime": 1795706385.144373,
@@ -732,15 +732,15 @@
     "semantic_hash": "a57f9710bddaad31d3c41fe2ff60d200"
   },
   "src/app/(app)/processos/[id]/page.test.tsx": {
-    "mtime": 1795720581.67204,
-    "seen": 1795742863.4337053,
-    "ast_hash": "0e7542c9c2fc4182c212e9d7789019b9",
+    "mtime": 1795787123.2844057,
+    "seen": 1795787146.9547315,
+    "ast_hash": "c70907aed61ebc50b0c4c4543ca6fb47",
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/page.tsx": {
-    "mtime": 1795708429.8355498,
-    "seen": 1795708518.0788927,
-    "ast_hash": "dc0537333e41ea622250d94d6e7da52f",
+    "mtime": 1795787123.2864141,
+    "seen": 1795787146.9547334,
+    "ast_hash": "fb854a99bd479130305226df9efe7558",
     "semantic_hash": ""
   },
   "src/app/(app)/processos/[id]/price-research-form.test.tsx": {
@@ -3855,6 +3855,30 @@
     "mtime": 1795785646.4420097,
     "seen": 1795786007.0951135,
     "ast_hash": "445d28699328807245482be3c1439d4a",
+    "semantic_hash": ""
+  },
+  "scripts/import-pca-crcpi-2027.mjs": {
+    "mtime": 1795787123.267443,
+    "seen": 1795787146.9544487,
+    "ast_hash": "5580176acedd1da397f6cf010a525be2",
+    "semantic_hash": ""
+  },
+  "src/app/(app)/conselhos/[id]/council-detail-page.tsx": {
+    "mtime": 1795787123.2716634,
+    "seen": 1795787146.954576,
+    "ast_hash": "8df3a51004ae198ef27b7298eb182f94",
+    "semantic_hash": ""
+  },
+  "src/app/(app)/conselhos/councils-page.tsx": {
+    "mtime": 1795787123.274664,
+    "seen": 1795787146.9545822,
+    "ast_hash": "94b7d66293f62fa99d5969dced93bad6",
+    "semantic_hash": ""
+  },
+  "src/app/(app)/estoque/movimentacoes/movements-page.tsx": {
+    "mtime": 1795787123.2790089,
+    "seen": 1795787146.9546583,
+    "ast_hash": "4afdd66a0372bf7e8a56fd9c49344f34",
     "semantic_hash": ""
   },
   "package-lock.json": {

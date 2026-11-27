@@ -8,7 +8,7 @@ vi.mock("@/server/lookups", () => ({ loadLookups: loadLookupsMock }));
 vi.mock("@/shared/ui/screen", () => ({ Screen: ({ result }: { result: unknown }) => <pre>{JSON.stringify(result)}</pre> }));
 vi.mock("./movement-form", () => ({ MovementForm: () => null }));
 vi.mock("@/modules/inventory/actions", () => ({}));
-import { Content } from "./page";
+import { Content } from "./movements-page";
 
 describe("stock movements required queries", () => {
   it("propagates movement failures and keeps successful empty result valid", async () => {
