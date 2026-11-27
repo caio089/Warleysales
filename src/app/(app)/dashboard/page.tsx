@@ -40,13 +40,13 @@ import {
 export const metadata: Metadata = { title: "Início" };
 
 const quickActions = [
-  { href: "/solicitacoes/nova", icon: FilePlus, title: "Novo pedido", description: "Peça materiais ou serviços em poucos passos." },
-  { href: "/solicitacoes", icon: ClipboardList, title: "Consultar solicitações", description: "Abra pedidos existentes para acompanhar as próximas ações." },
-  { href: "/solicitacoes/processos/novo", icon: FilePlus, title: "Novo processo", description: "Cadastre o processo na área centralizada." },
-  { href: "/processos", icon: ClipboardList, title: "Ver processos", description: "Acompanhe o que já está em andamento." },
-  { href: "/estoque", icon: Package, title: "Ver estoque", description: "Confira o que tem disponível hoje." },
-  { href: "/reunioes", icon: CalendarDays, title: "Reuniões e tarefas", description: "Consulte reuniões registradas e suas tarefas." },
-  { href: "/calendario", icon: CalendarDays, title: "Ver agenda", description: "Reuniões e prazos que estão por vir." },
+  { href: "/solicitacoes/nova", icon: FilePlus, title: "Novo pedido" },
+  { href: "/solicitacoes", icon: ClipboardList, title: "Consultar solicitações" },
+  { href: "/solicitacoes/processos/novo", icon: FilePlus, title: "Novo processo" },
+  { href: "/processos", icon: ClipboardList, title: "Ver processos" },
+  { href: "/estoque", icon: Package, title: "Ver estoque" },
+  { href: "/reunioes", icon: CalendarDays, title: "Reuniões e tarefas" },
+  { href: "/calendario", icon: CalendarDays, title: "Ver agenda" },
 ] as const;
 
 function one(value: string | string[] | undefined): string | undefined {
@@ -315,8 +315,23 @@ async function DashboardContent({
 
         const tightDeadlines = dash.deadlines.filter((d) => d.days <= 15).length;
 
+        // Unidades já recebidas (espelha o cálculo de pendentes do briefing)
+        let deliveredUnits = 0;
+        scopedRequests.forEach((r) => {
+          r.items.forEach((item) => {
+            deliveredUnits += Number(item.receivedTotal || 0);
+          });
+        });
+
+        const stockByLevel = {
+          normal: stockLevels.filter((l) => l.level === "normal").length,
+          atencao: stockLevels.filter((l) => l.level === "atencao").length,
+          critico: stockLevels.filter((l) => l.level === "critico").length,
+          semDisponibilidade: stockLevels.filter((l) => l.level === "sem_disponibilidade").length,
+        };
+
         return (
-          <div className="space-y-8">
+          <div className="space-y-5">
             <DashboardFilters
               councils={lookups.councils}
               councilId={councilId}
@@ -325,11 +340,21 @@ async function DashboardContent({
               attentionCount={replenishmentItems.length}
             />
 
+            {/* Aprovações no topo: ação principal do Warley, sem scroll até o fim da página */}
+            {canApproveRequests ? (
+              <ApprovalQueue items={approvalQueue} defaultOpen={reqPending > 0} />
+            ) : null}
+
             <HomeOverview
               isWarley={isWarley}
               requests={{ pending: reqPending, inProgress: reqInProgress, completed: reqCompleted }}
               processStatuses={dash.processStatuses}
+              stockByLevel={stockByLevel}
               stockAttention={replenishmentItems.length}
+              contracts={dash.summary.contracts}
+              atas={dash.summary.atas}
+              deliveries={{ delivered: deliveredUnits, pending: pendingDeliveryUnits }}
+              processProgress={dash.summary.processes.averageProgress}
               savingsTotal={savingsSummary.totalSavings}
               savingsProcesses={savingsSummary.count}
               approvalsWaiting={canApproveRequests ? reqPending : 0}
@@ -337,25 +362,33 @@ async function DashboardContent({
               overdueProcesses={tightDeadlines}
             />
 
-            <section aria-labelledby="quick-actions-heading" className="space-y-3">
-              <h2 id="quick-actions-heading" className="font-heading text-xl font-semibold text-primary">
-                Atalhos do dia
+            <section aria-labelledby="quick-actions-heading" className="space-y-2">
+              <h2 id="quick-actions-heading" className="font-heading text-base font-semibold text-primary">
+                Atalhos
               </h2>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {visibleActions.map(({ href, icon: Icon, title, description }) => (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {visibleActions.map(({ href, icon: Icon, title }) => (
                   <Link
                     key={href}
                     href={href}
-                    className="group flex min-w-0 flex-col rounded-2xl border border-border bg-card p-4 shadow-xs transition duration-300 hover:-translate-y-0.5 hover:border-highlight/60 hover:bg-accent/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    title={title}
+                    className="group inline-flex shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-primary shadow-xs transition hover:border-highlight/60 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <div className="mb-3 flex items-start justify-between gap-3">
-                      <span className={cn("grid size-10 place-items-center rounded-xl", href === "/solicitacoes/nova" ? "bg-highlight/15 text-highlight-foreground" : "bg-secondary text-primary")}>
-                        <Icon className="size-5" aria-hidden />
-                      </span>
-                      <ArrowUpRight className="size-4 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden />
-                    </div>
-                    <span className="text-sm font-semibold text-primary">{title}</span>
-                    <span className="mt-1 text-sm leading-snug text-muted-foreground">{description}</span>
+                    <span
+                      className={cn(
+                        "grid size-7 place-items-center rounded-lg",
+                        href === "/solicitacoes/nova"
+                          ? "bg-highlight/15 text-highlight-foreground"
+                          : "bg-secondary text-primary",
+                      )}
+                    >
+                      <Icon className="size-3.5" aria-hidden />
+                    </span>
+                    <span>{title}</span>
+                    <ArrowUpRight
+                      className="size-3.5 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                      aria-hidden
+                    />
                   </Link>
                 ))}
               </div>
@@ -365,21 +398,21 @@ async function DashboardContent({
               <BriefingCard facts={facts} />
             </Suspense>
 
-            <section id="atencao" aria-labelledby="attention-heading" className="scroll-mt-24 space-y-4">
-              <h2 id="attention-heading" className="font-heading text-xl font-semibold text-primary">
+            <section id="atencao" aria-labelledby="attention-heading" className="scroll-mt-24 space-y-3">
+              <h2 id="attention-heading" className="font-heading text-lg font-semibold text-primary">
                 O que precisa de você
               </h2>
-              <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+              <div className="grid items-stretch gap-3 xl:grid-cols-2">
                 <div className="min-w-0">
                   <RecentRequestsPanel items={recentRequests} pendingCount={reqPending} />
                 </div>
-                <div className="grid min-w-0 gap-3">
+                <div className="grid min-w-0 gap-3 content-start">
                   {focus === "prazos" || dash.deadlines.length > 0 ? (
                     <div id="prazos" className="scroll-mt-24">
-                      <DeadlinesPanel items={focus === "prazos" ? dash.deadlines : dash.deadlines.slice(0, 2)} />
+                      <DeadlinesPanel items={focus === "prazos" ? dash.deadlines : dash.deadlines.slice(0, 4)} />
                     </div>
                   ) : null}
-                  <ReplenishmentPanel items={replenishmentItems} />
+                  <ReplenishmentPanel items={replenishmentItems.slice(0, 8)} />
                 </div>
               </div>
             </section>
@@ -387,12 +420,11 @@ async function DashboardContent({
             <section
               id="filas-warley"
               aria-labelledby="workspace-heading"
-              className="scroll-mt-24 space-y-4"
+              className="scroll-mt-24 space-y-3"
             >
-              <h2 id="workspace-heading" className="font-heading text-xl font-semibold text-primary">
-                {isWarley ? "Suas filas de trabalho" : "Espaço do órgão"}
+              <h2 id="workspace-heading" className="font-heading text-lg font-semibold text-primary">
+                {isWarley ? "Outras filas" : "Espaço do órgão"}
               </h2>
-              {canApproveRequests ? <ApprovalQueue items={approvalQueue} defaultOpen={reqPending > 0} /> : null}
               {isWarley ? <FormalizationQueue items={pendingQueue} /> : null}
               {isWarley ? <OrderQueue items={pendingOrderQueue} /> : null}
               {workspace ? (
@@ -410,11 +442,11 @@ async function DashboardContent({
               )}
             </section>
 
-            <section id="detalhes" aria-labelledby="details-heading" className="scroll-mt-24 space-y-4 border-t border-border pt-6">
-              <h2 id="details-heading" className="font-heading text-xl font-semibold text-primary">
+            <section id="detalhes" aria-labelledby="details-heading" className="scroll-mt-24 space-y-3 border-t border-border pt-5">
+              <h2 id="details-heading" className="font-heading text-lg font-semibold text-primary">
                 Agenda e avisos
               </h2>
-              <div className="grid items-start gap-4 lg:grid-cols-2">
+              <div className="grid items-start gap-3 lg:grid-cols-2">
                 <div className="min-w-0">
                   <AgendaAndDeadlinesPanel meetings={upcomingMeetings} deadlines={dash.deadlines} />
                 </div>
@@ -443,23 +475,22 @@ async function DashboardHeading() {
   const date = new Intl.DateTimeFormat("pt-BR", { timeZone: APP_TIME_ZONE, dateStyle: "full" }).format(now);
 
   return (
-    <header className="relative mb-4 isolate overflow-hidden rounded-2xl bg-[#0f2942] px-5 py-6 text-white sm:px-7 sm:py-7">
+    <header className="relative mb-3 isolate overflow-hidden rounded-2xl bg-[#0f2942] px-5 py-4 text-white sm:px-6 sm:py-5">
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,#35556d,transparent_65%)]" />
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <p className="flex items-center gap-2 text-sm font-medium text-slate-200">
-          <span className="h-0.5 w-5 rounded-full bg-highlight" aria-hidden /> Início
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+        <div>
+          <p className="flex items-center gap-2 text-xs font-medium text-slate-200">
+            <span className="h-0.5 w-5 rounded-full bg-highlight" aria-hidden /> Início
+          </p>
+          <h1 className="mt-1 break-words font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
+            {greeting}{firstName ? `, ${firstName}` : ""}
+          </h1>
+        </div>
         <p className="flex items-center gap-2 text-sm text-slate-200">
           <Icon className="size-4 shrink-0 text-orange-300" aria-hidden />
           <span className="first-letter:uppercase">{date}</span>
         </p>
       </div>
-      <h1 className="mt-3 break-words font-heading text-3xl font-semibold tracking-tight sm:text-4xl">
-        {greeting}{firstName ? `, ${firstName}` : ""}
-      </h1>
-      <p className="mt-2 text-sm leading-relaxed text-slate-200 sm:text-base">
-        Um olhar rápido no dia — o que precisa de você e como anda o trabalho.
-      </p>
     </header>
   );
 }

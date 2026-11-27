@@ -70,7 +70,7 @@ export function ReplenishmentPanel({
             <p>Estoque em dia neste recorte.</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100 px-5">
+          <div className="max-h-[320px] divide-y divide-slate-100 overflow-y-auto px-5">
             {items.map((item, idx) => {
               const parsed = parseMaterialLabel(item.material);
               return (
@@ -142,7 +142,7 @@ export function RecentRequestsPanel({
             <p>Nenhum pedido recente por aqui.</p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100 px-5">
+          <div className="max-h-[320px] divide-y divide-slate-100 overflow-y-auto px-5">
             {items.map((sol) => {
               const statusPres = presentationOf(REQUEST_STATUS, sol.status);
               return (

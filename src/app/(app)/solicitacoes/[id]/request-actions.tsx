@@ -18,14 +18,13 @@ interface Props {
   receiptContracts?: { value: string; label: string; items: { id: string; pending: number }[] }[];
   /** Após aprovar, leva direto à documentação do processo. */
   onApproved?: () => void;
-  /** Modo resumido: só aprovar / não (e cancelar). */
+  /** Modo resumido: só aprovar / não. */
   summaryOnly?: boolean;
 }
 
-type DeclinePath = "fix" | "reject";
 type Panel = "decline" | "cancel" | null;
 
-/** Uma ação principal por vez. Motivo obrigatório para recusa, ajuste e cancelamento. */
+/** Decisão só com aprovar ou não. Motivo obrigatório na recusa e no cancelamento. */
 export function RequestActions({
   requestId,
   status,
@@ -42,12 +41,9 @@ export function RequestActions({
   const onlyReceiptContract = receiptContracts.length === 1 ? receiptContracts[0] : undefined;
   const receiptContract = onlyReceiptContract ?? receiptContracts.find((contract) => contract.value === receiptContractId);
   const receiptLines = new Map(receiptContract?.items.map((line) => [line.id, line]));
-  const [decline, setDecline] = useState<DeclinePath | null>(null);
   const next = nextStates(REQUEST_TRANSITIONS, status);
   const pendingDecision = canDecide && (status === "enviada" || status === "em_analise");
   const canApprove = pendingDecision;
-  const canFix = pendingDecision;
-  const canReject = pendingDecision;
   const canSubmit = canCreate && next.includes("enviada");
   const canResubmit = status === "aguardando_correcao" && canCreate;
   const canReopen = status === "rejeitada" && canDecide;
@@ -59,10 +55,6 @@ export function RequestActions({
     receiptContracts.length > 0;
 
   const deciding = canApprove;
-  const openDecline = (path: DeclinePath) => {
-    setDecline(path);
-    setPanel("decline");
-  };
 
   return (
     <section aria-labelledby="acoes" className="space-y-4">
@@ -83,14 +75,9 @@ export function RequestActions({
             >
               {() => null}
             </ActionForm>
-            <Button type="button" variant="outline" className="h-11" onClick={() => openDecline(canFix ? "fix" : "reject")}>
+            <Button type="button" variant="outline" className="h-11" onClick={() => setPanel("decline")}>
               Não
             </Button>
-            {canCancel ? (
-              <Button type="button" variant="outline" className="h-11 text-destructive hover:text-destructive" onClick={() => setPanel("cancel")}>
-                Cancelar solicitação
-              </Button>
-            ) : null}
           </div>
           <p className="text-xs text-muted-foreground">
             Ao aprovar, libera a documentação do processo e o andamento no estoque.
@@ -98,31 +85,17 @@ export function RequestActions({
         </div>
       ) : null}
 
-      {deciding && panel === "decline" && decline !== null ? (
+      {deciding && panel === "decline" ? (
         <div className="max-w-lg space-y-3 rounded-2xl border border-border/80 bg-secondary/40 p-4">
           <p className="text-sm text-muted-foreground">
-            {decline === "fix"
-              ? "A solicitação volta para quem pediu, com o seu recado."
-              : "A compra para aqui. Quem pediu vê o motivo no histórico."}
+            A compra para aqui. Quem pediu vê o motivo no histórico.
           </p>
-          <div className="flex gap-2">
-            {canFix ? (
-              <Button type="button" variant={decline === "fix" ? "default" : "outline"} size="sm" onClick={() => setDecline("fix")}>
-                Pedir ajuste
-              </Button>
-            ) : null}
-            {canReject ? (
-              <Button type="button" variant={decline === "reject" ? "destructive" : "outline"} size="sm" onClick={() => setDecline("reject")}>
-                Recusar
-              </Button>
-            ) : null}
-          </div>
           <ActionForm
             action={requestStepFormAction}
-            submitLabel={decline === "fix" ? "Enviar para ajuste" : "Recusar a compra"}
+            submitLabel="Recusar a compra"
             pendingLabel="Enviando…"
-            submitVariant={decline === "reject" ? "destructive" : "default"}
-            hiddenFields={{ requestId, step: decline === "fix" ? "requestCorrection" : "reject" }}
+            submitVariant="destructive"
+            hiddenFields={{ requestId, step: "reject" }}
           >
             {(errors) => (
               <TextAreaField name="note" label="Motivo" required errors={errors.note} />
@@ -162,7 +135,7 @@ export function RequestActions({
       ) : null}
 
       {!summaryOnly && !deciding && panel === null && canSubmit ? (
-        <ActionForm action={requestStepFormAction} submitLabel="Enviar para análise" pendingLabel="Enviando…" submitClassName="h-11 px-6" hiddenFields={{ requestId, step: "submit" }}>
+        <ActionForm action={requestStepFormAction} submitLabel="Enviar para aprovação" pendingLabel="Enviando…" submitClassName="h-11 px-6" hiddenFields={{ requestId, step: "submit" }}>
           {() => null}
         </ActionForm>
       ) : null}
