@@ -19,7 +19,7 @@ function setup() {
   const manager = managerOf(COUNCIL_A);
   const memberships = new InMemoryMembershipRepository([{ userId: manager.userId, councilId: COUNCIL_A, role: "council_manager" }]);
   return {
-    runtime, manager,
+    runtime, manager, ataRepo,
     atas: new AtaService(ataRepo, audit, runtime),
     contracts: new ContractService(contractRepo, audit, runtime),
     notifications: new NotificationService(new InMemoryNotificationRepository(), new RepositoryAlertSource(ataRepo, contractRepo, memberships), audit, runtime),
@@ -38,10 +38,11 @@ describe("NotificationService — alertas de vencimento", () => {
     expect(mine.ok && mine.data.items.map((n) => n.milestone).sort((a, b) => a - b)).toEqual([15, 30]);
     expect(mine.ok && mine.data.unread).toBe(2);
   });
-  it("atas vigentes participam; rascunhos não", async () => {
+  it("atas novas geram alertas; rascunhos antigos ficam de fora", async () => {
     const c = setup();
     const ata = await c.atas.create(c.manager, { councilId: COUNCIL_A, number: "01/2026", startDate: "2025-12-01", items: [{ description: "Papel", registeredQuantity: 1, unitPrice: 1 }] });
     if (!ata.ok) throw new Error();
+    await c.ataRepo.save({ ...ata.data, status: "rascunho" });
     expect(await c.notifications.generateExpiryAlerts()).toMatchObject({ candidates: 0 });
     await c.atas.activate(c.manager, { ataId: ata.data.id }); // fim 2026-11-30 => 28 dias
     expect(await c.notifications.generateExpiryAlerts()).toMatchObject({ created: 1 });

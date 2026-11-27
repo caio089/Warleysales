@@ -36,8 +36,8 @@ export async function saveProcessEstimatedValue(_previous: ActionState, form: Fo
   }, "Valor estimado salvo.");
 
   if (result.status === "success") {
-    revalidatePath(`/processos/${processId.data}`);
-    revalidatePath("/solicitacoes", "layout");
+    revalidatePath(`/solicitacoes/processos/${processId.data}`);
+    revalidatePath("/solicitacoes");
     for (const path of ["/processos", "/dashboard", "/meu-conselho", "/calendario", "/relatorios"]) revalidatePath(path);
   }
   return result;

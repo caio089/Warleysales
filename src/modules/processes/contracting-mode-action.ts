@@ -45,7 +45,7 @@ export async function saveProcessContractingMode(_previous: ActionState, form: F
     : "Processo marcado como somente contrato.");
 
   if (result.status === "success") {
-    revalidatePath(`/processos/${processId.data}`);
+    revalidatePath(`/solicitacoes/processos/${processId.data}`);
     for (const path of ["/processos", "/dashboard", "/meu-conselho", "/atas", "/contratos"]) {
       revalidatePath(path);
     }

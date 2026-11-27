@@ -11,7 +11,7 @@ import { formatCurrency } from "@/shared/lib/format";
 import { parseCurrencyInput } from "@/shared/lib/money-input";
 import { FormField } from "@/shared/ui/form-field";
 import { ActionForm } from "@/shared/ui/forms/action-form";
-import { CurrencyInput } from "@/shared/ui/forms/currency-input";
+import { Input } from "@/components/ui/input";
 
 function buildInitialDrafts(
   items: PriceResearchItemInput[],
@@ -20,8 +20,8 @@ function buildInitialDrafts(
 ): string[] {
   return items.map((item) => {
     const saved = savedLines?.find((line) => line.materialId === item.materialId);
-    if (saved != null) return saved.lineTotal.toFixed(2);
-    if (items.length === 1 && estimatedValue != null) return estimatedValue.toFixed(2);
+    if (saved != null) return saved.lineTotal.toFixed(2).replace(".", ",");
+    if (items.length === 1 && estimatedValue != null) return estimatedValue.toFixed(2).replace(".", ",");
     return "";
   });
 }
@@ -66,6 +66,7 @@ export function PriceResearchForm({
         ),
       }}
       resetOnSuccess={false}
+      refreshOnSuccess={false}
       submitVariant="outline"
     >
       {(errors) => (
@@ -91,11 +92,16 @@ export function PriceResearchForm({
                   errors={errors[`lines.${index}.lineTotal`]}
                 >
                   {(props) => (
-                    <CurrencyInput
+                    <Input
                       {...props}
                       name={`lines.${index}.lineTotal`}
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      required
                       value={drafts[index] ?? ""}
-                      onValueChange={(next) => {
+                      onChange={(event) => {
+                        const next = event.currentTarget.value;
                         setDrafts((current) => {
                           const copy = [...current];
                           copy[index] = next;

@@ -119,7 +119,7 @@ export async function createAtaFormAction(_previous: ActionState, formData: Form
       supplierId,
       items,
     });
-  }, "Ata criada como rascunho.");
+  }, "Ata cadastrada e ativada.");
   if (result.status !== "success" || !result.data) return result.status === "success" ? result : result;
   revalidatePath("/atas");
   revalidatePath("/fornecedores");

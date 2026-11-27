@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ClipboardCheck } from "lucide-react";
 import type { PurchaseRequestStatus } from "@/modules/purchases/domain/request-status";
@@ -30,12 +29,10 @@ export interface ApprovalsTabRequest {
 
 interface ApprovalsTabProps {
   request: ApprovalsTabRequest | null;
-  processId: string;
 }
 
 /** Aba fechada por padrão na barra; ao abrir, resumo, decisão e histórico com data/hora. */
-export function ApprovalsTab({ request, processId }: ApprovalsTabProps) {
-  const router = useRouter();
+export function ApprovalsTab({ request }: ApprovalsTabProps) {
 
   if (!request) {
     return (
@@ -139,10 +136,6 @@ export function ApprovalsTab({ request, processId }: ApprovalsTabProps) {
           canReceive={request.canReceive}
           pendingItems={pendingItems}
           summaryOnly
-          onApproved={() => {
-            router.push(`/solicitacoes/processos/${processId}?aba=documentos`);
-            router.refresh();
-          }}
         />
       </div>
 

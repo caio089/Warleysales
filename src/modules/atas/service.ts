@@ -60,7 +60,6 @@ export class AtaService {
       });
     }
 
-    // Nasce como rascunho: rascunho não consome saldo e não aceita comprometimento (R9).
     const saved = await this.repository.insert({
       id: this.runtime.newId(),
       councilId: d.councilId,
@@ -68,13 +67,13 @@ export class AtaService {
       supplierId: d.supplierId ?? null,
       processId: processId.data,
       startDate: d.startDate,
-      status: "rascunho",
+      status: "vigente",
       items: d.items.map((i) => ({ id: this.runtime.newId(), description: i.description, materialId: i.materialId ?? null, registeredQuantity: i.registeredQuantity, unitPrice: i.unitPrice, allocations: [] })),
       extensions: [],
       createdAt: this.runtime.now(),
     });
     if (!saved.ok) return saved;
-    await this.audit.record({ actorId: actor.userId, action: "ata.create", entity: "price_registration_ata", entityId: saved.data.id, councilId: d.councilId, result: "success", details: { number: d.number } });
+    await this.audit.record({ actorId: actor.userId, action: "ata.create", entity: "price_registration_ata", entityId: saved.data.id, councilId: d.councilId, result: "success", details: { number: d.number, status: saved.data.status } });
     return saved;
   }
 

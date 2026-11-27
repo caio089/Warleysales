@@ -10,7 +10,7 @@ export function ProcessClassificationForm({ processId, responsibleId, processTyp
   processType: string | null;
   people: { value: string; label: string }[];
 }) {
-  return <ActionForm action={classifyProcessFormAction} submitLabel="Salvar responsável e tipo" hiddenFields={{ processId }}>
+  return <ActionForm action={classifyProcessFormAction} submitLabel="Salvar responsável e tipo" hiddenFields={{ processId }} resetOnSuccess={false} refreshOnSuccess={false}>
     {(errors) => <>
       <SelectField name="responsibleId" label="Responsável atribuído" optional placeholder="Não atribuído" defaultValue={responsibleId ?? ""} options={people} errors={errors.responsibleId} />
       <TextField name="processType" label="Tipo de processo" defaultValue={processType ?? ""} errors={errors.processType} />

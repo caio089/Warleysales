@@ -263,7 +263,7 @@ export function ProcessView({
       <section className="surface-card max-w-lg space-y-3 p-4" aria-label="Responsável e tipo do processo">
         <p className="text-sm">Responsável: {assignees.find((person) => person.value === view.process.responsibleId)?.label ?? (view.process.responsibleId || "Não atribuído")}</p>
         <p className="text-sm">Tipo: {view.process.processType || "Não classificado"}</p>
-        {canManage ? <ProcessClassificationForm processId={view.process.id} responsibleId={view.process.responsibleId ?? null} processType={view.process.processType ?? null} people={assignees} /> : null}
+        {canManage && !(isWarley && approvalPending) ? <ProcessClassificationForm processId={view.process.id} responsibleId={view.process.responsibleId ?? null} processType={view.process.processType ?? null} people={assignees} /> : null}
       </section>
 
       <PlanDossierCard dossier={dossier} objectText={productName} />
@@ -339,7 +339,7 @@ export function ProcessView({
           tabIndex={0}
         >
           {activeTab === "aprovacoes" ? (
-            <><ApprovalsTab request={approvalRequest} processId={view.process.id} />
+            <><ApprovalsTab request={approvalRequest} />
             {relatedRequests.length > 0 ? <section aria-label="Solicitações relacionadas" className="surface-card mt-4 space-y-2 p-5"><h3 className="font-semibold">Solicitações relacionadas</h3>{relatedRequests.map((item) => <p key={item.id}><Link href={`/solicitacoes/${item.id}`} className="text-primary underline">{item.title}</Link> · {item.status} · solicitado {item.requested} · recebido {item.received}</p>)}</section> : null}{receiptMovements.length > 0 ? <section aria-label="Entradas no estoque relacionadas" className="surface-card mt-4 space-y-2 p-5"><h3 className="font-semibold">Entradas no estoque</h3>{receiptMovements.map((item) => <p key={item.id}>{item.material} · quantidade {item.quantity} · <Link href={`/solicitacoes/${item.reference.slice(8)}`} className="text-primary underline">Solicitação</Link></p>)}</section> : null}</>
           ) : null}
         </div>

@@ -72,8 +72,8 @@ export async function saveProcessPriceResearch(_previous: ActionState, form: For
   }, `Pesquisa de preços salva. Total: R$ ${total.toFixed(2).replace(".", ",")}.`);
 
   if (result.status === "success") {
-    revalidatePath(`/processos/${processId.data}`);
-    revalidatePath("/solicitacoes", "layout");
+    revalidatePath(`/solicitacoes/processos/${processId.data}`);
+    revalidatePath("/solicitacoes");
     for (const path of ["/processos", "/dashboard", "/meu-conselho", "/calendario", "/relatorios"]) {
       revalidatePath(path);
     }

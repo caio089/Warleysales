@@ -123,6 +123,17 @@ const BASE_PROPS: ProcessViewProps = {
 };
 
 describe("ProcessView", () => {
+  it("oculta a atribuição de responsável enquanto Warley analisa a solicitação", () => {
+    const approvalRequest = {
+      id: "request-1", title: "Solicitação", status: "enviada" as const, councilLabel: "Órgão",
+      estimatedValue: null, items: [], canDecide: true, canCreate: true, canReceive: false,
+    };
+    const html = renderToStaticMarkup(<ProcessView {...BASE_PROPS} isWarley canManage approvalRequest={approvalRequest} initialTab="aprovacoes" />);
+    expect(html).not.toContain("Responsável atribuído");
+    const afterApproval = renderToStaticMarkup(<ProcessView {...BASE_PROPS} isWarley canManage approvalRequest={{ ...approvalRequest, status: "aprovada" }} />);
+    expect(afterApproval).toContain("Responsável atribuído");
+  });
+
   it("usa aba documentos quando URL não tem aba ou tem aba inválida e aceita aba válida", () => {
     expect(processTabFromSearch("?filtro=aberto")).toBe("documentos");
     expect(processTabFromSearch("?aba=desconhecida&filtro=aberto")).toBe("documentos");

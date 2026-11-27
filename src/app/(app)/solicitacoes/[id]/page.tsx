@@ -13,8 +13,8 @@ import { loadScreen } from "@/server/screen";
 import { ok } from "@/shared/lib/result";
 import { can } from "@/shared/lib/authz/policy";
 import { ActivityTimeline } from "@/shared/ui/activity-timeline";
-import { REQUEST_LIFECYCLE, requestNextStep, requestRailKey } from "@/shared/ui/flow-copy";
-import { LifecycleRail, NextStepCallout } from "@/shared/ui/flow-guide";
+import { REQUEST_LIFECYCLE, requestRailKey } from "@/shared/ui/flow-copy";
+import { LifecycleRail } from "@/shared/ui/flow-guide";
 import { LoadingState } from "@/shared/ui/feedback-states";
 import { PageHeader } from "@/shared/ui/page-header";
 import { Screen } from "@/shared/ui/screen";
@@ -134,7 +134,6 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
     <Screen result={result}>
       {({ request, lookups, linkedProcess, canDecide, canCreate, canReceive, pendingItems, receiptContracts, revision, correctionItems, correctionCouncils }) => {
         const status = presentationOf(REQUEST_STATUS, request.status);
-        const next = requestNextStep(request.status, { canCreate, canDecide, canReceive });
         const dossier = planDossier(request.events.map((event) => event.note), request.estimatedValue, request.title);
         return (
           <>
@@ -147,12 +146,11 @@ async function Content({ params }: { params: Promise<{ id: string }> }) {
               description={
                 dossier.itemNumber
                   ? `${lookups.councilLabel[request.councilId] ?? "Órgão"} · item ${dossier.itemNumber} do PCA · concluir em ${dossier.plannedMonth} · vencimento ${dossier.expiry?.raw ?? "não informado"}`
-                  : `Órgão ${lookups.councilLabel[request.councilId] ?? "—"} · siga o próximo passo abaixo`
+                  : `Órgão ${lookups.councilLabel[request.councilId] ?? "—"}`
               }
               actions={<StatusBadge label={status.label} tone={status.tone} />}
             />
             <LifecycleRail steps={[...REQUEST_LIFECYCLE]} currentKey={requestRailKey(request.status)} />
-            <NextStepCallout {...next} />
             <div className="space-y-8">
               <PlanDossierCard dossier={dossier} objectText={request.title} />
               {canCreate && !revision ? <p role="status" className="rounded border p-3 text-sm">O formulário de correção ficará disponível após a atualização do banco de dados.</p> : null}

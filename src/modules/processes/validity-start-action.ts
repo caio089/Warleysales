@@ -39,7 +39,7 @@ export async function saveProcessValidityStartDate(_previous: ActionState, form:
   }, "Vigência do TR salva. Ata e contrato usarão esta data.");
 
   if (result.status === "success") {
-    revalidatePath(`/processos/${processId.data}`);
+    revalidatePath(`/solicitacoes/processos/${processId.data}`);
     for (const path of ["/processos", "/dashboard", "/meu-conselho", "/calendario", "/atas", "/contratos"]) {
       revalidatePath(path);
     }

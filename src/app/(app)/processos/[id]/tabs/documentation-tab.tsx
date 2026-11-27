@@ -23,7 +23,7 @@ import type { PriceResearchItemInput, PriceResearchLine } from "@/modules/proces
 import { saveProcessValidityStartDate } from "@/modules/processes/validity-start-action";
 import { sha256Hex, uploadToSignedUrl } from "@/shared/lib/browser-upload";
 import { formatBytes, formatCurrency } from "@/shared/lib/format";
-import { CurrencyField } from "@/shared/ui/forms/fields";
+import { TextField } from "@/shared/ui/forms/fields";
 import { formatDateOnly, formatDateTimeFortaleza } from "@/shared/lib/time";
 import { ActionForm } from "@/shared/ui/forms/action-form";
 import { toast } from "@/shared/ui/toast-store";
@@ -214,6 +214,7 @@ export function DocumentationTab({
             submitLabel="Salvar resposta"
             hiddenFields={{ processId }}
             resetOnSuccess={false}
+            refreshOnSuccess={false}
             submitVariant="outline"
           >
             {(errors) => (
@@ -360,6 +361,7 @@ export function DocumentationTab({
                         submitLabel="Salvar vigência"
                         hiddenFields={{ processId }}
                         resetOnSuccess={false}
+                        refreshOnSuccess={false}
                         submitVariant="outline"
                       >
                         {(errors) => (
@@ -399,9 +401,9 @@ export function DocumentationTab({
                       )
                     ) : canEditEstimatedValue ? (
                       <ActionForm action={saveProcessEstimatedValue} submitLabel="Salvar valor"
-                        hiddenFields={{ processId }} resetOnSuccess={false} submitVariant="outline">
-                        {() => <CurrencyField key={estimatedValue} name="estimatedValue" label="Valor estimado (R$)"
-                          required defaultValue={estimatedValue?.toFixed(2)} />}
+                        hiddenFields={{ processId }} resetOnSuccess={false} refreshOnSuccess={false} submitVariant="outline">
+                        {() => <TextField key={estimatedValue} name="estimatedValue" label="Valor estimado (R$)"
+                          inputMode="decimal" placeholder="0,00" required defaultValue={estimatedValue?.toFixed(2).replace(".", ",")} />}
                       </ActionForm>
                     ) : (
                       <p className="text-sm">Valor estimado: {estimatedValue == null ? "A definir" : formatCurrency(estimatedValue)}</p>
@@ -420,10 +422,10 @@ export function DocumentationTab({
             ) : "Não informada"}
           </p>
           {canEditPublicSessionDate && (
-            <ActionForm key={publicSessionDate ?? ""} action={savePublicSessionDateFormAction} submitLabel="Salvar data">
+            <ActionForm action={savePublicSessionDateFormAction} submitLabel="Salvar data" resetOnSuccess={false} refreshOnSuccess={false}>
               {() => <>
                 <input type="hidden" name="processId" value={processId} />
-                <Input type="date" name="publicSessionDate" aria-labelledby="public-session-date" defaultValue={publicSessionDate ?? ""} />
+                <Input key={publicSessionDate ?? ""} type="date" name="publicSessionDate" aria-labelledby="public-session-date" defaultValue={publicSessionDate ?? ""} />
               </>}
             </ActionForm>
           )}

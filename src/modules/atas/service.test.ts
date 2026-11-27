@@ -8,7 +8,8 @@ import { AtaService } from "./service";
 function setup() {
   const runtime = makeRuntime("2026-11-02T12:00:00Z");
   const audit = new AuditService(new InMemoryAuditRepository(runtime.now));
-  return { runtime, service: new AtaService(new InMemoryAtaRepository(), audit, runtime) };
+  const repository = new InMemoryAtaRepository();
+  return { runtime, repository, service: new AtaService(repository, audit, runtime) };
 }
 let ctx: ReturnType<typeof setup>;
 const manager = () => managerOf(COUNCIL_A);
@@ -16,20 +17,21 @@ const manager = () => managerOf(COUNCIL_A);
 async function activeAta(quantity = 100) {
   const created = await ctx.service.create(manager(), { councilId: COUNCIL_A, number: "05/2026", startDate: "2026-11-01", items: [{ description: "Papel A4", registeredQuantity: quantity, unitPrice: 25.9 }] });
   if (!created.ok) throw new Error(created.message);
-  const activated = await ctx.service.activate(manager(), { ataId: created.data.id });
-  if (!activated.ok) throw new Error(activated.message);
-  return activated.data;
+  expect(created.data.status).toBe("vigente");
+  return created.data;
 }
 beforeEach(() => { ctx = setup(); });
 
 describe("AtaService — saldo (R9)", () => {
-  it("rascunho não consome nem aceita comprometimento", async () => {
+  it("rascunho antigo não aceita comprometimento até ser ativado", async () => {
     const created = await ctx.service.create(manager(), { councilId: COUNCIL_A, number: "06/2026", startDate: "2026-11-01", items: [{ description: "Caneta", registeredQuantity: 10, unitPrice: 1 }] });
-    if (!created.ok) throw new Error();
+    if (!created.ok) throw new Error(created.message);
+    await ctx.repository.save({ ...created.data, status: "rascunho" });
     const r = await ctx.service.commitInternal({ itemId: created.data.items[0]!.id, councilId: COUNCIL_A, quantity: 1, reference: "req-1" });
     expect(!r.ok && r.code).toBe("INVALID_STATE");
     const view = await ctx.service.get(manager(), created.data.id);
     expect(view.ok && view.data.items[0]!.balance.balance).toBe(10);
+    expect(await ctx.service.activate(manager(), { ataId: created.data.id })).toMatchObject({ ok: true, data: { status: "vigente" } });
   });
   it("compromete até o limite e bloqueia o excesso, mesmo concorrente", async () => {
     const ata = await activeAta(100);

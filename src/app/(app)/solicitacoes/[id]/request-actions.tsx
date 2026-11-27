@@ -17,7 +17,6 @@ interface Props {
   pendingItems: { id: string; label: string; pending: number }[];
   receiptContracts?: { value: string; label: string; items: { id: string; pending: number }[] }[];
   /** Após aprovar, leva direto à documentação do processo. */
-  onApproved?: () => void;
   /** Modo resumido: só aprovar / não. */
   summaryOnly?: boolean;
 }
@@ -33,7 +32,6 @@ export function RequestActions({
   canReceive,
   pendingItems,
   receiptContracts = [],
-  onApproved,
   summaryOnly = false,
 }: Props) {
   const [panel, setPanel] = useState<Panel>(null);
@@ -71,7 +69,6 @@ export function RequestActions({
               pendingLabel="Aprovando…"
               submitClassName="h-11 px-6"
               hiddenFields={{ requestId, step: "approve" }}
-              onSuccess={onApproved}
             >
               {() => null}
             </ActionForm>
