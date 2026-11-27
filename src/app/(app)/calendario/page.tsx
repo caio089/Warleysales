@@ -60,10 +60,13 @@ async function Content({ searchParams }: { searchParams: Promise<Query> }) {
     ).map((p) => ({ councilId: c.value, value: p.id, label: p.fullName || p.id }))))).flat();
     const processesById = new Map(processes.data.map(({ process }) => [process.id, process]));
     const requestsById = new Map(requests.data.map((request) => [request.id, request]));
+    const firstOfMonthCouncilIds = new Set(councils.data
+      .filter((council) => council.acronym === "CRCPI")
+      .map((council) => council.id));
     const marks = calendarMarks(requests.data.map((request) => ({
       id: request.id, councilId: request.councilId, title: request.title,
       estimatedValue: request.estimatedValue, notes: request.events.map((event) => event.note),
-    })));
+    })), PLAN_YEAR, firstOfMonthCouncilIds);
     const events: AgendaEvent[] = [];
     const monthPlans: { id: string; month: string; councilId: string; title: string; href: string; personId?: string }[] = [];
     for (const mark of marks) {

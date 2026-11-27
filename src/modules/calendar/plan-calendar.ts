@@ -90,7 +90,11 @@ function exactCalendarDate(day: string | null): Date | null {
 }
 
 /** Uma marca por data que o plano realmente informa. Sem mês, a contratação fica fora do calendário. */
-export function calendarMarks(sources: readonly CalendarSource[], planYear = PLAN_YEAR): CalendarMark[] {
+export function calendarMarks(
+  sources: readonly CalendarSource[],
+  planYear = PLAN_YEAR,
+  firstOfMonthCouncilIds: ReadonlySet<string> = new Set(),
+): CalendarMark[] {
   const marks: CalendarMark[] = [];
   for (const source of sources) {
     const dossier = planDossier(source.notes, source.estimatedValue, source.title);
@@ -108,7 +112,9 @@ export function calendarMarks(sources: readonly CalendarSource[], planYear = PLA
         councilId: source.councilId,
         title: source.title,
         kind: "concluir",
-        day: date ? plannedDay : null,
+        day: firstOfMonthCouncilIds.has(source.councilId)
+          ? `${year}-${String(month + 1).padStart(2, "0")}-01`
+          : date ? plannedDay : null,
         year,
         month,
         detail: dossier.plannedMonth,

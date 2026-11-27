@@ -29,6 +29,19 @@ describe("calendário do plano", () => {
     ]);
   });
 
+  it("marca solicitações do CRCPI no primeiro dia do mês previsto", () => {
+    const july = note.replace("Out.", "Jul.");
+    const august = note.replace("Out.", "Ago.");
+    const marks = calendarMarks([
+      { id: "july", councilId: "crcpi", title: "Julho", notes: [july] },
+      { id: "august", councilId: "crcpi", title: "Agosto", notes: [august] },
+      { id: "other", councilId: "other", title: "Outro órgão", notes: [july] },
+    ], 2027, new Set(["crcpi"]));
+    expect(marks.find((mark) => mark.requestId === "july" && mark.kind === "concluir")?.day).toBe("2027-07-01");
+    expect(marks.find((mark) => mark.requestId === "august" && mark.kind === "concluir")?.day).toBe("2027-08-01");
+    expect(marks.find((mark) => mark.requestId === "other" && mark.kind === "concluir")?.day).toBeNull();
+  });
+
   it("trava o calendário no único órgão do usuário", () => {
     expect(resolveCalendarCouncil(["sfapi"], "outro-orgao")).toBe("sfapi");
     expect(resolveCalendarCouncil(["sfapi", "crcpi"], "crcpi")).toBe("crcpi");
