@@ -11,4 +11,3 @@ export default async function LegacyProcessPage({ params, searchParams }: {
     : "";
   redirect(`/solicitacoes/processos/${id}${tab}`);
 }
-export { ProcessContent } from "./process-detail-page";

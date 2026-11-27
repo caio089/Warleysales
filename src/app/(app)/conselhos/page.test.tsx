@@ -5,7 +5,7 @@ const loadScreenMock = vi.hoisted(() => vi.fn());
 vi.mock("@/server/screen", () => ({ loadScreen: loadScreenMock }));
 vi.mock("next/link", () => ({ default: ({ children }: { children: unknown }) => children }));
 vi.mock("@/shared/ui/screen", () => ({ Screen: ({ result }: { result: unknown }) => <pre>{JSON.stringify(result)}</pre> }));
-import { CouncilsContent } from "./page";
+import { CouncilsContent } from "./councils-page";
 
 describe("council list required queries", () => {
   const run = (results: unknown[]) => {
