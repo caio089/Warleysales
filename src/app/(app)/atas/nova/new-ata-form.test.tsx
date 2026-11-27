@@ -19,6 +19,18 @@ describe("suggestAtaNumber", () => {
 });
 
 describe("NewAtaForm (no processo)", () => {
+  it("abre a edição com os valores da ata e exige justificativa", () => {
+    const html = renderToStaticMarkup(<NewAtaForm councils={[]} materials={[]} processes={[]} lockedProcess={{
+      councilId: "c1", councilLabel: "Órgão", processId: "p1", processLabel: "Processo", processNumber: "1",
+      materials: [{ materialId: "m1", name: "Papel", quantity: 5 }], suppliers: [],
+      hasPriorAtas: true, existingAtaNumbers: ["ARP-1"],
+      editing: { number: "ARP-1", supplierId: "s1", supplierName: "Fornecedor atual", lineTotals: [125.5] },
+    }} />);
+    expect(html).toContain("Salvar edição e substituir ata");
+    expect(html).toContain("Justificativa da troca de ata");
+    expect(html).toContain('value="25,10"');
+    expect(html).toContain('name="items.0.registeredQuantity"');
+  });
   it("pergunta sobre múltiplos vencedores antes de abrir o cadastro da ata", () => {
     const html = renderToStaticMarkup(
       <NewAtaForm

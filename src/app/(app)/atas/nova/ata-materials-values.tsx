@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { formatCurrency } from "@/shared/lib/format";
 import { parseCurrencyInput } from "@/shared/lib/money-input";
 import { FormField } from "@/shared/ui/form-field";
-import { CurrencyInput } from "@/shared/ui/forms/currency-input";
+import { Input } from "@/components/ui/input";
 
 export type AtaMaterialLine = {
   materialId: string;
@@ -26,12 +26,12 @@ function buildDrafts(
 ): string[] {
   return lines.map((line, index) => {
     const fromPdf = defaultLineTotals?.[index];
-    if (fromPdf != null && Number.isFinite(fromPdf) && line.quantity > 0) return (Number(fromPdf) / line.quantity).toFixed(2);
-    if (lines.length === 1 && defaultTotal != null && line.quantity > 0) return (defaultTotal / line.quantity).toFixed(2);
+    if (fromPdf != null && Number.isFinite(fromPdf) && line.quantity > 0) return (Number(fromPdf) / line.quantity).toFixed(2).replace(".", ",");
+    if (lines.length === 1 && defaultTotal != null && line.quantity > 0) return (defaultTotal / line.quantity).toFixed(2).replace(".", ",");
     if (defaultTotal != null && lines.length > 1) {
       const sumQty = lines.reduce((total, item) => total + item.quantity, 0);
       if (sumQty <= 0) return "";
-      return (defaultTotal / sumQty).toFixed(2);
+      return (defaultTotal / sumQty).toFixed(2).replace(".", ",");
     }
     return "";
   });
@@ -44,6 +44,7 @@ export function AtaMaterialsValues({
   processLabel,
   defaultTotal,
   defaultLineTotals,
+  editableQuantity = false,
   errors = {},
 }: {
   lines: AtaMaterialLine[];
@@ -52,21 +53,24 @@ export function AtaMaterialsValues({
   defaultTotal?: number | null;
   /** Totais por linha (ex.: lidos do PDF). Tem prioridade sobre rateio do defaultTotal. */
   defaultLineTotals?: Array<number | null | undefined>;
+  editableQuantity?: boolean;
   errors?: Record<string, string[]>;
 }) {
   const [drafts, setDrafts] = useState(() => buildDrafts(lines, defaultTotal, defaultLineTotals));
 
+  const [quantities, setQuantities] = useState(() => lines.map((line) => String(line.quantity).replace(".", ",")));
   const computed = useMemo(
     () =>
       lines.map((line, index) => {
         const unit = parseMoney(drafts[index] ?? "");
-        const lineTotal = Math.round(unit * line.quantity * 100) / 100;
+        const quantity = editableQuantity ? Number(quantities[index]?.replace(",", ".")) || 0 : line.quantity;
+        const lineTotal = Math.round(unit * quantity * 100) / 100;
         return {
           lineTotal,
-          unit,
+          unit, quantity,
         };
       }),
-    [drafts, lines],
+    [drafts, lines, editableQuantity, quantities],
   );
 
   const grandTotal = Math.round(computed.reduce((sum, row) => sum + row.lineTotal, 0) * 100) / 100;
@@ -94,24 +98,34 @@ export function AtaMaterialsValues({
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 px-3.5 py-2.5">
                 <p className="min-w-0 text-sm font-medium text-foreground">{line.name}</p>
                 <span className="inline-flex items-center rounded-full bg-background px-2.5 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground ring-1 ring-border/70">
-                  Qtd {line.quantity}
+                  Qtd {row.quantity}
                 </span>
               </div>
 
               <div className="grid gap-3 p-3.5 sm:grid-cols-2">
+                {editableQuantity && <Input name={`items.${index}.description`} aria-label="Descrição do item" defaultValue={line.name} required />}
+                {editableQuantity && <FormField label="Quantidade registrada" required>
+                  {(props) => <Input {...props} name={`items.${index}.registeredQuantity`} inputMode="decimal" required value={quantities[index] ?? ""}
+                    onChange={(event) => {
+                      const next = event.currentTarget.value;
+                      setQuantities((values) => values.map((value, i) => i === index ? next : value));
+                    }} />}
+                </FormField>}
                 <FormField
                   label="Valor unitário"
                   required
                   errors={errors[`items.${index}.unitPrice`]}
                 >
                   {(props) => (
-                    <CurrencyInput
+                    <Input
                       {...props}
                       name={`items.${index}.unitPrice`}
                       placeholder="0,00"
                       required
+                      type="text" inputMode="decimal"
                       value={drafts[index] ?? ""}
-                      onValueChange={(next) => {
+                      onChange={(event) => {
+                        const next = event.currentTarget.value;
                         setDrafts((current) => {
                           const copy = [...current];
                           copy[index] = next;
@@ -130,7 +144,7 @@ export function AtaMaterialsValues({
                     {formatCurrency(row.lineTotal)}
                   </p>
                   <p className="text-[0.7rem] text-muted-foreground">
-                    {formatCurrency(row.unit)} × {line.quantity}
+                    {formatCurrency(row.unit)} × {row.quantity}
                   </p>
                 </div>
               </div>

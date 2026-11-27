@@ -53,6 +53,7 @@ export function NewAtaForm({
     existingAtaNumbers?: string[];
     requireReplacementJustification?: boolean;
     hasPriorAtas?: boolean;
+    editing?: { number: string; supplierId?: string | null; supplierName?: string | null; lineTotals: number[] };
     assignedMaterialIds?: string[];
   };
 }) {
@@ -65,8 +66,8 @@ export function NewAtaForm({
   const [message, setMessage] = useState("");
   const [supplierId, setSupplierId] = useState("");
   const [pdfVersion, setPdfVersion] = useState(0);
-  const [multipleWinners, setMultipleWinners] = useState<boolean | null>(null);
-  const [additionalWinner, setAdditionalWinner] = useState<boolean | null>(null);
+  const [multipleWinners, setMultipleWinners] = useState<boolean | null>(lockedProcess?.editing ? false : null);
+  const [additionalWinner, setAdditionalWinner] = useState<boolean | null>(lockedProcess?.editing ? false : null);
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
 
   async function readPdf() {
@@ -144,23 +145,23 @@ export function NewAtaForm({
       : [];
     const defaultLineTotals = extracted?.items?.length
       ? lines.map((_, index) => matches[index] == null ? null : extracted.items[matches[index]!]!.lineTotal)
-      : undefined;
+      : lockedProcess.editing?.lineTotals;
     const suggestedNumber = suggestAtaNumber(
-      extracted?.number?.trim() || `ARP ${lockedProcess.processNumber || "sem-número"}`,
+      extracted?.number?.trim() || lockedProcess.editing?.number || `ARP ${lockedProcess.processNumber || "sem-número"}`,
       lockedProcess.existingAtaNumbers ?? [],
     );
     const startDate = extracted?.startDate ?? lockedProcess.validityStartDate ?? undefined;
 
     return (
       <div className="space-y-4">
-        <fieldset className="space-y-2 rounded-xl border border-border p-4">
+        {!lockedProcess.editing && <fieldset className="space-y-2 rounded-xl border border-border p-4">
           <legend className="text-sm font-semibold">Houve mais de uma empresa vencedora nesta licitação?</legend>
           <div className="flex gap-4 text-sm">
             <label><input type="radio" name="multipleWinnersChoice" checked={multipleWinners === true} onChange={() => setMultipleWinners(true)} /> Sim</label>
             <label><input type="radio" name="multipleWinnersChoice" checked={multipleWinners === false} onChange={() => { setMultipleWinners(false); setAdditionalWinner(false); }} /> Não</label>
           </div>
-        </fieldset>
-        {lockedProcess.hasPriorAtas && multipleWinners !== null ? (
+        </fieldset>}
+        {!lockedProcess.editing && lockedProcess.hasPriorAtas && multipleWinners !== null ? (
           <fieldset className="space-y-2 rounded-xl border border-border p-4">
             <legend className="text-sm font-semibold">Esta ata é de outro vencedor ou substitui uma ata anterior?</legend>
             <div className="flex flex-wrap gap-4 text-sm">
@@ -184,7 +185,7 @@ export function NewAtaForm({
           <p className="text-sm text-muted-foreground">Responda às perguntas e selecione os itens desta empresa para continuar.</p>
         ) : (
         <>
-        <section className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-4" aria-label="Ler ata em PDF para preencher">
+        {!lockedProcess.editing && <section className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-4" aria-label="Ler ata em PDF para preencher">
           <div>
             <h3 className="text-sm font-semibold text-foreground">Ler ata em PDF para preencher</h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -205,24 +206,27 @@ export function NewAtaForm({
               {message}
             </p>
           ) : null}
-        </section>
+        </section>}
 
         <ActionForm
           key={`ata-form-${suggestedNumber}-${pdfVersion}`}
           action={createAtaFormAction}
-          submitLabel={lockedProcess.requireReplacementJustification ? "Registrar nova ata" : "Registrar ata"}
+          submitLabel={lockedProcess.editing ? "Salvar edição e substituir ata" : lockedProcess.requireReplacementJustification ? "Registrar nova ata" : "Registrar ata"}
           hiddenFields={{
             councilId: lockedProcess.councilId,
             processId: lockedProcess.processId,
             processNumber: lockedProcess.processNumber,
             itemCount: String(lines.length),
             returnTo: `/processos/${lockedProcess.processId}`,
+            ...(lockedProcess.editing?.supplierId ? { supplierId: lockedProcess.editing.supplierId } : {}),
             ...(additionalWinner ? { additionalWinner: "true" } : {}),
             ...Object.fromEntries(
               lines.flatMap((line, index) => [
-                [`items.${index}.description`, line.name],
                 [`items.${index}.materialId`, line.materialId],
-                [`items.${index}.registeredQuantity`, String(line.quantity)],
+                ...(lockedProcess.editing ? [] : [
+                  [`items.${index}.description`, line.name],
+                  [`items.${index}.registeredQuantity`, String(line.quantity)],
+                ]),
               ]),
             ),
           }}
@@ -249,15 +253,15 @@ export function NewAtaForm({
                     Digite o nome ou use o que a IA leu do PDF.
                   </p>
                 </div>
-                <TextField
+                {lockedProcess.editing?.supplierId ? <p className="text-sm">{lockedProcess.editing.supplierName ?? "Fornecedor da ata"}</p> : <TextField
                   name="supplierName"
                   label="Nome da empresa"
                   required={!supplierId}
                   placeholder="Ex.: Fornecedor Alfa Ltda"
                   defaultValue={extracted?.supplierName ?? ""}
                   errors={e.supplierName ?? e.supplierId}
-                />
-                {lockedProcess.suppliers.length > 0 ? (
+                />}
+                {!lockedProcess.editing?.supplierId && lockedProcess.suppliers.length > 0 ? (
                   <SelectField
                     key={`supplier-${supplierId}`}
                     name="supplierId"
@@ -282,6 +286,7 @@ export function NewAtaForm({
                 processLabel={lockedProcess.processLabel}
                 defaultTotal={multipleWinners ? null : matches.some((match) => match === null) ? lockedProcess.defaultValue : (extracted?.totalValue ?? lockedProcess.defaultValue)}
                 defaultLineTotals={defaultLineTotals}
+                editableQuantity={Boolean(lockedProcess.editing)}
                 errors={e}
               />
               {extracted?.items?.length && matches.some((match) => match === null) ? (

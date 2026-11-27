@@ -168,8 +168,9 @@ describe("ContractingTab", () => {
           materials: [], requestMaterials: [], suppliers: [] }} />,
     );
     expect(html).toContain("Criar outra ata");
-    expect(html).toContain("ARP antiga");
-    expect(html).toContain("Ata cancelada após o cadastro");
+    expect(html).toContain("Atas anteriores");
+    expect(html).toContain("Editar ata");
+    expect(html).not.toContain("ARP antiga");
     expect(html).not.toContain("Número da ata");
     expect(html).not.toContain("Ler ata em PDF para preencher");
   });
